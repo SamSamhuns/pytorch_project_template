@@ -31,7 +31,7 @@ MNIST_CONFIG = {
         "TYPE": BaseDataLoader,
         "BATCH_SIZE": 32,
         "SHUFFLE": True,
-        "NUM_WORKERS": 2,
+        "NUM_WORKERS": 0,
         "VALIDATION_SPLIT": 0.1,
         "PIN_MEMORY": True
     },
@@ -68,6 +68,8 @@ MNIST_CONFIG = {
         "FILE_FMT": "%(asctime)s %(levelname)-8s: %(message)s",
         "CONSOLE_FMT": "%(message)s",
 
+        "<logger levels>": "DEBUG:10, INFO:20, ERROR:40",
+        "LOGGER_LEVEL": 10,
         "FILE_LEVEL": 10,
         "CONSOLE_LEVEL": 10
     }

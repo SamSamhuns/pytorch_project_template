@@ -1,10 +1,9 @@
 """
-Base agent class xonstains the base train, validate, test, inference, and utility functions
+Base agent class constains the base train, validate, test, inference, and utility functions
 Other agents specific to a network overload the functions of this base agent class
 """
 from modules.loggers.base_logger import get_logger
 from easydict import EasyDict as edict
-import os
 
 
 class BaseAgent:
@@ -12,14 +11,19 @@ class BaseAgent:
     base functions which will be overloaded
     """
 
-    def __init__(self, CONFIG, logger_name="agent"):
+    def __init__(self, CONFIG, logger_fname="train", logger_name="logger"):
         """
         config is the edict configurations object
         """
         self.CONFIG = edict(CONFIG)
-        logger_path = os.path.join(self.CONFIG.LOGGER.DIR,
-                                   self.CONFIG.LOGGER.LOG_FMT.format(logger_name))
-        self.logger = get_logger(logger_path)
+        self.logger = get_logger(logger_fname=self.CONFIG.LOGGER.LOG_FMT.format(logger_fname),
+                                 logger_dir=self.CONFIG.LOGGER.DIR,
+                                 logger_name=logger_name,
+                                 file_fmt=self.CONFIG.LOGGER.FILE_FMT,
+                                 console_fmt=self.CONFIG.LOGGER.CONSOLE_FMT,
+                                 logger_level=self.CONFIG.LOGGER.LOGGER_LEVEL,
+                                 file_level=self.CONFIG.LOGGER.FILE_LEVEL,
+                                 console_level=self.CONFIG.LOGGER.CONSOLE_LEVEL)
 
     def load_checkpoint(self, file_name):
         """
@@ -68,6 +72,12 @@ class BaseAgent:
     def inference(self):
         """
         inference function
+        """
+        raise NotImplementedError
+
+    def export_as_onnx(self):
+        """
+        ONNX format export function
         """
         raise NotImplementedError
 

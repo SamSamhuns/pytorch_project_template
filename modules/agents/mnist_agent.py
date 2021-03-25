@@ -23,6 +23,7 @@ class MnistAgent(BaseAgent):
         self.data_set = self.CONFIG.DATASET.TYPE
 
         # define train, validate, and test data_loader
+        # in OSX systems DATALOADER.NUM_WORKERS should be set to 0 which might increasing training time
         self.train_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.train_dataset,
                                                              batch_size=self.CONFIG.DATALOADER.BATCH_SIZE,
                                                              validation_split=self.CONFIG.DATALOADER.VALIDATION_SPLIT,
@@ -113,13 +114,13 @@ class MnistAgent(BaseAgent):
                                                   map_location=torch.device('cpu')))
         self.logger.info(f"Loaded checkpoint {ckpt_file}")
 
-    def save_checkpoint(self, filename="checkpoint.pth.tar"):
+    def save_checkpoint(self, filename="checkpoint.pth"):
         """
         Checkpoint saver
         :param file_name: name of the checkpoint file
         :return:
         """
-        save_path = os.path.join(self.CONFIG.CHECKPOINT_DIR, filename)
+        save_path = os.path.join(self.CONFIG.TRAINER.CHECKPOINT_DIR, filename)
         torch.save(self.model.state_dict(), save_path)
 
     def run(self):
@@ -147,7 +148,7 @@ class MnistAgent(BaseAgent):
                     mlist = self.best_metric_dict[metric]
                     if len(mlist) == 1 or mlist[-1] > mlist[-2]:
                         self.save_checkpoint(
-                            filename=f"checkpoint_{epoch}.pth.tar")
+                            filename=f"checkpoint_{epoch}.pth")
             self.current_epoch += 1
 
     def train_one_epoch(self):
@@ -168,11 +169,11 @@ class MnistAgent(BaseAgent):
             loss.backward()
             self.optimizer.step()
             if batch_idx % self.CONFIG.TRAINER.LOG_FREQ == 0:
-                self.logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                self.logger.info('Train Epoch: {} [{:5d}/{:.0f} ({:.1f}%)] Loss: {:.6f}'.format(
                     self.current_epoch,
                     batch_idx * len(data),
                     train_data_len,
-                    100. * batch_idx / len(self.train_data_loader),
+                    100 * batch_idx / len(self.train_data_loader),
                     loss.item()))
             self.current_iteration += 1
 
@@ -212,7 +213,7 @@ class MnistAgent(BaseAgent):
         # scheduler.step should be called after validate()
         self.scheduler.step(val_loss)
 
-        self.logger.info('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        self.logger.info('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             val_loss, correct, val_size, val_accuracy))
 
     def finalize_exit(self):
