@@ -42,7 +42,7 @@ MNIST_CONFIG = {
         "AMSGRAD": False,
         "MOMENTUM": 0.5
     },
-    "LOSS": nn.NLLLoss(),
+    "LOSS": nn.NLLLoss,
     "METRICS": ["val_accuracy"],
     "LR_SCHEDULER": {
         "TYPE": optim.lr_scheduler.ReduceLROnPlateau,

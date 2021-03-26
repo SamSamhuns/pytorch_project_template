@@ -140,6 +140,12 @@ cython_debug/
 # PyCharm
 .idea
 
+# pyyorch checkpoint files
+checkpoints
+
+# log files
+logs
+
 # MacOS system files
 .DS_Store
 ._.DS_Store
