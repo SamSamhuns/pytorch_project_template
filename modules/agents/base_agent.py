@@ -31,7 +31,7 @@ class BaseAgent:
 
             _tboard_log_dir = self.CONFIG.TRAINER.TENSORBOARD_EXPERIMENT_DIR
             _agent_name = self.CONFIG.NAME
-            _optim_name = self.OPTIMIZER.TYPE.__name__
+            _optim_name = self.CONFIG.OPTIMIZER.TYPE.__name__
             _bsize = self.CONFIG.DATALOADER.BATCH_SIZE
             _lr = self.CONFIG.OPTIMIZER.LR
 

@@ -91,7 +91,7 @@ class ClassifierAgent(BaseAgent):
             w = self.CONFIG.ARCH.INPUT_WIDTH
             h = self.CONFIG.ARCH.INPUT_HEIGHT
             c = self.CONFIG.ARCH.INPUT_CHANNEL
-            _dummy_input = torch.ones(([1, w, h, c]))
+            _dummy_input = torch.ones(([1, c, h, w]))
             self.tboard_writer.add_graph(self.model, _dummy_input)
 
     def load_checkpoint(self, path):
