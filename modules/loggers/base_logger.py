@@ -12,6 +12,9 @@ def get_logger(logger_fname,
                logger_level=logging.DEBUG,
                file_level=logging.DEBUG,
                console_level=logging.DEBUG):
+    """
+    Logger settings should be configured and imported from configs dir
+    """
 
     # create a log folder with fmt %Y_%m_%d__%H_%M_%S inside the logger_dirname
     time_path_str = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")

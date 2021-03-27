@@ -17,7 +17,8 @@ MNIST_CONFIG = {
         "TYPE": Mnist,
         "PRETRAINED": False,
         "INPUT_WIDTH": 28,
-        "INPUT_HEIGHT": 28
+        "INPUT_HEIGHT": 28,
+        "INPUT_CHANNEL": 1
     },
     "DATASET": {
         "TYPE": MnistDataset("download"),
@@ -59,7 +60,8 @@ MNIST_CONFIG = {
 
         "VERBOSITY": 2,
         "EARLY_STOP": 10,
-        "TENSORBOARD": True,
+        "USE_TENSORBOARD": True,
+        "TENSORBOARD_EXPERIMENT_DIR": "experiments",
         "TENSORBOARD_PORT": 8099
     },
     "LOGGER": {

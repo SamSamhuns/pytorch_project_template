@@ -16,6 +16,7 @@ class BaseAgent:
         config is the edict configurations object
         """
         self.CONFIG = edict(CONFIG)
+        # General logger
         self.logger = get_logger(logger_fname=self.CONFIG.LOGGER.LOG_FMT.format(logger_fname),
                                  logger_dir=self.CONFIG.LOGGER.DIR,
                                  logger_name=logger_name,
@@ -24,6 +25,20 @@ class BaseAgent:
                                  logger_level=self.CONFIG.LOGGER.LOGGER_LEVEL,
                                  file_level=self.CONFIG.LOGGER.FILE_LEVEL,
                                  console_level=self.CONFIG.LOGGER.CONSOLE_LEVEL)
+        # Tboard Summary Writer if enabled
+        if self.CONFIG.TRAINER.USE_TENSORBOARD:
+            from torch.utils.tensorboard import SummaryWriter
+
+            _tboard_log_dir = self.CONFIG.TRAINER.TENSORBOARD_EXPERIMENT_DIR
+            _agent_name = self.CONFIG.NAME
+            _optim_name = self.OPTIMIZER.TYPE.__name__
+            _bsize = self.CONFIG.DATALOADER.BATCH_SIZE
+            _lr = self.CONFIG.OPTIMIZER.LR
+
+            _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}_"
+            tboard_writer = SummaryWriter(log_dir=_tboard_log_dir,
+                                          filename_suffix=_suffix)
+            self.tboard_writer = tboard_writer
 
     def load_checkpoint(self, file_name):
         """

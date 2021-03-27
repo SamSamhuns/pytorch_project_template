@@ -3,7 +3,6 @@ Agent class for general classifier/feature extraction networks
 """
 import os
 import torch
-import torch.nn.functional as F
 from torch.backends import cudnn
 
 from modules.agents.base_agent import BaseAgent
@@ -86,8 +85,14 @@ class ClassifierAgent(BaseAgent):
 
         # Model Loading from the latest checkpoint if not found start from scratch.
         self.load_checkpoint(self.CONFIG.TRAINER.CHECKPOINT_DIR)
-        # Summary Writer
-        self.summary_writer = None
+
+        # if using tensorboard, register graph for vis with dummy input
+        if self.CONFIG.TRAINER.USE_TENSORBOARD:
+            w = self.CONFIG.ARCH.INPUT_WIDTH
+            h = self.CONFIG.ARCH.INPUT_HEIGHT
+            c = self.CONFIG.ARCH.INPUT_CHANNEL
+            _dummy_input = torch.ones(([1, w, h, c]))
+            self.tboard_writer.add_graph(self.model, _dummy_input)
 
     def load_checkpoint(self, path):
         """
@@ -161,24 +166,45 @@ class ClassifierAgent(BaseAgent):
         """
         # set model to training mode
         self.model.train()
+        cum_train_loss = 0
+        train_size = 0
+        correct = 0
         train_data_len = len(self.data_set.train_dataset) - (
             len(self.data_set.train_dataset) * self.CONFIG.DATALOADER.VALIDATION_SPLIT)
 
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
             data, target = data.to(self.device), target.to(self.device)
             self.optimizer.zero_grad()
+            train_size += data.shape[0]
             output = self.model(data)
             loss = self.loss(output, target)
+            cum_train_loss += loss.item()
+            # get the index of the max log-probability
+            pred = output.max(1, keepdim=True)[1]
+            correct += pred.eq(target.view_as(pred)).sum().item()
+
             loss.backward()
             self.optimizer.step()
             if batch_idx % self.CONFIG.TRAINER.LOG_FREQ == 0:
-                self.logger.info('Train Epoch: {} [{:5d}/{:.0f} ({:.1f}%)] Loss: {:.6f}'.format(
+                self.logger.info('Train Epoch: {} [{:6d}/{:.0f} ({:.1f}%)] Loss: {:.6f}'.format(
                     self.current_epoch,
                     batch_idx * len(data),
                     train_data_len,
                     100 * batch_idx / len(self.train_data_loader),
                     loss.item()))
+            if self.CONFIG.TRAINER.USE_TENSORBOARD:
+                self.tboard_writer.add_scalar("Loss/train (iteration)",
+                                              loss.item(),
+                                              self.current_iteration)
             self.current_iteration += 1
+
+        if self.CONFIG.TRAINER.USE_TENSORBOARD:
+            self.tboard_writer.add_scalar("Loss/train (epoch)",
+                                          cum_train_loss,
+                                          self.current_epoch)
+            self.tboard_writer.add_scalar("Accuracy/train (epoch)",
+                                          correct / train_size,
+                                          self.current_epoch)
 
     def validate(self):
         """
@@ -218,6 +244,13 @@ class ClassifierAgent(BaseAgent):
 
         self.logger.info('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             val_loss, correct, val_size, val_accuracy))
+        if self.CONFIG.TRAINER.USE_TENSORBOARD:
+            self.tboard_writer.add_scalar("Loss/validation (epoch)",
+                                          val_loss.item(),
+                                          self.current_epoch)
+            self.tboard_writer.add_scalar("Accuracy/validation (epoch)",
+                                          val_accuracy,
+                                          self.current_epoch)
 
     def export_as_onnx(self, dummy_input, onnx_save_path="checkpoints/onnx_model.onnx"):
         """
