@@ -252,7 +252,9 @@ class ClassifierAgent(BaseAgent):
                                           val_accuracy,
                                           self.current_epoch)
 
-    def export_as_onnx(self, dummy_input, onnx_save_path="checkpoints/onnx_model.onnx"):
+    def export_as_onnx(self,
+                       dummy_input,
+                       onnx_save_path="checkpoints/onnx_model.onnx"):
         """
         ONNX format export function
         Model should use torch tensors & torch operators for proper export
@@ -268,6 +270,7 @@ class ClassifierAgent(BaseAgent):
                           onnx_save_path,
                           export_params=True,
                           do_constant_folding=True,
+                          opset_version=12,
                           input_names=['input'],    # the model's input names
                           output_names=['output'],  # the model's output names
                           dynamic_axes={'input': {0: 'batch_size', 1: "width", 2: "height"},    # variable length axes
