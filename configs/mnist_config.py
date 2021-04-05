@@ -51,7 +51,8 @@ MNIST_CONFIG = {
         "PATIENCE": 8
     },
     "TRAINER": {
-        "RESUME": False,
+        "RESUME": True,
+        "SAVE_BEST_ONLY": True,
         "LOG_FREQ": 50,
         "VALID_FREQ": 2,
 

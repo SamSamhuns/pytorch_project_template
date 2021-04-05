@@ -52,19 +52,20 @@ class ClassifierAgent(BaseAgent):
                                                        factor=self.CONFIG.LR_SCHEDULER.FACTOR,
                                                        patience=self.CONFIG.LR_SCHEDULER.PATIENCE)
 
-        # initialize counter
-        self.current_epoch = 0
-        self.current_iteration = 0
         # initialize metrics dict
         self.best_metric_dict = {metric: [] for metric in self.CONFIG.METRICS}
 
+        # initialize counter
+        self.current_epoch = 0
+        self.current_iteration = 0
+
         # set cuda flag
-        self.is_cuda = torch.cuda.is_available()
-        if self.is_cuda and not self.CONFIG.USE_CUDA:
+        is_cuda = torch.cuda.is_available()
+        if is_cuda and not self.CONFIG.USE_CUDA:
             self.logger.info(
                 "WARNING: You have a CUDA device, so you should probably enable CUDA")
 
-        self.cuda = self.is_cuda & self.CONFIG.USE_CUDA
+        self.cuda = is_cuda & self.CONFIG.USE_CUDA
 
         # set the manual seed for torch
         self.manual_seed = self.CONFIG.SEED
@@ -74,17 +75,18 @@ class ClassifierAgent(BaseAgent):
             self.model = self.model.to(self.device)
             self.loss = self.loss.to(self.device)
             self.device = torch.device("cuda")
-
             self.logger.info("Program will run on *****GPU-CUDA*****")
             print_cuda_statistics()
         else:
             torch.manual_seed(self.manual_seed)
             self.device = torch.device("cpu")
-
             self.logger.info("Program will run on *****CPU*****")
 
-        # Model Loading from the latest checkpoint if not found start from scratch.
-        self.load_checkpoint(self.CONFIG.TRAINER.CHECKPOINT_DIR)
+        # if training resume is True, load model from the latest checkpoint, if not found start from scratch.
+        if self.CONFIG.TRAINER.RESUME:
+            self.load_checkpoint(self.CONFIG.TRAINER.CHECKPOINT_DIR)
+        else:
+            print("Training will be done from scratch")
 
         # if using tensorboard, register graph for vis with dummy input
         if self.CONFIG.TRAINER.USE_TENSORBOARD:
@@ -116,9 +118,9 @@ class ClassifierAgent(BaseAgent):
             return
 
         if self.cuda:  # if gpu is available
-            self.model.load_state_dict(torch.load(path))
+            self.model.load_state_dict(torch.load(ckpt_file))
         else:          # if gpu is not available
-            self.model.load_state_dict(torch.load(path,
+            self.model.load_state_dict(torch.load(ckpt_file,
                                                   map_location=torch.device('cpu')))
         self.logger.info(f"Loaded checkpoint {ckpt_file}")
 
@@ -151,10 +153,11 @@ class ClassifierAgent(BaseAgent):
             if epoch % self.CONFIG.TRAINER.VALID_FREQ:
                 self.validate()
 
-                # save best ckpt
+                # save trained model checkpoint
                 for metric in self.CONFIG.METRICS:
                     mlist = self.best_metric_dict[metric]
-                    if len(mlist) == 1 or mlist[-1] > mlist[-2]:
+                    if (not self.CONFIG.TRAINER.SAVE_BEST_ONLY or
+                            (len(mlist) == 1 or mlist[-1] > mlist[-2])):
                         self.save_checkpoint(
                             filename=f"checkpoint_{epoch}.pth")
             self.current_epoch += 1
@@ -222,8 +225,7 @@ class ClassifierAgent(BaseAgent):
                 val_size += data.shape[0]
                 output = self.model(data)
                 # sum up batch loss
-                cum_val_loss += self.loss(output, target,
-                                          size_average=False).item()
+                cum_val_loss += self.loss(output, target).item()
                 # get the index of the max log-probability
                 pred = output.max(1, keepdim=True)[1]
                 correct += pred.eq(target.view_as(pred)).sum().item()
@@ -246,7 +248,7 @@ class ClassifierAgent(BaseAgent):
             val_loss, correct, val_size, val_accuracy))
         if self.CONFIG.TRAINER.USE_TENSORBOARD:
             self.tboard_writer.add_scalar("Loss/validation (epoch)",
-                                          val_loss.item(),
+                                          val_loss,
                                           self.current_epoch)
             self.tboard_writer.add_scalar("Accuracy/validation (epoch)",
                                           val_accuracy,

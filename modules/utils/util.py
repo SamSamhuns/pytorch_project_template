@@ -87,7 +87,7 @@ def accuracy(output, target, topk=(1,)):
     return res
 
 
-def find_latest_file_in_dir(dir_path, ext=".pth"):
+def find_latest_file_in_dir(dir_path, ext="pth"):
     """returns latest file with the ext from the dir_path directory
     """
     dir_path_appended = dir_path + \
