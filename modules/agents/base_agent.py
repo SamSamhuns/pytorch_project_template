@@ -28,14 +28,17 @@ class BaseAgent:
         # Tboard Summary Writer if enabled
         if self.CONFIG.TRAINER.USE_TENSORBOARD:
             from torch.utils.tensorboard import SummaryWriter
+            from datetime import datetime
 
-            _tboard_log_dir = self.CONFIG.TRAINER.TENSORBOARD_EXPERIMENT_DIR
             _agent_name = self.CONFIG.NAME
             _optim_name = self.CONFIG.OPTIMIZER.TYPE.__name__
             _bsize = self.CONFIG.DATALOADER.BATCH_SIZE
             _lr = self.CONFIG.OPTIMIZER.LR
 
-            _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}_"
+            _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}"
+            _tboard_log_root_dir = self.CONFIG.TRAINER.TENSORBOARD_EXPERIMENT_DIR
+            _tboard_log_sub_dir = _suffix + datetime.now().strftime("_%Y_%m_%d__%H_%M_%S")
+            _tboard_log_dir = _tboard_log_root_dir + '/' + _tboard_log_sub_dir
             tboard_writer = SummaryWriter(log_dir=_tboard_log_dir,
                                           filename_suffix=_suffix)
             self.tboard_writer = tboard_writer

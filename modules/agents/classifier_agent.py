@@ -196,18 +196,23 @@ class ClassifierAgent(BaseAgent):
                     100 * batch_idx / len(self.train_data_loader),
                     loss.item()))
             if self.CONFIG.TRAINER.USE_TENSORBOARD:
-                self.tboard_writer.add_scalar("Loss/train (iteration)",
-                                              loss.item(),
-                                              self.current_iteration)
+                self.tboard_writer.add_scalars('Loss (iteration)',
+                                               {'train': loss.item()},
+                                               self.current_iteration)
             self.current_iteration += 1
 
+        train_loss = cum_train_loss / train_size
+        train_accuracy = 100. * correct / train_size
+        self.logger.info('\nTraining set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+            train_loss, correct, train_size, train_accuracy))
+
         if self.CONFIG.TRAINER.USE_TENSORBOARD:
-            self.tboard_writer.add_scalar("Loss/train (epoch)",
-                                          cum_train_loss,
-                                          self.current_epoch)
-            self.tboard_writer.add_scalar("Accuracy/train (epoch)",
-                                          correct / train_size,
-                                          self.current_epoch)
+            self.tboard_writer.add_scalars('Loss (epoch)',
+                                           {'train': train_loss},
+                                           self.current_epoch)
+            self.tboard_writer.add_scalars('Accuracy (epoch)',
+                                           {'train': train_accuracy},
+                                           self.current_epoch)
 
     def validate(self):
         """
@@ -244,15 +249,15 @@ class ClassifierAgent(BaseAgent):
         # scheduler.step should be called after validate()
         self.scheduler.step(val_loss)
 
-        self.logger.info('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        self.logger.info('Validation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             val_loss, correct, val_size, val_accuracy))
         if self.CONFIG.TRAINER.USE_TENSORBOARD:
-            self.tboard_writer.add_scalar("Loss/validation (epoch)",
-                                          val_loss,
-                                          self.current_epoch)
-            self.tboard_writer.add_scalar("Accuracy/validation (epoch)",
-                                          val_accuracy,
-                                          self.current_epoch)
+            self.tboard_writer.add_scalars('Loss (epoch)',
+                                           {'validation': val_loss},
+                                           self.current_epoch)
+            self.tboard_writer.add_scalars('Accuracy (epoch)',
+                                           {'validation': val_accuracy},
+                                           self.current_epoch)
 
     def export_as_onnx(self,
                        dummy_input,
