@@ -3,9 +3,10 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import urllib.request as urllib
 from enum import Enum
+import traceback
 import requests
-import base64
 import uvicorn
+import base64
 import json
 import uuid
 import sys
@@ -28,7 +29,7 @@ app = FastAPI()
 
 # The root is the absolute path of the __init_.py under the source
 ROOT = os.path.abspath(__file__)[:os.path.abspath(__file__).rfind(os.path.sep)]
-ROOT_DOWNLOAD_URL = './data_cache'
+ROOT_DOWNLOAD_URL = './.data_cache'
 
 url_downloader = urllib.FancyURLopener(
     context=ssl._create_unverified_context())
@@ -36,9 +37,13 @@ url_downloader = urllib.FancyURLopener(
 app = FastAPI(title="Custom Model Inference")
 
 
+# init_model(model_name) # init all models
+
+
 class InputModel(BaseModel):
     back_url: str = None
     threshold: float = 0.55
+    model_name: str
     image_file: str
 
 
@@ -47,26 +52,13 @@ class model_name(str, Enum):
     ResNet101 = model2
 
 
-def make_path(fileName: str, where: str):
-    print("calling function make_path")
-    root_dir = os.path.abspath(os.path.curdir)
-
-    if where == "chkpt":
-        d = os.path.join(root_dir, "checkpoints")
-
-    if where == "confg":
-        d = os.path.join(root_dir, "configs/CustomModel")
-
-    return os.path.join(d, fileName)
-
-
 def init_model(model_name: str):
     print("Calling function init_model")
     if models[model_name] is not None:
         return
 
-    fCheckpoint = make_path(models_params[model_name][0], "chkpt")
-    fConfig = make_path(models_params[model_name][1], "confg")
+    fCheckpoint = "path to checkpoint file .pth"
+    fConfig = "path to model config or model.py itself"
     if not os.path.exists(fCheckpoint) or not os.path.exists(fConfig):
         raise RuntimeError(
             "directory: 'checkpoints' and/or 'configs' does not exist!")
@@ -75,34 +67,41 @@ def init_model(model_name: str):
     return
 
 
-def run_detector(model_name: str, input_img: str):
-    # image stored in cache folder
+def run_detector(input_model: InputModel, input_image_file: str):
     print("calling function run_detector")
-    print("key = ", model_name)
-    init_model(model_name)
+    return "inference complete"
+    model = models[input_model.model_name]
 
-    model = models[model_name]
-
-    result = inference_detector(model, input_img)
-    name, ext = os.path.split(input_img)[1].split(".")
+    result = inference_detector(model, input_image_file)
+    name, ext = os.path.split(input_image_file)[1].split(".")
     name += "Gen."
     name += ext
 
-    out_img = os.path.join(os.path.dirname(input_img), name)
-    draw_results_on_image(input_img, result, model.CLASSES, out_file=out_img)
+    out_img = os.path.join(os.path.dirname(input_image_file), name)
+    draw_results_on_image(input_image_file, result, out_file=out_img)
     return out_img
 
 
+def remove_file(path: str) -> None:
+    if os.path.exists(path):
+        os.remove(path)
+
+
+async def cache_file(name: str, data: bytes):
+    print("Caching Image")
+    image_file_path = os.path.join(ROOT_DOWNLOAD_URL, name)
+    os.makedirs(ROOT_DOWNLOAD_URL, exist_ok=True)
+    with open(image_file_path, 'wb') as img_file_ptr:
+        img_file_ptr.write(data)
+    return image_file_path
+
+
 class InferenceProcessTask():
-    def __init__(self, func, input_data, threshold=0.55):
+    def __init__(self, func, input_data):
         super(InferenceProcessTask, self).__init__()
         self.func = func
         self.input_data = input_data
-        self.threshold = threshold
         self.response_data = dict()
-        self.input_data_content_type = None
-        self.image_cache_id = str(uuid.uuid4())
-        self.response_data["uuid"] = self.image_cache_id
 
     def run(self):
         # check if the input image_file is an existing path or a url
@@ -112,16 +111,13 @@ class InferenceProcessTask():
 
         if is_local_dir:
             input_image_file = self.input_data.image_file
-            threshold = self.threshold
         elif is_url:
             try:
-                if not os.path.exists(ROOT_DOWNLOAD_URL):
-                    os.mkdir(ROOT_DOWNLOAD_URL)
+                os.makedirs(ROOT_DOWNLOAD_URL, exist_ok=True)
                 input_image_file = os.path.join(
                     ROOT_DOWNLOAD_URL, self.image_cache_id)
                 url_downloader.retrieve(
                     self.input_data.image_file, input_image_file)
-                threshold = self.threshold
             except Exception as e:
                 print(e)
                 self.response_data["code"] = "failed"
@@ -131,9 +127,11 @@ class InferenceProcessTask():
 
         # Prepare the results
         # run the inference function
-        self.results = self.func(input_image_file, threshold)
+        self.results = self.func(self.input_data, input_image_file)
         self.response_data["code"] = "success"
         # iterate through results
+        # TODO remove when result format is confirmed
+        """
         for res in self.results:
             if res.status == "Failure":
                 self.response_data["code"] = "failed"
@@ -148,12 +146,11 @@ class InferenceProcessTask():
             resp_dict_item["File"] = base64.b64encode(img)
             # base64.b64decode(Iod_item["File"]) # for decoding
             self.response_data["results"] = resp_dict_item
-
+        """
         # Remove cached file
         if is_url:
             if os.path.exists(input_image_file):
                 os.remove(input_image_file)
-
         try:
             if self.input_data.back_url is not None:
                 headers = {"Content-Type": "application/json"}
@@ -167,47 +164,29 @@ class InferenceProcessTask():
             print(e)
 
 
-@app.post("/inference_model/{inputModel}_file/")
-async def process_img(inputModel: model_name,
-                      file: UploadFile = File(...)):
-    print("Accessing route " + inputModel.value)
-    name = file.filename
-    content = file.content_type
-    if "image" not in content:
-        return {"ERROR": "file content is not an image"}
-
-    data = await file.read()
-    await file.close()
-    imgPath = await cache_image(name, data)
-    outImg = run_detector(inputModel.value, imgPath)
-    return FileResponse(path=outImg, media_type=content)
-
-
-@app.post("/inference_model_file")
-async def img_object_detection_file(file: UploadFile = File(...),
-                                    display_image_only: bool = Form(True),
-                                    threshold: float = Form(0.5)):
+@app.post("/inference_model_file/{inputModel}_model")
+async def inference_model_file(input_model: model_name,
+                               background_tasks: BackgroundTasks,
+                               file: UploadFile = File(...),
+                               display_image_only: bool = Form(True),
+                               threshold: float = Form(0.5)):
     response_data = dict()
+    image_file_path = ""
     try:
         # Save this image to the temp file
         file_name = str(uuid.uuid4()) + '.jpg'
         file_bytes_content = file.file.read()
-
-        image_file_path = os.path.join(ROOT_DOWNLOAD_URL, file_name)
-        if not os.path.exists(ROOT_DOWNLOAD_URL):
-            os.mkdir(ROOT_DOWNLOAD_URL)
-
-        with open(image_file_path, 'wb') as img_file_ptr:
-            img_file_ptr.write(file_bytes_content)
+        image_file_path = await cache_file(file_name, file_bytes_content)
+        # add cached file removal to list of bg tasks to exec after sending response
+        background_tasks.add_task(remove_file, image_file_path)
 
         input_data = InputModel(
+            model_name=input_model.value,
             image_file=image_file_path,
             back_url=None,
             threshold=threshold)
-        task = InferenceProcessTask(inference_detector,
-                                    input_data=input_data,
-                                    cls_threshold=threshold)
-        task.input_data_content_type = file.content_type
+        task = InferenceProcessTask(run_detector,
+                                    input_data=input_data)
         task.run()
         response_data = task.response_data
         if display_image_only:
@@ -215,26 +194,22 @@ async def img_object_detection_file(file: UploadFile = File(...),
                                 media_type=file.content_type)
     except Exception as e:
         print(e)
+        print(traceback.print_exc())
         response_data["code"] = "failed"
-        response_data["msg"] = "Failed to run inference on image"
-    finally:
-        # remove cached file
-        if os.path.exists(image_file_path):
-            os.remove(image_file_path)
+        response_data["msg"] = "failed to run inference on file"
 
     return response_data
 
 
-@app.post("/inference_model_url")
-async def img_object_detection(*, input_data: InputModel,
-                               background_tasks: BackgroundTasks):
+@app.post("/inference_model_url/{inputModel}_model")
+async def inference_model_url(*, input_model: model_name,
+                              input_data: InputModel,
+                              background_tasks: BackgroundTasks):
     response_data = dict()
     try:
-        threshold = input_data.threshold
         task = InferenceProcessTask(
-            inference_detector,
-            input_data=input_data,
-            threshold=threshold)
+            run_detector,
+            input_data=input_data)
 
         if input_data.back_url is None:
             task.run()
@@ -246,30 +221,9 @@ async def img_object_detection(*, input_data: InputModel,
     except Exception as e:
         print(e)
         response_data["code"] = "failed"
+        response_data["msg"] = "failed to run inference on file from url"
 
     return response_data
-
-
-async def cache_image(name: str,
-                      data: bytes):
-    # hardcoded values
-    print("Cached the Image")
-    root_dir = os.path.abspath(os.path.curdir)
-    cache_dir = os.path.join(root_dir, ".dataCache")
-    if not os.path.exists(cache_dir):
-        os.mkdir(cache_dir)
-    os.chdir(cache_dir)
-    with open(name, 'bw') as f:
-        f.write(data)
-    os.chdir(root_dir)
-    return os.path.join(cache_dir, name)
-
-
-@app.get("/inference_model")
-def index_root():
-    print("Acessing the Root Path")
-    return {"Usage": "pick the model name you want to use, and upload the image",
-            "Returns": "Image processed by model"}
 
 
 @app.get("/")

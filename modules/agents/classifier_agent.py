@@ -130,6 +130,8 @@ class ClassifierAgent(BaseAgent):
         :param file_name: name of the checkpoint file
         :return:
         """
+        # create checkpoint directory if it doesnt exist
+        os.makedirs(self.CONFIG.TRAINER.CHECKPOINT_DIR, exist_ok=True)
         save_path = os.path.join(self.CONFIG.TRAINER.CHECKPOINT_DIR, filename)
         torch.save(self.model.state_dict(), save_path)
 
