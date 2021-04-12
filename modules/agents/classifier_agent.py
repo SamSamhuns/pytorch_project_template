@@ -209,6 +209,9 @@ class ClassifierAgent(BaseAgent):
             train_loss, correct, train_size, train_accuracy))
 
         if self.CONFIG.TRAINER.USE_TENSORBOARD:
+            self.tboard_writer.add_images('preprocessed image batch',
+                                          next(iter(self.train_data_loader))[0],
+                                          self.current_epoch)
             self.tboard_writer.add_scalars('Loss (epoch)',
                                            {'train': train_loss},
                                            self.current_epoch)

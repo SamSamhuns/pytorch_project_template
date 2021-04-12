@@ -45,17 +45,50 @@ Use python venv or a conda env to install requirements:
 
 ## Train
 
+Example training code for mnist classification:
+
+```shell
+$ python train_mnist.py
+```
+
 ## Test
+
+Example testing code for mnist classification:
+
+```shell
+$ python test_mnist.py
+```
+
+### Tensorboard logging
+
+All tensorboard logs are saved in the `TENSORBOARD_EXPERIMENT_DIR` setting in the config file. Logs include train/val epoch accuracy/loss, graph, and preprocessed images per epoch.
+
+To start a tensorboard server reading logs from the `experiment` dir exposed on port localhost port `6007`:
+
+```shell
+$ tensorboard --logdir=experiments --port=6007
+```
 
 ## Inference demo
 
 ## Dockerizing
 
+Install docker in the system, then run the following commands:
+
+```shell
+$ bash build_docker.sh              # builds the docker image
+$ bash run_docker.sh -h/--http 8080 # runs the previous docker image with the api exposed on localhost port 8080
+```
+
 ### Utility functions
 
 To cleanup:
 
-`bash modules/utils/cleanup.sh`
+    bash modules/utils/cleanup.sh
+
+To copy project structure:
+
+    $ python3 new_project.py ../NewProject
 
 ## Example Project
 
@@ -97,3 +130,7 @@ Experimental configuration of model training & testing:
     validation:
       1/8 training images
       At test stage, center-crop is used instead of random-crop
+
+### Acknowledgements
+
+-   https://github.com/victoresque/pytorch-template
