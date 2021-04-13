@@ -285,8 +285,8 @@ class ClassifierAgent(BaseAgent):
                           opset_version=12,
                           input_names=['input'],    # the model's input names
                           output_names=['output'],  # the model's output names
-                          dynamic_axes={'input': {0: 'batch_size', 1: "width", 2: "height"},    # variable length axes
-                                        'output': {0: 'batch_size', 1: "width", 2: "height"}},
+                          dynamic_axes={'input': {0: 'batch_size', 2: "height", 3: "width"},    # variable length axes
+                                        'output': {0: 'batch_size', 2: "height", 3: "width"}},
                           verbose=True)
 
     def finalize_exit(self):
