@@ -6,7 +6,7 @@ from tqdm import tqdm
 from util import _fix_path_for_globbing
 
 
-def validate_imgs(source_path, corrupt_flist_txt, remove):
+def validate_imgs(source_path, corrupt_flist_txt, remove) -> None:
     """ validate imgs and optionally remove corrupt images
     """
     dir_list = glob.glob(_fix_path_for_globbing(source_path))

@@ -11,7 +11,7 @@ class BaseAgent:
     base functions which will be overloaded
     """
 
-    def __init__(self, CONFIG, logger_fname="train", logger_name="logger"):
+    def __init__(self, CONFIG, logger_fname="train", logger_name="logger") -> None:
         """
         config is the edict configurations object
         """

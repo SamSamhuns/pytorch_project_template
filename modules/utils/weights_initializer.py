@@ -5,7 +5,7 @@ from torch import nn
 import math
 
 
-def weights_init(m):
+def weights_init(m) -> None:
     """ call as nn.Module.apply(weights_init)
     which applies weights_init function to all nested modules
     """
@@ -17,7 +17,7 @@ def weights_init(m):
         m.bias.data.fill_(0)
 
 
-def weights_init_normal(m):
+def weights_init_normal(m) -> None:
     """
     Initialize the weights of Convolution2D and BatchNorm2D with normal.
     :param m:
@@ -30,7 +30,7 @@ def weights_init_normal(m):
         m.bias.data.fill_(0)
 
 
-def init_model_weights(m):
+def init_model_weights(m) -> None:
     for m in m.modules():
         if isinstance(m, nn.Conv2d):
             n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels

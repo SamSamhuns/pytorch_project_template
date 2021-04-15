@@ -83,7 +83,7 @@ def create_dir_and_copy_files(dir: str, f_list: List[str]) -> None:
         shutil.copy(file, dir)
 
 
-def split_train_test(RAW_IMG_DIR, PROCESSED_IMG_DIR, VAL_SPLIT, TEST_SPLIT):
+def split_train_test(RAW_IMG_DIR, PROCESSED_IMG_DIR, VAL_SPLIT, TEST_SPLIT) -> None:
     train_dir = os.path.join(PROCESSED_IMG_DIR, "train")
     os.makedirs(train_dir, exist_ok=True)
 

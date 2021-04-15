@@ -82,7 +82,7 @@ def default_loader(path):
         return get_pil_img(path)
 
 
-def write_class_mapping_to_file(mapping, fpath):
+def write_class_mapping_to_file(mapping, fpath) -> None:
     """mapping must be one level deep dict of class_names to index
     """
     with open(fpath, 'w') as fw:

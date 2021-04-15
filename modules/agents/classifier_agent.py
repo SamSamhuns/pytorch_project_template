@@ -96,14 +96,12 @@ class ClassifierAgent(BaseAgent):
             _dummy_input = torch.ones(([1, c, h, w]))
             self.tboard_writer.add_graph(self.model, _dummy_input)
 
-    def load_checkpoint(self, path):
+    def load_checkpoint(self, path) -> None:
         """
         Latest checkpoint loader from torch weights
         :param
             path: path to checkpoint file/folder with only weights,
                   if folder is used, latest checkpoint is loaded
-        :return:
-            None
         """
         ckpt_file = None
         if os.path.isfile(path):
@@ -124,31 +122,28 @@ class ClassifierAgent(BaseAgent):
                                                   map_location=torch.device('cpu')))
         self.logger.info(f"Loaded checkpoint {ckpt_file}")
 
-    def save_checkpoint(self, filename="checkpoint.pth"):
+    def save_checkpoint(self, filename="checkpoint.pth") -> None:
         """
         Checkpoint saver
         :param file_name: name of the checkpoint file
-        :return:
         """
         # create checkpoint directory if it doesnt exist
         os.makedirs(self.CONFIG.TRAINER.CHECKPOINT_DIR, exist_ok=True)
         save_path = os.path.join(self.CONFIG.TRAINER.CHECKPOINT_DIR, filename)
         torch.save(self.model.state_dict(), save_path)
 
-    def run(self):
+    def run(self) -> None:
         """
         The main operator
-        :return:
         """
         try:
             self.train()
         except KeyboardInterrupt:
             self.logger.info("You have entered CTRL+C.. Wait to finalize")
 
-    def train(self):
+    def train(self) -> None:
         """
         Main training loop
-        :return:
         """
         for epoch in range(self.CONFIG.TRAINER.EPOCHS):
             self.train_one_epoch()
@@ -164,10 +159,9 @@ class ClassifierAgent(BaseAgent):
                             filename=f"checkpoint_{epoch}.pth")
             self.current_epoch += 1
 
-    def train_one_epoch(self):
+    def train_one_epoch(self) -> None:
         """
         One epoch of training
-        :return:
         """
         # set model to training mode
         self.model.train()
@@ -219,10 +213,9 @@ class ClassifierAgent(BaseAgent):
                                            {'train': train_accuracy},
                                            self.current_epoch)
 
-    def validate(self):
+    def validate(self) -> None:
         """
         One cycle of model validation
-        :return:
         """
         # set model to eval mode
         self.model.eval()
@@ -266,7 +259,7 @@ class ClassifierAgent(BaseAgent):
 
     def export_as_onnx(self,
                        dummy_input,
-                       onnx_save_path="checkpoints/onnx_model.onnx"):
+                       onnx_save_path="checkpoints/onnx_model.onnx") -> None:
         """
         ONNX format export function
         Model should use torch tensors & torch operators for proper export
@@ -274,7 +267,6 @@ class ClassifierAgent(BaseAgent):
         args:
             dummy_input: dummy input for the model
             onnx_save_path: path where onnx file will be saved
-        return:
         """
         # Export with ONNX
         torch.onnx.export(self.model,

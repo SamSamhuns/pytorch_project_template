@@ -53,7 +53,7 @@ def main():
                      args.target_number)
 
 
-def safe_copy(file_path, out_dir, dst=None):
+def safe_copy(file_path, out_dir, dst=None) -> None:
     """Safely copy a file to the specified directory.
     If a file with the same name already
     exists, the copied file name is altered to preserve both.
@@ -75,7 +75,7 @@ def safe_copy(file_path, out_dir, dst=None):
             out_dir, '{}_{}{}'.format(base, i, extension)))
 
 
-def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER):
+def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
     target_dir = DUPLICATED_IMG_DIR
     os.makedirs(target_dir, exist_ok=True)
 

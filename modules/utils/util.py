@@ -49,7 +49,7 @@ def read_json(fname):
         return json.load(handle, object_hook=OrderedDict)
 
 
-def write_json(content, fname):
+def write_json(content, fname) -> None:
     with open(fname, 'w') as handle:
         json.dump(content, handle, indent=4, sort_keys=False)
 
@@ -115,7 +115,7 @@ def _fix_path_for_globbing(dir):
     return dir
 
 
-def _validate_base_configurations(cfg):
+def _validate_base_configurations(cfg) -> None:
     """validates if required keys exist in cfg obj
         loaded from JSON config file
     """
@@ -142,7 +142,7 @@ def _validate_base_configurations(cfg):
     _validate_keys(cfg.LOGGER, _logger)
 
 
-def _validate_keys(dictionary, req_key_list):
+def _validate_keys(dictionary, req_key_list) -> None:
     for key in req_key_list:
         if key not in dictionary.keys():
             raise MissingConfigError(

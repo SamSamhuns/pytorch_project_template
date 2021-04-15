@@ -25,7 +25,7 @@ def main():
     generate_npz_files(args.raw_img_path, args.target_npz_img_path)
 
 
-def generate_npz_files(raw_img_path, npz_img_path):
+def generate_npz_files(raw_img_path, npz_img_path) -> None:
     os.makedirs(npz_img_path, exist_ok=True)
     dir_list = glob.glob(_fix_path_for_globbing(raw_img_path))
 

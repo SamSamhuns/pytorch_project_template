@@ -29,7 +29,7 @@ from util import _fix_path_for_globbing
 
 def generate_npz_files(raw_img_path,
                        npz_path,
-                       mapping_fname='dataset_mapping.txt'):
+                       mapping_fname='dataset_mapping.txt') -> Noneh:
     """ generates a flattened list of npz files
     from class folder separated data from raw_img_path
     """
