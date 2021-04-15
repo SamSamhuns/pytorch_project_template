@@ -63,7 +63,7 @@ MNIST_CONFIG = {
         "EARLY_STOP": 10,
         "USE_TENSORBOARD": True,
         "TENSORBOARD_EXPERIMENT_DIR": "experiments",
-        "TENSORBOARD_PORT": 8099
+        "TENSORBOARD_PORT": 6006
     },
     "LOGGER": {
         "DIR": "logs",
