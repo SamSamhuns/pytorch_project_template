@@ -1,10 +1,8 @@
-# need pytorch 1.7.0
-# FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
-FROM ubuntu:18.04
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
 
 # ENV should be train or test
 ARG ENV
-ARG CUDA="10.0"
+ARG CUDA="10.1"
 ARG CUDNN="7.6"
 
 # Maintainer
@@ -16,13 +14,13 @@ RUN apt-get update -y \
  && apt-get install -y libglib2.0-0 libsm6 libxext6 libxrender-dev
 
 # set work directory
-WORKDIR /app
+WORKDIR /pytorch_model
 
 # Install python dependencies
 RUN pip install --upgrade pip
-ARG req_path="./requirements/requirements-${ENV}.txt"
+ARG req_path="./requirements/${ENV}.txt"
 COPY $req_path /app/
-RUN pip install -r requirements-$ENV.txt
+RUN pip install -r $ENV.txt
 
-COPY . /app
-CMD ["python3", "server.py"]
+COPY . /pytorch_model
+CMD ["python3", "train_mnist.py"]
