@@ -12,5 +12,6 @@ find . -type d -name "__pycache__" -exec rm -r "{}" +
 
 echo "Removing pytorch training logs & experiments"
 # Remove build artifacts
-rm -rf experiments/*
-rm -rf logs/*
+rm -rf experiments
+rm -rf .data_cache
+rm -rf logs
