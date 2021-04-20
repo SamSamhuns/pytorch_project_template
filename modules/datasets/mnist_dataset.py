@@ -3,11 +3,14 @@ Mnist Data loader
 """
 import imageio
 import torchvision.utils as v_utils
-from torchvision import datasets, transforms
+from torchvision import datasets
 
 
 class MnistDataset:
-    def __init__(self, data_mode):
+    def __init__(self,
+                 train_transform=None,
+                 test_transform=None,
+                 data_mode="download"):
         """
         :param config:
         """
@@ -15,18 +18,10 @@ class MnistDataset:
             self.train_dataset = datasets.MNIST('data',
                                                 train=True,
                                                 download=True,
-                                                transform=transforms.Compose([
-                                                    transforms.ToTensor(),
-                                                    transforms.Normalize(
-                                                        (0.1307,), (0.3081,))
-                                                ]))
+                                                transform=train_transform)
             self.test_dataset = datasets.MNIST('data',
                                                train=False,
-                                               transform=transforms.Compose([
-                                                   transforms.ToTensor(),
-                                                   transforms.Normalize(
-                                                       (0.1307,), (0.3081,))
-                                               ]))
+                                               transform=test_transform)
         elif data_mode == "imgs":
             raise NotImplementedError("This mode is not implemented YET")
 

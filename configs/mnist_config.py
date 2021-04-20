@@ -1,13 +1,14 @@
 
 from torch import nn
 import torch.optim as optim
+from torchvision import transforms
 
 from modules.models.mnist_model import Mnist
 from modules.datasets.mnist_dataset import MnistDataset
 from modules.dataloaders.base_dataloader import BaseDataLoader
 
 
-MNIST_CONFIG = {
+CONFIG = {
     "NAME": "mnist_classifier",
     "SEED": 1,
     "USE_CUDA": False,
@@ -21,7 +22,7 @@ MNIST_CONFIG = {
         "INPUT_CHANNEL": 1
     },
     "DATASET": {
-        "TYPE": MnistDataset("download"),
+        "TYPE": MnistDataset,
         "RAW_DATA_ROOT_DIR": "data",
         "PROC_DATA_ROOT_DIR": "data",
         "TRAIN_DIR": "train",
@@ -34,7 +35,14 @@ MNIST_CONFIG = {
         "SHUFFLE": True,
         "NUM_WORKERS": 0,
         "VALIDATION_SPLIT": 0.1,
-        "PIN_MEMORY": True
+        "PIN_MEMORY": True,
+        "PREPROCESS_TRAIN": transforms.Compose([transforms.ToTensor(),
+                                                transforms.Normalize((0.1307,), (0.3081,))]),
+        "PREPROCESS_TEST": transforms.Compose([transforms.ToTensor(),
+                                               transforms.Normalize((0.1307,), (0.3081,))]),
+        "PREPROCESS_INFERENCE": transforms.Compose([transforms.ToTensor(),
+                                                    transforms.Resize((28, 28)),
+                                                    transforms.Normalize((0.1307,), (0.3081,))])
     },
     "OPTIMIZER": {
         "TYPE": optim.SGD,

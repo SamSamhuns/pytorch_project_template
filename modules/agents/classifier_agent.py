@@ -22,7 +22,8 @@ class ClassifierAgent(BaseAgent):
         self.model = self.CONFIG.ARCH.TYPE()
 
         # define dataset
-        self.data_set = self.CONFIG.DATASET.TYPE
+        self.data_set = self.CONFIG.DATASET.TYPE(train_transform=self.CONFIG.DATALOADER.PREPROCESS_TRAIN,
+                                                 test_transform=self.CONFIG.DATALOADER.PREPROCESS_TEST)
 
         # define train, validate, and test data_loader
         # in OSX systems DATALOADER.NUM_WORKERS should be set to 0 which might increasing training time
@@ -204,7 +205,8 @@ class ClassifierAgent(BaseAgent):
 
         if self.CONFIG.TRAINER.USE_TENSORBOARD:
             self.tboard_writer.add_images('preprocessed image batch',
-                                          next(iter(self.train_data_loader))[0],
+                                          next(iter(self.train_data_loader))[
+                                              0],
                                           self.current_epoch)
             self.tboard_writer.add_scalars('Loss (epoch)',
                                            {'train': train_loss},
