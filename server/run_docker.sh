@@ -4,7 +4,7 @@
 if [ $# -ne 2 ]
   then
     echo "HTTP port must be specified for FastAPI"
-		echo "eg. \$ bash build_run_docker.sh -h 8080"
+		echo "eg. \$ bash run_docker.sh -h 8080"
 		exit
 fi
 
@@ -21,9 +21,9 @@ done
 echo "Docker Container starting with FastAPI port: $http"
 
 docker run \
-      -d --rm \
+      -ti --rm \
       -p 0.0.0.0:$http:8080 \
-      --name pytorch_project \
+      --name model_server \
       --env LANG=en_US.UTF-8 \
-      --gpus '"device=0"' \
-      model_server
+      model_server \
+      bash

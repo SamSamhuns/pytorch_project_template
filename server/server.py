@@ -13,24 +13,24 @@ import sys
 import os
 import re
 
-from inference import init_detector, inference_detector, draw_results_on_image
+from inference import init_detectors, run_detector
 
-model1 = "ResNet50"
-model2 = "ResNet101"
-
-# pair{weight_path:config_file}
-models_params = {model1: ["Custom-Model-res50.pth", "r50_config.py"],
-                 model2: ["Custom-Model-res101.pth", "r101_config.py"]}
-
-models = {model1: None, model2: None}
 
 # The root is the absolute path of the __init_.py under the source
 ROOT = os.path.abspath(__file__)[:os.path.abspath(__file__).rfind(os.path.sep)]
 ROOT_DOWNLOAD_URL = os.path.join(ROOT, ".data_cache")
 
-
 app = FastAPI(title="Custom Model Inference")
-# init_model(model_name) # init all models
+
+# load models here
+model1 = "mnist_model_1"
+model2 = "mnist_model_11"
+# pair{weight_path:config_file}
+models_param_dict = {model1: ["checkpoints/checkpoint_1.pth", "configs/mnist_config.py"],
+                     model2: ["checkpoints/checkpoint_11.pth", "configs/mnist_config.py"]}
+# init all models
+loaded_models_dict = init_detectors(models_param_dict, "cpu")
+
 
 class InputModel(BaseModel):
     back_url: str = None
@@ -96,8 +96,13 @@ class InferenceProcessTask():
 
         # Prepare the results
         # run the inference function
-        self.results = self.func(self.input_data, input_image_file)
+        inference_model = loaded_models_dict[self.input_data.model_name]['detector']
+        inference_model_config = loaded_models_dict[self.input_data.model_name]['config']
+        preprocess_func = inference_model_config["DATALOADER"]["PREPROCESS_INFERENCE"]
+        self.results = self.func(
+            inference_model, preprocess_func, input_image_file, self.input_data.threshold)
         self.response_data["code"] = "success"
+        self.response_data["prediction"] = (self.results).tolist()
         # iterate through results
         # TODO remove when result format is confirmed
         """
@@ -137,8 +142,8 @@ class InferenceProcessTask():
 async def inference_model_file(input_model: model_name,
                                background_tasks: BackgroundTasks,
                                file: UploadFile = File(...),
-                               display_image_only: bool = Form(True),
-                               threshold: float = Form(0.5)):
+                               display_image_only: bool = Form(False),
+                               threshold: float = Form(0.55)):
     response_data = dict()
     image_file_path = ""
     try:
@@ -202,11 +207,9 @@ def index():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        # if port is not specified
+    if len(sys.argv) == 1:    # if port is not specified
         print("Using default port: 8080")
         uvicorn.run(app, host='0.0.0.0', port=8080)
-    elif len(sys.argv) == 2:
-        # port specified
+    elif len(sys.argv) == 2:  # port specified
         print("Using port: " + sys.argv[1])
         uvicorn.run(app, host='0.0.0.0', port=int(sys.argv[1]))

@@ -1,0 +1,7 @@
+aiofiles==0.6.0
+fastapi==0.63.0
+onnxruntime==1.7.0
+opencv-python==4.5.1.48
+python-multipart==0.0.5
+requests==2.25.1
+uvicorn==0.13.4
