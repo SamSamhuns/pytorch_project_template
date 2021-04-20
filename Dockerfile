@@ -1,9 +1,7 @@
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
+FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
 
-# ENV should be train or test
-ARG ENV
-ARG CUDA="10.1"
-ARG CUDNN="7.6"
+ARG CUDA="11.1"
+ARG CUDNN="8.0"
 
 # maintainer
 LABEL maintainer="fname.lname@domain.com"
@@ -17,10 +15,9 @@ RUN apt-get  update -y \
 WORKDIR /pytorch_model
 
 # install python dependencies
+COPY ./requirements/train.txt /pytorch_model/
 RUN pip install --upgrade pip
-ARG req_path="./requirements/${ENV}.txt"
-COPY $req_path /pytorch_model/
-RUN pip install -r $ENV.txt
+RUN pip install --default-timeout=100 -r train.txt
 
 # freq changing files are added below
 COPY . /pytorch_model

@@ -7,9 +7,6 @@ This is a template for a PyTorch Project for training, testing, inference demo, 
     ├── checkpoints
     ├── configs
     │   ├── base_configs.json
-    ├── copy_project.py
-    ├── inference.py
-    ├── logs
     ├── modules
     │   ├── agents
     │   │   ├── base_agent.py
@@ -29,19 +26,21 @@ This is a template for a PyTorch Project for training, testing, inference demo, 
     │   │   └── __init__.py
     │   └── utils
     │       ├── util.py
-    ├── requirements
-    │   ├── minimal.txt
+    ├── server
+    |-- requirements
     ├── requirements.txt
+    ├── copy_project.py
+    ├── inference.py
     ├── server.py
     ├── test.py
     ├── train.py
 
 ## Setup
 
-Use python venv or a conda env to install requirements:
+Use `python venv` or a `conda env` to install requirements:
 
 -   Install full-requirements: `pip install -r requirements.txt`
--   Install train/test/minimal requirements: `pip install -r requirements/train|test|minimal.txt`
+-   Install train/test/minimal/server requirements: `pip install -r requirements/train|test|minimal|server.txt`
 
 ## Train
 
@@ -66,18 +65,29 @@ All tensorboard logs are saved in the `TENSORBOARD_EXPERIMENT_DIR` setting in th
 To start a tensorboard server reading logs from the `experiment` dir exposed on port localhost port `6007`:
 
 ```shell
-$ tensorboard --logdir=experiments --port=6007
+$ tensorboard --logdir=experiments --port=6006
 ```
 
-## Inference demo
+## Inference
 
-## Dockerizing
+## Docker
 
-Install docker in the system, then run the following commands:
+Install docker in the system first:
+
+### For training and testing
 
 ```shell
-$ bash build_docker.sh              # builds the docker image
-$ bash run_docker.sh -h/--http 8080 # runs the previous docker image with the api exposed on localhost port 8080
+$ bash build_docker.sh  # builds the docker image
+$ bash run_docker.sh    # runs the previous docker image creating a shared volume checkpoint_docker outside the container
+# inside the docker container
+$ python train.py
+```
+
+### For serving the model with FastAPI
+
+```shell
+$ bash server/build_docker.sh
+$ bash server/run_docker.sh -h/--http 8080
 ```
 
 ### Utility functions
@@ -89,6 +99,10 @@ To cleanup:
 To copy project structure:
 
     $ python3 new_project.py ../NewProject
+
+## PyTorch Ecosystem Tools
+
+These [Ecosystem Tools](https://pytorch.org/ecosystem/) add to the base PyTorch Ecosystem.
 
 ## Example Project
 
