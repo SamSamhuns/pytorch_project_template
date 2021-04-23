@@ -9,23 +9,15 @@ This is a template for a PyTorch Project for training, testing, inference demo, 
     │   ├── base_configs.json
     ├── modules
     │   ├── agents
-    │   │   ├── base_agent.py
+    |   |── augmentations
     │   ├── dataloaders
-    │   │   └── base_dataloader.py
     │   ├── datasets
-    │   │   ├── base_dataset.py
     │   ├── loggers
-    │   │   └── base_logger.py
     │   ├── losses
-    │   │   ├── bce.py
     │   ├── models
-    │   │   ├── example_model.py
     │   ├── optimizers
-    │   │   └── __init__.py
     │   ├── schedulers
-    │   │   └── __init__.py
     │   └── utils
-    │       ├── util.py
     ├── server
     |-- requirements
     ├── requirements.txt
@@ -82,6 +74,10 @@ $ bash run_docker.sh    # runs the previous docker image creating a shared volum
 # inside the docker container
 $ python train.py
 ```
+
+Using gpus inside docker for training/testing:
+
+`--gpus device=0,1 or all`
 
 ### For serving the model with FastAPI
 

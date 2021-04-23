@@ -21,4 +21,3 @@ RUN pip install --default-timeout=100 -r train.txt
 
 # freq changing files are added below
 COPY . /pytorch_model
-CMD ["python3", "train_mnist.py"]

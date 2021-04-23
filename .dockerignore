@@ -100,6 +100,6 @@ venv*
 server
 
 # training artifacts
-checkpoints
-experiments
-logs
+checkpoints*
+experiments*
+logs*
