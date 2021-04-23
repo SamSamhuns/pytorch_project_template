@@ -32,14 +32,12 @@ class Classifier(nn.Module):
                  backbone=models.mobilenet_v2,
                  num_classes=10,
                  feat_extract=False,
-                 pretrained=True,
-                 train_mode=True):
+                 pretrained=True):
         """
         backbone: network to extract features
         num_classes: num classes to predict/ num of outputs of network, exclusive to feat_extract
         feat_extract: only use network for feat extract, exclusive to num_classes
         pretrained: use weights pretrained from imagenet
-        train_mode: model.train() or model.eval() mode
         """
         super().__init__()
         self.backbone = backbone(pretrained=pretrained)
@@ -52,6 +50,10 @@ class Classifier(nn.Module):
             final_layer = 'classifier'
         elif hasattr(self.backbone, 'fc'):
             final_layer = 'fc'
+        else:
+            print("custom backbone")
+            self.model = self.backbone
+            return
 
         # use net as a feat extractor by setting final layer as Identity
         if feat_extract:
@@ -67,10 +69,6 @@ class Classifier(nn.Module):
             ]))
             setattr(self.backbone, final_layer, classifier)
         self.model = self.backbone
-        if train_mode:
-            self.model.train()
-        else:
-            self.model.eval()
 
     def forward(self, x):
         x = self.model(x)
@@ -78,7 +76,7 @@ class Classifier(nn.Module):
 
 
 def main():
-    model = Classifier(train_mode=False)
+    model = Classifier(train_mode=False).eval()
     input = torch.rand([1, 3, 244, 244])
     output = model(input)
     print(output.shape)

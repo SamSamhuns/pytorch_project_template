@@ -26,9 +26,11 @@ class ClassifierDataset:
         data_mode: Mode for getting data
         """
         if data_mode == "imgs":
-            self.train_dataset = base_dataset.ImageFolderDataset(osp.join(data_root, train_dir),
+            train_root = osp.join(data_root, train_dir)
+            test_root = osp.join(data_root, test_dir)
+            self.train_dataset = base_dataset.ImageFolderDataset(train_root,
                                                                  transform=train_transform)
-            self.test_dataset = base_dataset.ImageFolderDataset(osp.join(data_root, test_dir),
+            self.test_dataset = base_dataset.ImageFolderDataset(test_root,
                                                                 transform=test_transform)
         elif data_mode == "numpy":
             raise NotImplementedError("This mode is not implemented YET")

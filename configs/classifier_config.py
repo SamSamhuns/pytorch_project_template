@@ -15,6 +15,8 @@ CONFIG = {
     "GPU_DEVICE": [0],
     "ARCH": {
         "TYPE": Classifier,
+        "BACKBONE": None,
+        "FEAT_EXTRACT": False,
         "PRETRAINED": False,
         "INPUT_WIDTH": 224,
         "INPUT_HEIGHT": 224,
