@@ -19,11 +19,17 @@ class ClassifierAgent(BaseAgent):
         super().__init__(CONFIG)
 
         # define models
-        self.model = self.CONFIG.ARCH.TYPE()
+        self.model = self.CONFIG.ARCH.TYPE(backbone=self.CONFIG.ARCH.BACKBONE,
+                                           num_classes=self.CONFIG.DATASET.NUM_CLASSES,
+                                           feat_extract=self.CONFIG.ARCH.FEAT_EXTRACT,
+                                           pretrained=self.CONFIG.ARCH.PRETRAINED)
 
         # define dataset
         self.data_set = self.CONFIG.DATASET.TYPE(train_transform=self.CONFIG.DATALOADER.PREPROCESS_TRAIN,
-                                                 test_transform=self.CONFIG.DATALOADER.PREPROCESS_TEST)
+                                                 test_transform=self.CONFIG.DATALOADER.PREPROCESS_TEST,
+                                                 data_root=self.CONFIG.DATASET.DATA_ROOT_DIR,
+                                                 train_dir=self.CONFIG.DATASET.TRAIN_DIR,
+                                                 test_dir=self.CONFIG.DATASET.TEST_DIR)
 
         # define train, validate, and test data_loader
         # in OSX systems DATALOADER.NUM_WORKERS should be set to 0 which might increasing training time

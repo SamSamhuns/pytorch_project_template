@@ -2,17 +2,16 @@ from torchvision import transforms
 
 
 class Preprocess:
-
-    __slots__ = ['train', 'test', 'inference']
+    train = transforms.Compose([transforms.ToTensor(),
+                                transforms.Normalize((0.1307,), (0.3081,))])
+    test = transforms.Compose([transforms.ToTensor(),
+                                transforms.Normalize((0.1307,), (0.3081,))])
+    inference = transforms.Compose([transforms.ToTensor(),
+                                    transforms.Resize((28, 28)),
+                                    transforms.Normalize((0.1307,), (0.3081,))])
 
     def __init__(self):
         """
         Class to store the train, test, inference transforms or augmentations
         """
-        self.train = transforms.Compose([transforms.ToTensor(),
-                                         transforms.Normalize((0.1307,), (0.3081,))])
-        self.train = transforms.Compose([transforms.ToTensor(),
-                                         transforms.Normalize((0.1307,), (0.3081,))])
-        self.inference = transforms.Compose([transforms.ToTensor(),
-                                             transforms.Resize((28, 28)),
-                                             transforms.Normalize((0.1307,), (0.3081,))])
+        pass

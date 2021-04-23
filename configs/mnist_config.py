@@ -15,6 +15,8 @@ CONFIG = {
     "GPU_DEVICE": [0],
     "ARCH": {
         "TYPE": Mnist,
+        "BACKBONE": None,
+        "FEAT_EXTRACT": False,
         "PRETRAINED": False,
         "INPUT_WIDTH": 28,
         "INPUT_HEIGHT": 28,

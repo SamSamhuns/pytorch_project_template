@@ -10,16 +10,21 @@ class MnistDataset:
     def __init__(self,
                  train_transform=None,
                  test_transform=None,
-                 data_mode="download"):
+                 data_root='data',
+                 data_mode="download",
+                 **kwargs):
         """
-        :param config:
+        train_transform: torchvision.transforms for train data
+        test_transform: torchvision.transforms for test data
+        data_root: folder containing train & test data dirs
+        data_mode: Mode for getting data
         """
         if data_mode == "download":
-            self.train_dataset = datasets.MNIST('data',
+            self.train_dataset = datasets.MNIST(data_root,
                                                 train=True,
                                                 download=True,
                                                 transform=train_transform)
-            self.test_dataset = datasets.MNIST('data',
+            self.test_dataset = datasets.MNIST(data_root,
                                                train=False,
                                                transform=test_transform)
         elif data_mode == "imgs":
