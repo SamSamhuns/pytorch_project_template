@@ -1,28 +1,28 @@
 from torch import nn
 import torch.optim as optim
 
-from modules.models.mnist_model import Mnist
-from modules.datasets.mnist_dataset import MnistDataset
+from modules.models.classifer_model import Classifier
+from modules.datasets.base_dataset import ImageFolderDataset
 from modules.dataloaders.base_dataloader import BaseDataLoader
-from modules.augmentations.mnist_transforms import Preprocess
+from modules.augmentations.classifier_transforms import Preprocess
 
 
 CONFIG = {
-    "NAME": "mnist_classifier",
+    "NAME": "image_classifier",
     "SEED": 1,
     "USE_CUDA": False,
     "N_GPU": 1,
     "GPU_DEVICE": [0],
     "ARCH": {
-        "TYPE": Mnist,
+        "TYPE": Classifier,
         "PRETRAINED": False,
-        "INPUT_WIDTH": 28,
-        "INPUT_HEIGHT": 28,
+        "INPUT_WIDTH": 224,
+        "INPUT_HEIGHT": 224,
         "INPUT_CHANNEL": 1
     },
     "DATASET": {
-        "TYPE": MnistDataset,
-        "DATA_ROOT_DIR": "data",
+        "TYPE": ImageFolderDataset,
+        "DATA_ROOT_DIR": "data/birds_dataset/processed",
         "TRAIN_DIR": "train",
         "TEST_DIR": "test",
         "NUM_CLASSES": 10
@@ -59,16 +59,16 @@ CONFIG = {
         "VALID_FREQ": 2,
 
         "EPOCHS": 12,
-        "CHECKPOINT_DIR": "checkpoints",
+        "CHECKPOINT_DIR": "checkpoints_birds",
 
         "VERBOSITY": 2,
         "EARLY_STOP": 10,
         "USE_TENSORBOARD": True,
-        "TENSORBOARD_EXPERIMENT_DIR": "experiments",
+        "TENSORBOARD_EXPERIMENT_DIR": "experiments_birds",
         "TENSORBOARD_PORT": 6006
     },
     "LOGGER": {
-        "DIR": "logs",
+        "DIR": "logs_birds",
         "LOG_FMT": "mnist_log_{}.txt",
         "FILE_FMT": "%(asctime)s %(levelname)-8s: %(message)s",
         "CONSOLE_FMT": "%(message)s",

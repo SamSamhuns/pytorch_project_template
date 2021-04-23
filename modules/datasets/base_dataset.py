@@ -175,7 +175,7 @@ class BaseDataset(data.Dataset):
         return fmt_str
 
 
-class ImageFolder(BaseDataset):
+class ImageFolderDataset(BaseDataset):
     """An Image data loader where the images are arranged in this way:
         root
             |_ class_x
@@ -204,33 +204,33 @@ class ImageFolder(BaseDataset):
 
     def __init__(self,
                  root,
-                 file_extensions,
+                 file_extensions=IMG_EXTENSIONS,
                  transform=None,
                  target_transform=None,
                  loader=default_loader):
-        super(ImageFolder, self).__init__(root,
-                                          loader,
-                                          file_extensions,
-                                          transform=transform,
-                                          target_transform=target_transform)
+        super(ImageFolderDataset, self).__init__(root,
+                                                 loader,
+                                                 file_extensions,
+                                                 transform=transform,
+                                                 target_transform=target_transform)
         self.imgs = self.samples
 
 
 if __name__ == "__main__":
     from torchvision import transforms
 
-    train_data = ImageFolder("data/raw_data/birds_dataset",
-                             IMG_EXTENSIONS,
-                             transform=transforms.Compose([
-                                 transforms.CenterCrop(299),
-                                 transforms.ColorJitter(brightness=1.5,
-                                                        contrast=0.8,
-                                                        saturation=0.8,
-                                                        hue=0.4),
-                                 transforms.RandomHorizontalFlip(p=0.5),
-                                 transforms.ToTensor(),
-                             ]))
-    print("Printing ImageFolder data class", train_data)
+    train_data = ImageFolderDataset("data/birds_dataset/processed/train",
+                                    IMG_EXTENSIONS,
+                                    transform=transforms.Compose([
+                                        transforms.CenterCrop(299),
+                                        transforms.ColorJitter(brightness=1.5,
+                                                               contrast=0.8,
+                                                               saturation=0.8,
+                                                               hue=0.4),
+                                        transforms.RandomHorizontalFlip(p=0.5),
+                                        transforms.ToTensor(),
+                                    ]))
+    print("Printing ImageFolderDataset data class", train_data)
     print("Printing len of data class (Number of images in data)", len(train_data))
     print("Printing the shape of the first datum and its label from the data",
           train_data[0][0].shape, train_data[0][1])
