@@ -1,8 +1,9 @@
 from torch import nn
 import torch.optim as optim
+from torchvision.models import mobilenet_v2
 
-from modules.models.classifer_model import Classifier
-from modules.datasets.base_dataset import ImageFolderDataset
+from modules.models.classifier_model import Classifier
+from modules.datasets.classifier_dataset import ClassifierDataset
 from modules.dataloaders.base_dataloader import BaseDataLoader
 from modules.augmentations.classifier_transforms import Preprocess
 
@@ -11,32 +12,36 @@ CONFIG = {
     "NAME": "image_classifier",
     "SEED": 1,
     "USE_CUDA": False,
+    "CUDNN_DETERMINISTIC": True,
+    "CUDNN_BENCHMARK": False,
     "N_GPU": 1,
     "GPU_DEVICE": [0],
     "ARCH": {
         "TYPE": Classifier,
-        "BACKBONE": None,
+        "BACKBONE": mobilenet_v2,
         "FEAT_EXTRACT": False,
         "PRETRAINED": False,
         "INPUT_WIDTH": 224,
         "INPUT_HEIGHT": 224,
-        "INPUT_CHANNEL": 1
+        "INPUT_CHANNEL": 3
     },
     "DATASET": {
-        "TYPE": ImageFolderDataset,
-        "DATA_ROOT_DIR": "data/birds_dataset/processed",
+        "TYPE": ClassifierDataset,
+        "DATA_ROOT_DIR": "data/birds_dataset",
         "TRAIN_DIR": "train",
+        "VAL_DIR": "valid",
         "TEST_DIR": "test",
-        "NUM_CLASSES": 10
+        "NUM_CLASSES": 265
     },
     "DATALOADER": {
         "TYPE": BaseDataLoader,
         "BATCH_SIZE": 32,
         "SHUFFLE": True,
         "NUM_WORKERS": 0,
-        "VALIDATION_SPLIT": 0.1,
+        "VALIDATION_SPLIT": 0,
         "PIN_MEMORY": True,
         "PREPROCESS_TRAIN": Preprocess.train,
+        "PREPROCESS_VAL": Preprocess.val,
         "PREPROCESS_TEST": Preprocess.test,
         "PREPROCESS_INFERENCE": Preprocess.inference
     },
@@ -57,7 +62,7 @@ CONFIG = {
     "TRAINER": {
         "RESUME": True,
         "SAVE_BEST_ONLY": True,
-        "LOG_FREQ": 50,
+        "LOG_FREQ": 5,
         "VALID_FREQ": 2,
 
         "EPOCHS": 12,

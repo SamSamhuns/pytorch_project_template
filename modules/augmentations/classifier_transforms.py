@@ -11,7 +11,8 @@ class Preprocess:
             std=[0.229, 0.224, 0.225]
         )])
     train = common_transform
-    train = common_transform
+    val = common_transform
+    test = common_transform
     inference = common_transform
 
     def __init__(self):

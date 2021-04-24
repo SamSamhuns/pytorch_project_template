@@ -26,9 +26,11 @@ class ClassifierAgent(BaseAgent):
 
         # define dataset
         self.data_set = self.CONFIG.DATASET.TYPE(train_transform=self.CONFIG.DATALOADER.PREPROCESS_TRAIN,
+                                                 val_transform=self.CONFIG.DATALOADER.PREPROCESS_VAL,
                                                  test_transform=self.CONFIG.DATALOADER.PREPROCESS_TEST,
                                                  data_root=self.CONFIG.DATASET.DATA_ROOT_DIR,
                                                  train_dir=self.CONFIG.DATASET.TRAIN_DIR,
+                                                 val_dir=self.CONFIG.DATASET.VAL_DIR,
                                                  test_dir=self.CONFIG.DATASET.TEST_DIR)
 
         # define train, validate, and test data_loader
@@ -39,6 +41,19 @@ class ClassifierAgent(BaseAgent):
                                                              shuffle=self.CONFIG.DATALOADER.SHUFFLE,
                                                              num_workers=self.CONFIG.DATALOADER.NUM_WORKERS,
                                                              pin_memory=self.CONFIG.DATALOADER.PIN_MEMORY)
+
+        # if VAL_DIR is not None and VALIDATION_SPLIT must be 0
+        # if no val dir is provided, take val split from training data
+        if self.CONFIG.DATASET.VAL_DIR is None:
+            self.val_data_loader = self.train_data_loader.split_validation()
+        # if val dir is provided, use all data inside val dir for validation
+        elif self.CONFIG.DATASET.VAL_DIR is not None:
+            self.val_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.val_dataset,
+                                                               batch_size=self.CONFIG.DATALOADER.BATCH_SIZE,
+                                                               validation_split=self.CONFIG.DATALOADER.VALIDATION_SPLIT,
+                                                               shuffle=self.CONFIG.DATALOADER.SHUFFLE,
+                                                               num_workers=self.CONFIG.DATALOADER.NUM_WORKERS,
+                                                               pin_memory=self.CONFIG.DATALOADER.PIN_MEMORY)
         self.test_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.test_dataset,
                                                             batch_size=self.CONFIG.DATALOADER.BATCH_SIZE,
                                                             validation_split=0,
@@ -79,6 +94,8 @@ class ClassifierAgent(BaseAgent):
         if self.cuda:
             torch.cuda.manual_seed(self.manual_seed)
             torch.cuda.set_device(self.CONFIG.GPU_DEVICE[0])
+            torch.backends.cudnn.deterministic = self.CONFIG.CUDNN_DETERMINISTIC
+            torch.backends.cudnn.benchmark = self.CONFIG.CUDNN_BENCHMARK
             self.model = self.model.to(self.device)
             self.loss = self.loss.to(self.device)
             self.device = torch.device("cuda")
@@ -118,7 +135,7 @@ class ClassifierAgent(BaseAgent):
 
         if ckpt_file is None:
             msg = (f"'{path}' is not a torch weight file or a directory containing one. " +
-                   "No weight were loaded and training will be done from scratch")
+                   "No weights were loaded and training will be done from scratch")
             self.logger.info(msg)
             return
 
@@ -231,7 +248,7 @@ class ClassifierAgent(BaseAgent):
         val_size = 0
         correct = 0
         with torch.no_grad():
-            for data, target in self.train_data_loader.split_validation():
+            for data, target in self.val_data_loader:
                 data, target = data.to(self.device), target.to(self.device)
                 val_size += data.shape[0]
                 output = self.model(data)
