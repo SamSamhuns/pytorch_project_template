@@ -219,7 +219,7 @@ class ImageFolderDataset(BaseDataset):
 if __name__ == "__main__":
     from torchvision import transforms
 
-    train_data = ImageFolderDataset("data/birds_dataset/processed/train",
+    train_data = ImageFolderDataset("data/birds_dataset/valid",
                                     IMG_EXTENSIONS,
                                     transform=transforms.Compose([
                                         transforms.CenterCrop(299),

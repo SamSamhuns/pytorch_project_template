@@ -43,6 +43,11 @@ class BaseAgent:
                                           filename_suffix=_suffix)
             self.tboard_writer = tboard_writer
 
+        # check exclusive config parameters
+        val_dir, val_split = self.CONFIG.DATASET.VAL_DIR, self.CONFIG.DATALOADER.VALIDATION_SPLIT
+        if (val_dir is not None and val_split > 0):
+            raise RuntimeError(f"If VAL_DIR {val_dir} is not None, {val_split} must be 0")
+
     def load_checkpoint(self, file_name):
         """
         load latest checkpoint file

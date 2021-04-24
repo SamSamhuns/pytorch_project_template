@@ -86,7 +86,7 @@ if __name__ == "__main__":
     import torchvision.datasets as datasets
     import torchvision.transforms as transforms
 
-    dataset = datasets.ImageFolder(root="data/birds_dataset/raw",
+    dataset = datasets.ImageFolder(root="data/birds_dataset/valid",
                                    transform=transforms.ToTensor())
     print(dataset)
     print(f"len of dataset(Number of datapoints): {len(dataset)}")
