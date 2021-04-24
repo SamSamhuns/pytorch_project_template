@@ -1,3 +1,4 @@
+# imported objects should not be instanitated here
 from torch import nn
 import torch.optim as optim
 
@@ -11,6 +12,8 @@ CONFIG = {
     "NAME": "mnist_classifier",
     "SEED": 1,
     "USE_CUDA": False,
+    "CUDNN_DETERMINISTIC": True,
+    "CUDNN_BENCHMARK": False,
     "N_GPU": 1,
     "GPU_DEVICE": [0],
     "ARCH": {
@@ -26,6 +29,7 @@ CONFIG = {
         "TYPE": MnistDataset,
         "DATA_ROOT_DIR": "data",
         "TRAIN_DIR": "train",
+        "VAL_DIR": None,
         "TEST_DIR": "test",
         "NUM_CLASSES": 10
     },
@@ -37,6 +41,7 @@ CONFIG = {
         "VALIDATION_SPLIT": 0.1,
         "PIN_MEMORY": True,
         "PREPROCESS_TRAIN": Preprocess.train,
+        "PREPROCESS_VAL": Preprocess.val,
         "PREPROCESS_TEST": Preprocess.test,
         "PREPROCESS_INFERENCE": Preprocess.inference
     },
