@@ -96,9 +96,9 @@ class ClassifierAgent(BaseAgent):
             torch.cuda.set_device(self.CONFIG.GPU_DEVICE[0])
             torch.backends.cudnn.deterministic = self.CONFIG.CUDNN_DETERMINISTIC
             torch.backends.cudnn.benchmark = self.CONFIG.CUDNN_BENCHMARK
+            self.device = torch.device("cuda")
             self.model = self.model.to(self.device)
             self.loss = self.loss.to(self.device)
-            self.device = torch.device("cuda")
             self.logger.info("Program will run on *****GPU-CUDA*****")
             print_cuda_statistics()
         else:
@@ -117,7 +117,7 @@ class ClassifierAgent(BaseAgent):
             w = self.CONFIG.ARCH.INPUT_WIDTH
             h = self.CONFIG.ARCH.INPUT_HEIGHT
             c = self.CONFIG.ARCH.INPUT_CHANNEL
-            _dummy_input = torch.ones(([1, c, h, w]))
+            _dummy_input = torch.ones([1, c, h, w], dtype=torch.float32).to(self.device)
             self.tboard_writer.add_graph(self.model, _dummy_input)
 
     def load_checkpoint(self, path) -> None:

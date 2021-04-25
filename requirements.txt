@@ -1,4 +1,3 @@
 # install full-requirements
 
 -r requirements/train.txt
--r requirements/test.txt
