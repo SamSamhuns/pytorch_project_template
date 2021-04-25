@@ -1,3 +1,4 @@
+# imported objects should not be instanitated here
 from torch import nn
 import torch.optim as optim
 from torchvision.models import mobilenet_v2
@@ -76,7 +77,7 @@ CONFIG = {
     },
     "LOGGER": {
         "DIR": "logs_birds",
-        "LOG_FMT": "mnist_log_{}.txt",
+        "LOG_FMT": "classifier_log_{}.txt",
         "FILE_FMT": "%(asctime)s %(levelname)-8s: %(message)s",
         "CONSOLE_FMT": "%(message)s",
 

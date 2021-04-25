@@ -140,12 +140,24 @@ cython_debug/
 # PyCharm
 .idea
 
-# pyyorch checkpoint files
-checkpoints
-
-# log files
-logs
-
-# MacOS system files
+# OSX system files
 .DS_Store
 ._.DS_Store
+
+# log files
+logs*
+
+# tensorboard experiment files
+experiments*
+
+# pytorch checkpoint files
+checkpoints*
+
+# server model files which are copied from the project root path
+server/configs
+server/checkpoints
+server/modules
+
+# data and cache files
+data
+.data_cache

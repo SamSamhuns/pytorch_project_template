@@ -1,12 +1,14 @@
 # Required Keys for Configuration JSON file
 
-An example Configuration file is provided at `configs/base_configs.json`
+An example Configuration file is provided at `classifier_configs.py`
 
 ## Required top level Keys
 
     'NAME'
     "SEED"
     'USE_CUDA'
+    'CUDNN_DETERMINISTIC'
+    'CUDNN_BENCHMARK'
     'N_GPU'
     'GPU_DEVICE'
     'ARCH'
@@ -18,19 +20,3 @@ An example Configuration file is provided at `configs/base_configs.json`
     'LR_SCHEDULER'
     'TRAINER'
     'LOGGER'
-
-## Required sub-level Keys
-
-    'ARCH' = ['TYPE', 'PRETRAINED', 'INPUT_WIDTH', 'INPUT_HEIGHT']
-
-    DATASET = ['RAW_DATA_ROOT_DIR', 'PROC_DATA_ROOT_DIR', 'TRAIN_DIR', 'TEST_DIR', 'NUM_CLASSES']
-
-    DATALOADER = ['TYPE', 'BATCH_SIZE', 'SHUFFLE']
-
-    OPTIMIZER = ['TYPE', 'LR']
-
-    LR_SCHEDULER = ['TYPE']
-
-    TRAINER = ['RESUME', 'EPOCHS', 'CHECKPOINT_DIR']
-
-    LOGGER = ['DIR']
