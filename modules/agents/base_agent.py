@@ -32,8 +32,8 @@ class BaseAgent:
 
             _agent_name = self.CONFIG.NAME
             _optim_name = self.CONFIG.OPTIMIZER.TYPE.__name__
-            _bsize = self.CONFIG.DATALOADER.BATCH_SIZE
-            _lr = self.CONFIG.OPTIMIZER.LR
+            _bsize = self.CONFIG.DATALOADER.ARGS.batch_size
+            _lr = self.CONFIG.OPTIMIZER.ARGS.lr
 
             _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}"
             _tboard_log_root_dir = self.CONFIG.TRAINER.TENSORBOARD_EXPERIMENT_DIR
@@ -44,9 +44,9 @@ class BaseAgent:
             self.tboard_writer = tboard_writer
 
         # check exclusive config parameters
-        val_dir, val_split = self.CONFIG.DATASET.VAL_DIR, self.CONFIG.DATALOADER.VALIDATION_SPLIT
+        val_dir, val_split = self.CONFIG.DATASET.VAL_DIR, self.CONFIG.DATALOADER.ARGS.validation_split
         if (val_dir is not None and val_split > 0):
-            raise RuntimeError(f"If VAL_DIR {val_dir} is not None, {val_split} must be 0")
+            raise RuntimeError(f"If VAL_DIR {val_dir} is not None, val_split({val_split}) must be 0")
 
     def load_checkpoint(self, file_name):
         """

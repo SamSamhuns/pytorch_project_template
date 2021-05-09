@@ -98,7 +98,7 @@ class InferenceProcessTask():
         # run the inference function
         inference_model = loaded_models_dict[self.input_data.model_name]['detector']
         inference_model_config = loaded_models_dict[self.input_data.model_name]['config']
-        preprocess_func = inference_model_config["DATALOADER"]["PREPROCESS_INFERENCE"]
+        preprocess_func = inference_model_config["DATASET"]["PREPROCESS_INFERENCE"]
         self.results = self.func(
             inference_model, preprocess_func, input_image_file, self.input_data.threshold)
         self.response_data["code"] = "success"

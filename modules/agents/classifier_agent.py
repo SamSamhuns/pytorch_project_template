@@ -3,14 +3,11 @@ Agent class for general classifier/feature extraction networks
 """
 import os
 import torch
-from torch.backends import cudnn
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from modules.agents.base_agent import BaseAgent
 from modules.utils.statistics import print_cuda_statistics
 from modules.utils.util import find_latest_file_in_dir
-
-
-cudnn.benchmark = True
 
 
 class ClassifierAgent(BaseAgent):
@@ -19,15 +16,13 @@ class ClassifierAgent(BaseAgent):
         super().__init__(CONFIG)
 
         # define models
-        self.model = self.CONFIG.ARCH.TYPE(backbone=self.CONFIG.ARCH.BACKBONE,
-                                           num_classes=self.CONFIG.DATASET.NUM_CLASSES,
-                                           feat_extract=self.CONFIG.ARCH.FEAT_EXTRACT,
-                                           pretrained=self.CONFIG.ARCH.PRETRAINED)
+        self.model = self.CONFIG.ARCH.TYPE(**self.CONFIG.ARCH.ARGS,
+                                           num_classes=self.CONFIG.DATASET.NUM_CLASSES)
 
         # define dataset
-        self.data_set = self.CONFIG.DATASET.TYPE(train_transform=self.CONFIG.DATALOADER.PREPROCESS_TRAIN,
-                                                 val_transform=self.CONFIG.DATALOADER.PREPROCESS_VAL,
-                                                 test_transform=self.CONFIG.DATALOADER.PREPROCESS_TEST,
+        self.data_set = self.CONFIG.DATASET.TYPE(train_transform=self.CONFIG.DATASET.PREPROCESS_TRAIN,
+                                                 val_transform=self.CONFIG.DATASET.PREPROCESS_VAL,
+                                                 test_transform=self.CONFIG.DATASET.PREPROCESS_TEST,
                                                  data_root=self.CONFIG.DATASET.DATA_ROOT_DIR,
                                                  train_dir=self.CONFIG.DATASET.TRAIN_DIR,
                                                  val_dir=self.CONFIG.DATASET.VAL_DIR,
@@ -36,11 +31,7 @@ class ClassifierAgent(BaseAgent):
         # define train, validate, and test data_loader
         # in OSX systems DATALOADER.NUM_WORKERS should be set to 0 which might increasing training time
         self.train_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.train_dataset,
-                                                             batch_size=self.CONFIG.DATALOADER.BATCH_SIZE,
-                                                             validation_split=self.CONFIG.DATALOADER.VALIDATION_SPLIT,
-                                                             shuffle=self.CONFIG.DATALOADER.SHUFFLE,
-                                                             num_workers=self.CONFIG.DATALOADER.NUM_WORKERS,
-                                                             pin_memory=self.CONFIG.DATALOADER.PIN_MEMORY)
+                                                             **self.CONFIG.DATALOADER.ARGS)
 
         # if VAL_DIR is not None and VALIDATION_SPLIT must be 0
         # if no val dir is provided, take val split from training data
@@ -49,31 +40,18 @@ class ClassifierAgent(BaseAgent):
         # if val dir is provided, use all data inside val dir for validation
         elif self.CONFIG.DATASET.VAL_DIR is not None:
             self.val_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.val_dataset,
-                                                               batch_size=self.CONFIG.DATALOADER.BATCH_SIZE,
-                                                               validation_split=self.CONFIG.DATALOADER.VALIDATION_SPLIT,
-                                                               shuffle=self.CONFIG.DATALOADER.SHUFFLE,
-                                                               num_workers=self.CONFIG.DATALOADER.NUM_WORKERS,
-                                                               pin_memory=self.CONFIG.DATALOADER.PIN_MEMORY)
+                                                               **self.CONFIG.DATALOADER.ARGS)
         self.test_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.test_dataset,
-                                                            batch_size=self.CONFIG.DATALOADER.BATCH_SIZE,
-                                                            validation_split=0,
-                                                            shuffle=self.CONFIG.DATALOADER.SHUFFLE,
-                                                            num_workers=self.CONFIG.DATALOADER.NUM_WORKERS,
-                                                            pin_memory=self.CONFIG.DATALOADER.PIN_MEMORY)
+                                                            **dict(self.CONFIG.DATALOADER.ARGS,
+                                                                   validation_split=0))
         # define loss and instantiate it
         self.loss = self.CONFIG.LOSS()
-
         # define optimizer
-        self.optimizer = self.CONFIG.OPTIMIZER.TYPE(
-            self.model.parameters(),
-            lr=self.CONFIG.OPTIMIZER.LR,
-            momentum=self.CONFIG.OPTIMIZER.MOMENTUM)
-
+        self.optimizer = self.CONFIG.OPTIMIZER.TYPE(self.model.parameters(),
+                                                    **self.CONFIG.OPTIMIZER.ARGS)
         # define lr scheduler
         self.scheduler = self.CONFIG.LR_SCHEDULER.TYPE(self.optimizer,
-                                                       factor=self.CONFIG.LR_SCHEDULER.FACTOR,
-                                                       patience=self.CONFIG.LR_SCHEDULER.PATIENCE)
-
+                                                       **self.CONFIG.LR_SCHEDULER.ARGS)
         # initialize metrics dict
         self.best_metric_dict = {metric: [] for metric in self.CONFIG.METRICS}
 
@@ -117,7 +95,8 @@ class ClassifierAgent(BaseAgent):
             w = self.CONFIG.ARCH.INPUT_WIDTH
             h = self.CONFIG.ARCH.INPUT_HEIGHT
             c = self.CONFIG.ARCH.INPUT_CHANNEL
-            _dummy_input = torch.ones([1, c, h, w], dtype=torch.float32).to(self.device)
+            _dummy_input = torch.ones(
+                [1, c, h, w], dtype=torch.float32).to(self.device)
             self.tboard_writer.add_graph(self.model, _dummy_input)
 
     def load_checkpoint(self, path) -> None:
@@ -193,7 +172,7 @@ class ClassifierAgent(BaseAgent):
         train_size = 0
         correct = 0
         train_data_len = len(self.data_set.train_dataset) - (
-            len(self.data_set.train_dataset) * self.CONFIG.DATALOADER.VALIDATION_SPLIT)
+            len(self.data_set.train_dataset) * self.CONFIG.DATALOADER.ARGS.validation_split)
 
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
             data, target = data.to(self.device), target.to(self.device)
@@ -270,7 +249,11 @@ class ClassifierAgent(BaseAgent):
                 [val_accuracy, self.current_epoch])
 
         # scheduler.step should be called after validate()
-        self.scheduler.step(val_loss)
+        # ReduceLROnPlateau scheduler takes metrics during its step call
+        if isinstance(self.scheduler, ReduceLROnPlateau):
+            self.scheduler.step(metrics=val_loss)
+        else:
+            self.scheduler.step()
 
         self.logger.info('Validation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             val_loss, correct, val_size, val_accuracy))
@@ -299,12 +282,12 @@ class ClassifierAgent(BaseAgent):
                           onnx_save_path,
                           export_params=True,
                           do_constant_folding=True,
-                          opset_version=12,
+                          opset_version=11,
                           input_names=['input'],    # the model's input names
                           output_names=['output'],  # the model's output names
                           dynamic_axes={'input': {0: 'batch_size', 2: "height", 3: "width"},    # variable length axes
                                         'output': {0: 'batch_size', 2: "height", 3: "width"}},
-                          verbose=True)
+                          verbose=False)
 
     def finalize_exit(self):
         """

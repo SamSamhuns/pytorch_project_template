@@ -19,9 +19,11 @@ CONFIG = {
     "GPU_DEVICE": [0],
     "ARCH": {
         "TYPE": Classifier,
-        "BACKBONE": mobilenet_v2,
-        "FEAT_EXTRACT": False,
-        "PRETRAINED": False,
+        "ARGS": {
+            "backbone": mobilenet_v2,
+            "feat_extract": False,
+            "pretrained": False,
+        },
         "INPUT_WIDTH": 224,
         "INPUT_HEIGHT": 224,
         "INPUT_CHANNEL": 3
@@ -32,33 +34,31 @@ CONFIG = {
         "TRAIN_DIR": "train",
         "VAL_DIR": "valid",
         "TEST_DIR": "test",
-        "NUM_CLASSES": 265
-    },
-    "DATALOADER": {
-        "TYPE": BaseDataLoader,
-        "BATCH_SIZE": 32,
-        "SHUFFLE": True,
-        "NUM_WORKERS": 0,
-        "VALIDATION_SPLIT": 0,
-        "PIN_MEMORY": True,
+        "NUM_CLASSES": 265,
         "PREPROCESS_TRAIN": Preprocess.train,
         "PREPROCESS_VAL": Preprocess.val,
         "PREPROCESS_TEST": Preprocess.test,
         "PREPROCESS_INFERENCE": Preprocess.inference
     },
+    "DATALOADER": {
+        "TYPE": BaseDataLoader,
+        "ARGS": {"batch_size": 32,
+                 "shuffle": True,
+                 "num_workers": 0,
+                 "validation_split": 0.,
+                 "pin_memory": True},
+    },
     "OPTIMIZER": {
         "TYPE": optim.SGD,
-        "LR": 1e-2,
-        "WEIGHT_DECAY": 0,
-        "AMSGRAD": False,
-        "MOMENTUM": 0.5
+        "ARGS": {"lr": 1e-2,
+                 "momentum": 0.5}
     },
     "LOSS": nn.NLLLoss,
     "METRICS": ["val_accuracy"],
     "LR_SCHEDULER": {
         "TYPE": optim.lr_scheduler.ReduceLROnPlateau,
-        "FACTOR": 0.1,
-        "PATIENCE": 8
+        "ARGS": {"factor": 0.1,
+                 "patience": 8}
     },
     "TRAINER": {
         "RESUME": True,
