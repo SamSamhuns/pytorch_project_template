@@ -32,7 +32,8 @@ class Classifier(nn.Module):
                  backbone=models.mobilenet_v2,
                  num_classes=10,
                  feat_extract=False,
-                 pretrained=True):
+                 pretrained=True,
+                 **kwargs):
         """
         backbone: network to extract features
         num_classes: num classes to predict/ num of outputs of network, exclusive to feat_extract

@@ -6,13 +6,13 @@ from modules.utils.weights_initializer import weights_init
 
 
 class Example(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
         super().__init__()
         self.config = config
 
         # inputs are destroyed without allocating additional output
         self.relu = nn.ReLU(inplace=True)
-        self.conv = nn.Conv2d(in_channels=self.config.input_channels,
+        self.conv = nn.Conv2d(in_channels=self.config.INPUT_CHANNELs,
                               out_channels=self.config.num_filters,
                               kernel_size=3,
                               stride=1,
