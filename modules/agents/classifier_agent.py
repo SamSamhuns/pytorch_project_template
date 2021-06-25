@@ -41,9 +41,10 @@ class ClassifierAgent(BaseAgent):
         elif self.CONFIG.DATASET.VAL_DIR is not None:
             self.val_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.val_dataset,
                                                                **self.CONFIG.DATALOADER.ARGS)
-        self.test_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.test_dataset,
-                                                            **dict(self.CONFIG.DATALOADER.ARGS,
-                                                                   validation_split=0))
+        if self.CONFIG.DATASET.TEST_DIR is not None:
+            self.test_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.test_dataset,
+                                                                **dict(self.CONFIG.DATALOADER.ARGS,
+                                                                       validation_split=0))
         # define loss and instantiate it
         self.loss = self.CONFIG.LOSS()
         # define optimizer

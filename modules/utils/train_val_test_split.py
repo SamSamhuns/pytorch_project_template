@@ -50,17 +50,17 @@ def main():
                         type=str,
                         required=True,
                         help="""Target dataset path where
-                        imgs will be sep into train & test""")
+                        imgs will be sep into train, val or test""")
     parser.add_argument('-vs',
                         '--val_split',
                         type=float,
                         required=False,
-                        help='Val data split percentage')
+                        help='Val data split percentage. i.e. 0.1')
     parser.add_argument('-ts',
                         '--test_split',
                         type=float,
                         required=False,
-                        help='Test data split percentage')
+                        help='Test data split percentage. i.e. 0.1')
     args = parser.parse_args()
     # set default vals here instead of above to ensure None
     # vals will be passed if only one split is provided

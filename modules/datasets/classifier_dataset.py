@@ -36,14 +36,16 @@ class ClassifierDataset:
         """
         if data_mode == "imgs":
             train_root = osp.join(data_root, train_dir)
-            val_root = osp.join(data_root, val_dir)
-            test_root = osp.join(data_root, test_dir)
             self.train_dataset = base_dataset.ImageFolderDataset(train_root,
                                                                  transform=train_transform)
-            self.val_dataset = base_dataset.ImageFolderDataset(val_root,
-                                                               transform=val_transform)
-            self.test_dataset = base_dataset.ImageFolderDataset(test_root,
-                                                                transform=test_transform)
+            if val_dir is not None:
+                val_root = osp.join(data_root, val_dir)
+                self.val_dataset = base_dataset.ImageFolderDataset(val_root,
+                                                                   transform=val_transform)
+            if test_dir is not None:
+                test_root = osp.join(data_root, test_dir)
+                self.test_dataset = base_dataset.ImageFolderDataset(test_root,
+                                                                    transform=test_transform)
         elif data_mode == "numpy":
             raise NotImplementedError("This mode is not implemented YET")
         else:

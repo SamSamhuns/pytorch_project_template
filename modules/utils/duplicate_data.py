@@ -45,7 +45,7 @@ def main():
                         type=int,
                         required=False,
                         default=1000,
-                        help="""Target size to reach for
+                        help="""Default 1000. Target size to reach for
                         each class after duplication""")
     args = parser.parse_args()
     split_train_test(args.raw_data_path,

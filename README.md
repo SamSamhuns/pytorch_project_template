@@ -50,6 +50,18 @@ Example testing code for mnist classification:
 $ python test_mnist.py
 ```
 
+## Custom Training
+
+```shell
+# set up data in structure data - > class_1/imgs, class_2/imgs ....
+# duplciate data if necessary
+$ python modules/utils/duplicate_data.py
+# split data into train/val/test
+$ python train_val_test_split.py
+# create a config file
+$ python train.py -c CONFIG_FILE
+```
+
 ### Tensorboard logging
 
 All tensorboard logs are saved in the `TENSORBOARD_EXPERIMENT_DIR` setting in the config file. Logs include train/val epoch accuracy/loss, graph, and preprocessed images per epoch.
