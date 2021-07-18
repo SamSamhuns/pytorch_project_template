@@ -6,7 +6,6 @@ This is a template for a PyTorch Project for training, testing, inference demo, 
 
     ├── checkpoints
     ├── configs
-    │   ├── base_configs.json
     ├── modules
     │   ├── agents
     |   |── augmentations
@@ -32,37 +31,53 @@ This is a template for a PyTorch Project for training, testing, inference demo, 
 Use `python venv` or a `conda env` to install requirements:
 
 -   Install full-requirements: `pip install -r requirements.txt`
--   Install train/test/minimal/server requirements: `pip install -r requirements/train|test|minimal|server.txt`
+-   Install train/minimal requirements: `pip install -r requirements/train|minimal.txt`
 
 ## Train
 
-Example training code for mnist classification:
+Example training for mnist digit classification with default config:
 
 ```shell
-$ python train_mnist.py
-```
-
-## Test
-
-Example testing code for mnist classification:
-
-```shell
-$ python test_mnist.py
+$ python train.py
 ```
 
 ## Custom Training
 
+### Image Classification
+
+set training data inside `data` directory in the following format:
+
+    data
+    |── CUSTOM_DATASET
+        ├── CLASS 1
+        |   ├── img1
+        |   └── img2
+        |   ├── ...
+        ├── CLASS 2
+        |   ├── img1
+        |   └── img2
+        |   ├── ...
+
 ```shell
-# set up data in structure data - > class_1/imgs, class_2/imgs ....
-# duplciate data if necessary
-$ python modules/utils/duplicate_data.py
-# split data into train/val/test
-$ python train_val_test_split.py
-# create a config file
-$ python train.py -c CONFIG_FILE
+# create train val test split
+$ python modules/utils/train_val_test_split.py -rd data/CUSTOM_DATASET -td data/CUSTOM_DATASET_SPLIT -vs VAL_SPLIT_FRAC -ts TEST_SPLIT_FRAC
+# OPTIONAL duplicate train data if necessary
+$ python modules/utils/duplicate_data.py -rd data/CUSTOM_DATASET_SPLIT/train -td data/CUSTOM_DATASET_SPLIT/train -n TARGET_NUMBER
+# create a custom config file based on configs/classifier_config.py and modify train parameters
+$ cp configs/classifier_config.py configs/custom_classifier_config.py
+# train on custom data with custom config
+$ python train.py -c custom_classifier_config.py
 ```
 
-### Tensorboard logging
+## Test
+
+Test based on CONFIG_FILE. By default testing is done for mnist classification.
+
+```shell
+$ python test.py -c CONFIG_FILE
+```
+
+## Tensorboard logging
 
 All tensorboard logs are saved in the `TENSORBOARD_EXPERIMENT_DIR` setting in the config file. Logs include train/val epoch accuracy/loss, graph, and preprocessed images per epoch.
 
@@ -155,4 +170,4 @@ Experimental configuration of model training & testing:
 
 ### Acknowledgements
 
--   https://github.com/victoresque/pytorch-template
+-   <https://github.com/victoresque/pytorch-template>
