@@ -46,7 +46,10 @@ CONFIG = {
                  "shuffle": True,
                  "num_workers": 0,
                  "validation_split": 0.1,
-                 "pin_memory": True},
+                 "pin_memory": True,
+                 "drop_last": False,
+                 "prefetch_factor": 2,
+                 "worker_init_fn": None},
     },
     "OPTIMIZER": {
         "TYPE": optim.SGD,

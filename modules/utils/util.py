@@ -2,7 +2,6 @@
 import os
 import json
 import glob
-import torch
 from collections import OrderedDict
 from easydict import EasyDict as edict
 
@@ -104,15 +103,15 @@ def _validate_base_configurations(cfg) -> None:
         loaded from JSON config file
     """
     _required_top_keys = ['NAME', 'SEED', 'USE_CUDA',
+                          'CUDNN_DETERMINISTIC', 'CUDNN_BENCHMARK',
                           'GPU_DEVICE', 'ARCH', 'DATASET',
                           'DATALOADER', 'OPTIMIZER', 'LOSS', 'METRICS',
                           'LR_SCHEDULER', 'TRAINER', 'LOGGER']
-    _arch = ['TYPE', 'PRETRAINED', 'INPUT_WIDTH', 'INPUT_HEIGHT']
-    _dataset = ['RAW_DATA_ROOT_DIR', 'PROC_DATA_ROOT_DIR',
-                'TRAIN_DIR', 'TEST_DIR', 'NUM_CLASSES']
-    _dataloader = ['TYPE', 'BATCH_SIZE', 'SHUFFLE']
-    _optimizer = ['TYPE', 'LR']
-    _lr_scheduler = ['TYPE']
+    _arch = ["TYPE", "ARGS", "INPUT_WIDTH", "INPUT_HEIGHT", "INPUT_CHANNEL"]
+    _dataset = ['TYPE', 'NUM_CLASSES', 'DATA_DIR', 'PREPROCESS']
+    _dataloader = ['TYPE', 'ARGS']
+    _optimizer = ['TYPE', 'ARGS']
+    _lr_scheduler = ['TYPE', 'ARGS']
     _trainer = ['RESUME', 'EPOCHS', 'CHECKPOINT_DIR']
     _logger = ['DIR']
 

@@ -25,11 +25,9 @@ class ClassifierAgent(BaseAgent):
         # define models
         self.model = self.CONFIG.ARCH.TYPE(**self.CONFIG.ARCH.ARGS,
                                            num_classes=self.CONFIG.DATASET.NUM_CLASSES)
-
         # define dataset
         self.data_set = self.CONFIG.DATASET.TYPE(**{**self.CONFIG.DATASET.DATA_DIR,
                                                     **self.CONFIG.DATASET.PREPROCESS})
-
         # define train, validate, and test data_loaders
         self.train_data_loader, self.val_data_loader, self.test_data_loader = None, None, None
         # in OSX systems DATALOADER.NUM_WORKERS should be set to 0 which might increasing training time
@@ -57,11 +55,9 @@ class ClassifierAgent(BaseAgent):
                                                        **self.CONFIG.LR_SCHEDULER.ARGS)
         # initialize metrics dict
         self.best_metric_dict = {metric: [] for metric in self.CONFIG.METRICS}
-
         # initialize counter
         self.current_epoch = 0
         self.current_iteration = 0
-
         # if using tensorboard, register graph for vis with dummy input
         if self.CONFIG.TRAINER.USE_TENSORBOARD:
             w = self.CONFIG.ARCH.INPUT_WIDTH
@@ -272,6 +268,7 @@ class ClassifierAgent(BaseAgent):
                          Default is set to None which uses latest chkpt weight file
         """
         if weight_path is not None:
+            print("Loading new checkpoint for testing")
             self.load_checkpoint(weight_path)
         if self.test_data_loader is None:
             raise NotImplementedError("test_data_loader is missing. " +
