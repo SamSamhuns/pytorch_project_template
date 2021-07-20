@@ -43,7 +43,6 @@ class ClassifierAgent(BaseAgent):
         elif self.CONFIG.DATASET.DATA_DIR.val_dir is not None:
             self.val_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.val_dataset,
                                                                **self.CONFIG.DATALOADER.ARGS)
-        # TODO check case when test dir is None
         if self.CONFIG.DATASET.DATA_DIR.test_dir is not None:
             self.test_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.test_dataset,
                                                                 **dict(self.CONFIG.DATALOADER.ARGS,
