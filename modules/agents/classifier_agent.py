@@ -30,7 +30,8 @@ class ClassifierAgent(BaseAgent):
         self.data_set = self.CONFIG.DATASET.TYPE(**{**self.CONFIG.DATASET.DATA_DIR,
                                                     **self.CONFIG.DATASET.PREPROCESS})
 
-        # define train, validate, and test data_loader
+        # define train, validate, and test data_loaders
+        self.train_data_loader, self.val_data_loader, self.test_data_loader = None, None, None
         # in OSX systems DATALOADER.NUM_WORKERS should be set to 0 which might increasing training time
         self.train_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.train_dataset,
                                                              **self.CONFIG.DATALOADER.ARGS)
@@ -264,11 +265,45 @@ class ClassifierAgent(BaseAgent):
                                            {'validation': val_accuracy},
                                            self.current_epoch)
 
-    def test(self) -> None:
+    def test(self, weight_path=None) -> None:
         """
         main test function
+        args:
+            weight_path: Path to pth weight file that will be loaded for test
+                         Default is set to None which uses latest chkpt weight file
         """
-        raise NotImplementedError
+        if weight_path is not None:
+            self.load_checkpoint(weight_path)
+        if self.test_data_loader is None:
+            raise NotImplementedError("test_data_loader is missing. " +
+                                      "test_dir might not have been set")
+        # set model to eval mode
+        self.model.eval()
+        cum_test_loss = 0
+        test_size = 0
+        correct = 0
+        with torch.no_grad():
+            for data, target in self.test_data_loader:
+                data, target = data.to(self.device), target.to(self.device)
+                test_size += data.shape[0]
+                output = self.model(data)
+                # sum up batch loss
+                cum_test_loss += self.loss(output, target).item()
+                # get the index of the max log-probability
+                pred = output.max(1, keepdim=True)[1]
+                correct += pred.eq(target.view_as(pred)).sum().item()
+        test_loss = cum_test_loss / test_size
+        test_accuracy = 100. * correct / test_size
+
+        self.logger.info('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+            test_loss, correct, test_size, test_accuracy))
+        if self.CONFIG.TRAINER.USE_TENSORBOARD:
+            self.tboard_writer.add_scalars('Test Loss (epoch)',
+                                           {'Test': test_loss},
+                                           self.current_epoch)
+            self.tboard_writer.add_scalars('Test Accuracy (epoch)',
+                                           {'Test': test_accuracy},
+                                           self.current_epoch)
 
     def export_as_onnx(self,
                        dummy_input,
