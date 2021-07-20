@@ -44,7 +44,7 @@ class BaseAgent:
             self.tboard_writer = tboard_writer
 
         # check exclusive config parameters
-        val_dir, val_split = self.CONFIG.DATASET.VAL_DIR, self.CONFIG.DATALOADER.ARGS.validation_split
+        val_dir, val_split = self.CONFIG.DATASET.DATA_DIR.val_dir, self.CONFIG.DATALOADER.ARGS.validation_split
         if (val_dir is not None and val_split > 0):
             raise RuntimeError(f"If VAL_DIR {val_dir} is not None, val_split({val_split}) must be 0")
 

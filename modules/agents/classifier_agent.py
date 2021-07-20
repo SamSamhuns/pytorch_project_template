@@ -27,14 +27,8 @@ class ClassifierAgent(BaseAgent):
                                            num_classes=self.CONFIG.DATASET.NUM_CLASSES)
 
         # define dataset
-        # TODO use dict ** extraction here
-        self.data_set = self.CONFIG.DATASET.TYPE(train_transform=self.CONFIG.DATASET.PREPROCESS_TRAIN,
-                                                 val_transform=self.CONFIG.DATASET.PREPROCESS_VAL,
-                                                 test_transform=self.CONFIG.DATASET.PREPROCESS_TEST,
-                                                 data_root=self.CONFIG.DATASET.DATA_ROOT_DIR,
-                                                 train_dir=self.CONFIG.DATASET.TRAIN_DIR,
-                                                 val_dir=self.CONFIG.DATASET.VAL_DIR,
-                                                 test_dir=self.CONFIG.DATASET.TEST_DIR)
+        self.data_set = self.CONFIG.DATASET.TYPE(**{**self.CONFIG.DATASET.DATA_DIR,
+                                                    **self.CONFIG.DATASET.PREPROCESS})
 
         # define train, validate, and test data_loader
         # in OSX systems DATALOADER.NUM_WORKERS should be set to 0 which might increasing training time
@@ -42,14 +36,14 @@ class ClassifierAgent(BaseAgent):
                                                              **self.CONFIG.DATALOADER.ARGS)
         # if VAL_DIR is not None and VALIDATION_SPLIT must be 0
         # if no val dir is provided, take val split from training data
-        if self.CONFIG.DATASET.VAL_DIR is None:
+        if self.CONFIG.DATASET.DATA_DIR.val_dir is None:
             self.val_data_loader = self.train_data_loader.split_validation()
         # if val dir is provided, use all data inside val dir for validation
-        elif self.CONFIG.DATASET.VAL_DIR is not None:
+        elif self.CONFIG.DATASET.DATA_DIR.val_dir is not None:
             self.val_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.val_dataset,
                                                                **self.CONFIG.DATALOADER.ARGS)
         # TODO check case when test dir is None
-        if self.CONFIG.DATASET.TEST_DIR is not None:
+        if self.CONFIG.DATASET.DATA_DIR.test_dir is not None:
             self.test_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.test_dataset,
                                                                 **dict(self.CONFIG.DATALOADER.ARGS,
                                                                        validation_split=0))
@@ -92,7 +86,8 @@ class ClassifierAgent(BaseAgent):
             torch.backends.cudnn.benchmark = self.CONFIG.CUDNN_BENCHMARK
             if len(gpu_device) > 1 and torch.cuda.device_count() > 1:
                 # use multi-gpu devices from config GPU_DEVICE
-                self.model = torch.nn.DataParallel(self.model, device_ids=gpu_device)
+                self.model = torch.nn.DataParallel(
+                    self.model, device_ids=gpu_device)
             else:
                 # use one cuda gpu device from config GPU_DEVICE
                 torch.cuda.set_device(gpu_device[0])

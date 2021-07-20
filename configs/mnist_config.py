@@ -14,7 +14,6 @@ CONFIG = {
     "USE_CUDA": False,
     "CUDNN_DETERMINISTIC": True,
     "CUDNN_BENCHMARK": False,
-    "N_GPU": 1,
     "GPU_DEVICE": [0],
     "ARCH": {
         "TYPE": Mnist,
@@ -29,15 +28,17 @@ CONFIG = {
     },
     "DATASET": {
         "TYPE": MnistDataset,
-        "DATA_ROOT_DIR": "data",
-        "TRAIN_DIR": "train",
-        "VAL_DIR": None,
-        "TEST_DIR": "test",
         "NUM_CLASSES": 10,
-        "PREPROCESS_TRAIN": Preprocess.train,
-        "PREPROCESS_VAL": Preprocess.val,
-        "PREPROCESS_TEST": Preprocess.test,
-        "PREPROCESS_INFERENCE": Preprocess.inference
+        "DATA_DIR": {"data_root": "data",
+                     "train_dir": "train",
+                     "val_dir": None,
+                     "test_dir": "test",
+                     },
+        "PREPROCESS": {"train_transform": Preprocess.train,
+                       "val_transform":  Preprocess.val,
+                       "test_transform": Preprocess.test,
+                       "inference_transform": Preprocess.inference,
+                       },
     },
     "DATALOADER": {
         "TYPE": BaseDataLoader,

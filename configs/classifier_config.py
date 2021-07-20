@@ -12,10 +12,10 @@ from modules.augmentations.classifier_transforms import Preprocess
 CONFIG = {
     "NAME": "image_classifier",
     "SEED": 1,
-    "USE_CUDA": False,                 # set to True for gpu training
-    "CUDNN_DETERMINISTIC": True,       # for repeating results together with SEED
-    "CUDNN_BENCHMARK": False,          # set to True for faster training with gpu
-    "GPU_DEVICE": [0],                 # list cuda device to use for single/multi gpu training
+    "USE_CUDA": False,            # set to True for gpu training
+    "CUDNN_DETERMINISTIC": True,  # for repeating results together with SEED
+    "CUDNN_BENCHMARK": False,     # set to True for faster training with gpu
+    "GPU_DEVICE": [0],            # cuda device list for single/multi gpu training
     "ARCH": {
         "TYPE": Classifier,
         "ARGS": {
@@ -29,15 +29,17 @@ CONFIG = {
     },
     "DATASET": {
         "TYPE": ClassifierDataset,
-        "DATA_ROOT_DIR": "data/birds_dataset",
-        "TRAIN_DIR": "train",
-        "VAL_DIR": "valid",
-        "TEST_DIR": "test",
         "NUM_CLASSES": 265,
-        "PREPROCESS_TRAIN": Preprocess.train,
-        "PREPROCESS_VAL": Preprocess.val,
-        "PREPROCESS_TEST": Preprocess.test,
-        "PREPROCESS_INFERENCE": Preprocess.inference
+        "DATA_DIR": {"data_root": "data/birds_dataset",
+                     "train_dir": "train",
+                     "val_dir": "valid",
+                     "test_dir": "test",
+                     },
+        "PREPROCESS": {"train_transform": Preprocess.train,
+                       "val_transform":  Preprocess.val,
+                       "test_transform": Preprocess.test,
+                       "inference_transform": Preprocess.inference,
+                       },
     },
     "DATALOADER": {
         "TYPE": BaseDataLoader,
