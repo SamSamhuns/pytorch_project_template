@@ -51,20 +51,16 @@ class BaseAgent:
     def load_checkpoint(self, file_name):
         """
         load latest checkpoint file
-        :param file_name: checkpoint file_name (pth, pt, pkl file)
+        args:
+            file_name: checkpoint file_name (pth, pt, pkl file)
         """
         raise NotImplementedError
 
     def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=False):
         """
         save checkpoint
-        :param file_name: checkpoint file_name (pth, pt, pkl file)
-        """
-        raise NotImplementedError
-
-    def run(self):
-        """
-        function to call train, validate or test mode
+        args:
+            file_name: checkpoint file_name (pth, pt, pkl file)
         """
         raise NotImplementedError
 

@@ -11,8 +11,15 @@ from modules.utils.util import find_latest_file_in_dir
 
 
 class ClassifierAgent(BaseAgent):
+    """
+    Main ClassifierAgent with the train, test, validate, load_checkpoint and save_checkpoint funcs
+    """
 
     def __init__(self, CONFIG):
+        """
+        args:
+            CONFIG: a config.py file loaded as a pymodule with importlib
+        """
         super().__init__(CONFIG)
 
         # define models
@@ -20,6 +27,7 @@ class ClassifierAgent(BaseAgent):
                                            num_classes=self.CONFIG.DATASET.NUM_CLASSES)
 
         # define dataset
+        # TODO use dict ** extraction here
         self.data_set = self.CONFIG.DATASET.TYPE(train_transform=self.CONFIG.DATASET.PREPROCESS_TRAIN,
                                                  val_transform=self.CONFIG.DATASET.PREPROCESS_VAL,
                                                  test_transform=self.CONFIG.DATASET.PREPROCESS_TEST,
@@ -32,7 +40,6 @@ class ClassifierAgent(BaseAgent):
         # in OSX systems DATALOADER.NUM_WORKERS should be set to 0 which might increasing training time
         self.train_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.train_dataset,
                                                              **self.CONFIG.DATALOADER.ARGS)
-
         # if VAL_DIR is not None and VALIDATION_SPLIT must be 0
         # if no val dir is provided, take val split from training data
         if self.CONFIG.DATASET.VAL_DIR is None:
@@ -41,6 +48,7 @@ class ClassifierAgent(BaseAgent):
         elif self.CONFIG.DATASET.VAL_DIR is not None:
             self.val_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.val_dataset,
                                                                **self.CONFIG.DATALOADER.ARGS)
+        # TODO check case when test dir is None
         if self.CONFIG.DATASET.TEST_DIR is not None:
             self.test_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.test_dataset,
                                                                 **dict(self.CONFIG.DATALOADER.ARGS,
@@ -64,26 +72,32 @@ class ClassifierAgent(BaseAgent):
         is_cuda = torch.cuda.is_available()
         if is_cuda and not self.CONFIG.USE_CUDA:
             self.logger.info(
-                "WARNING: You have a CUDA device, so you should probably enable CUDA")
+                "WARNING: CUDA device is available, enable CUDA for faster training")
 
         self.cuda = is_cuda & self.CONFIG.USE_CUDA
-
-        # set the manual seed for torch
         self.manual_seed = self.CONFIG.SEED
         if self.cuda:
             torch.cuda.manual_seed(self.manual_seed)
-            torch.cuda.set_device(self.CONFIG.GPU_DEVICE[0])
             torch.backends.cudnn.deterministic = self.CONFIG.CUDNN_DETERMINISTIC
             torch.backends.cudnn.benchmark = self.CONFIG.CUDNN_BENCHMARK
-            self.device = torch.device("cuda")
+            if len(self.CONFIG.GPU_DEVICE) > 1 and torch.cuda.device_count() > 1:
+                # use multi-gpu devices from config GPU_DEVICE
+                self.device = torch.device(
+                    f"cuda:{','.join([str(device) for device in self.CONFIG.GPU_DEVICE])}")
+                self.model = torch.nn.DataParallel(self.model)
+            else:
+                # use one cuda gpu device from config GPU_DEVICE
+                torch.cuda.set_device(self.CONFIG.GPU_DEVICE[0])
+                self.device = torch.device("cuda")
+
             self.model = self.model.to(self.device)
             self.loss = self.loss.to(self.device)
-            self.logger.info("Program will run on *****GPU-CUDA*****")
+            self.logger.info(f"Program will run on GPU device {self.device}")
             print_cuda_statistics()
         else:
             torch.manual_seed(self.manual_seed)
             self.device = torch.device("cpu")
-            self.logger.info("Program will run on *****CPU*****")
+            self.logger.info("Program will run on CPU")
 
         # if training resume is True, load model from the latest checkpoint, if not found start from scratch.
         if self.CONFIG.TRAINER.RESUME:
@@ -103,7 +117,7 @@ class ClassifierAgent(BaseAgent):
     def load_checkpoint(self, path) -> None:
         """
         Latest checkpoint loader from torch weights
-        :param
+        args:
             path: path to checkpoint file/folder with only weights,
                   if folder is used, latest checkpoint is loaded
         """
@@ -129,25 +143,17 @@ class ClassifierAgent(BaseAgent):
     def save_checkpoint(self, filename="checkpoint.pth") -> None:
         """
         Checkpoint saver
-        :param file_name: name of the checkpoint file
+        args:
+            file_name: name of the checkpoint file
         """
         # create checkpoint directory if it doesnt exist
         os.makedirs(self.CONFIG.TRAINER.CHECKPOINT_DIR, exist_ok=True)
         save_path = os.path.join(self.CONFIG.TRAINER.CHECKPOINT_DIR, filename)
         torch.save(self.model.state_dict(), save_path)
 
-    def run(self) -> None:
-        """
-        The main operator
-        """
-        try:
-            self.train()
-        except KeyboardInterrupt:
-            self.logger.info("You have entered CTRL+C.. Wait to finalize")
-
     def train(self) -> None:
         """
-        Main training loop
+        Main training function with loop
         """
         for epoch in range(self.CONFIG.TRAINER.EPOCHS):
             self.train_one_epoch()
@@ -167,7 +173,6 @@ class ClassifierAgent(BaseAgent):
         """
         One epoch of training
         """
-        # set model to training mode
         self.model.train()
         cum_train_loss = 0
         train_size = 0
@@ -265,6 +270,12 @@ class ClassifierAgent(BaseAgent):
             self.tboard_writer.add_scalars('Accuracy (epoch)',
                                            {'validation': val_accuracy},
                                            self.current_epoch)
+
+    def test(self) -> None:
+        """
+        main test function
+        """
+        raise NotImplementedError
 
     def export_as_onnx(self,
                        dummy_input,
