@@ -66,7 +66,8 @@ class Classifier(nn.Module):
                                "in_features")
             classifier = nn.Sequential(OrderedDict([
                 ('dropout', nn.Dropout(p=0.2, inplace=False)),
-                ('fc1', nn.Linear(n_inputs, num_classes))
+                ('fc1', nn.Linear(n_inputs, num_classes)),
+                ('softmax', nn.LogSoftmax(dim=1))
             ]))
             setattr(self.backbone, final_layer, classifier)
         self.model = self.backbone

@@ -13,7 +13,7 @@ CONFIG = {
     "NAME": "image_classifier",
     "SEED": 1,
     "USE_CUDA": False,
-    "CUDNN_DETERMINISTIC": True,
+    "CUDNN_DETERMINISTIC": False,
     "CUDNN_BENCHMARK": False,
     "N_GPU": 1,
     "GPU_DEVICE": [0],
@@ -22,7 +22,7 @@ CONFIG = {
         "ARGS": {
             "backbone": mobilenet_v2,
             "feat_extract": False,
-            "pretrained": False,
+            "pretrained": True,
         },
         "INPUT_WIDTH": 224,
         "INPUT_HEIGHT": 224,
@@ -51,7 +51,7 @@ CONFIG = {
     "OPTIMIZER": {
         "TYPE": optim.SGD,
         "ARGS": {"lr": 1e-2,
-                 "momentum": 0.5}
+                 "momentum": 0.9}
     },
     "LOSS": nn.NLLLoss,
     "METRICS": ["val_accuracy"],
