@@ -68,8 +68,18 @@ class ClassifierAgent(BaseAgent):
         self.current_epoch = 0
         self.current_iteration = 0
 
+        # if using tensorboard, register graph for vis with dummy input
+        if self.CONFIG.TRAINER.USE_TENSORBOARD:
+            w = self.CONFIG.ARCH.INPUT_WIDTH
+            h = self.CONFIG.ARCH.INPUT_HEIGHT
+            c = self.CONFIG.ARCH.INPUT_CHANNEL
+            _dummy_input = torch.ones(
+                [1, c, h, w], dtype=torch.float32)
+            self.tboard_writer.add_graph(self.model, _dummy_input)
+
         # set cuda flag
         is_cuda = torch.cuda.is_available()
+        gpu_device = self.CONFIG.GPU_DEVICE
         if is_cuda and not self.CONFIG.USE_CUDA:
             self.logger.info(
                 "WARNING: CUDA device is available, enable CUDA for faster training")
@@ -80,16 +90,13 @@ class ClassifierAgent(BaseAgent):
             torch.cuda.manual_seed(self.manual_seed)
             torch.backends.cudnn.deterministic = self.CONFIG.CUDNN_DETERMINISTIC
             torch.backends.cudnn.benchmark = self.CONFIG.CUDNN_BENCHMARK
-            if len(self.CONFIG.GPU_DEVICE) > 1 and torch.cuda.device_count() > 1:
+            if len(gpu_device) > 1 and torch.cuda.device_count() > 1:
                 # use multi-gpu devices from config GPU_DEVICE
-                self.device = torch.device(
-                    f"cuda:{','.join([str(device) for device in self.CONFIG.GPU_DEVICE])}")
-                self.model = torch.nn.DataParallel(self.model)
+                self.model = torch.nn.DataParallel(self.model, device_ids=gpu_device)
             else:
                 # use one cuda gpu device from config GPU_DEVICE
-                torch.cuda.set_device(self.CONFIG.GPU_DEVICE[0])
-                self.device = torch.device("cuda")
-
+                torch.cuda.set_device(gpu_device[0])
+            self.device = torch.device("cuda")
             self.model = self.model.to(self.device)
             self.loss = self.loss.to(self.device)
             self.logger.info(f"Program will run on GPU device {self.device}")
@@ -104,15 +111,6 @@ class ClassifierAgent(BaseAgent):
             self.load_checkpoint(self.CONFIG.TRAINER.CHECKPOINT_DIR)
         else:
             print("Training will be done from scratch")
-
-        # if using tensorboard, register graph for vis with dummy input
-        if self.CONFIG.TRAINER.USE_TENSORBOARD:
-            w = self.CONFIG.ARCH.INPUT_WIDTH
-            h = self.CONFIG.ARCH.INPUT_HEIGHT
-            c = self.CONFIG.ARCH.INPUT_CHANNEL
-            _dummy_input = torch.ones(
-                [1, c, h, w], dtype=torch.float32).to(self.device)
-            self.tboard_writer.add_graph(self.model, _dummy_input)
 
     def load_checkpoint(self, path) -> None:
         """

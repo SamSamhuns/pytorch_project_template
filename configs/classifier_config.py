@@ -12,11 +12,10 @@ from modules.augmentations.classifier_transforms import Preprocess
 CONFIG = {
     "NAME": "image_classifier",
     "SEED": 1,
-    "USE_CUDA": False,                # set to True for gpu training
-    "CUDNN_DETERMINISTIC": True,      # for repeating results together with SEED
-    "CUDNN_BENCHMARK": False,         # set to True for faster training with gpu
-    "N_GPU": 1,                       # use more than 1 for multi-gpu training
-    "GPU_DEVICE": [0],                # list cuda device to use for single/multi gpu training
+    "USE_CUDA": False,                 # set to True for gpu training
+    "CUDNN_DETERMINISTIC": True,       # for repeating results together with SEED
+    "CUDNN_BENCHMARK": False,          # set to True for faster training with gpu
+    "GPU_DEVICE": [0],                 # list cuda device to use for single/multi gpu training
     "ARCH": {
         "TYPE": Classifier,
         "ARGS": {

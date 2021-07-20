@@ -9,7 +9,6 @@ An example Configuration file is provided at `classifier_configs.py`
     'USE_CUDA'
     'CUDNN_DETERMINISTIC'
     'CUDNN_BENCHMARK'
-    'N_GPU'
     'GPU_DEVICE'
     'ARCH'
     'DATASET'

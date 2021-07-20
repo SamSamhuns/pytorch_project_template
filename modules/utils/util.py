@@ -99,7 +99,8 @@ def find_latest_file_in_dir(dir_path, ext="pth"):
     latest_file = max(list_of_files, key=os.path.getctime)
     return latest_file
 
-################### Internal functions #######################
+
+# ################## Internal functions #######################
 
 
 def _fix_path_for_globbing(dir):
@@ -119,7 +120,7 @@ def _validate_base_configurations(cfg) -> None:
     """validates if required keys exist in cfg obj
         loaded from JSON config file
     """
-    _required_top_keys = ['NAME', 'SEED', 'USE_CUDA', 'N_GPU',
+    _required_top_keys = ['NAME', 'SEED', 'USE_CUDA',
                           'GPU_DEVICE', 'ARCH', 'DATASET',
                           'DATALOADER', 'OPTIMIZER', 'LOSS', 'METRICS',
                           'LR_SCHEDULER', 'TRAINER', 'LOGGER']
