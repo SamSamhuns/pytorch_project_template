@@ -1,8 +1,11 @@
 """
 Agent class for general classifier/feature extraction networks
 """
+from contextlib import nullcontext
 import os
+
 import torch
+from torch.cuda.amp import autocast
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from modules.agents.base_agent import BaseAgent
@@ -66,14 +69,13 @@ class ClassifierAgent(BaseAgent):
             _dummy_input = torch.ones(
                 [1, c, h, w], dtype=torch.float32)
             self.tboard_writer.add_graph(self.model, _dummy_input)
-
         # set cuda flag
         is_cuda = torch.cuda.is_available()
         gpu_device = self.CONFIG.GPU_DEVICE
         if is_cuda and not self.CONFIG.USE_CUDA:
             self.logger.info(
                 "WARNING: CUDA device is available, enable CUDA for faster training")
-
+        # set cuda devices if available or use cpu
         self.cuda = is_cuda & self.CONFIG.USE_CUDA
         self.manual_seed = self.CONFIG.SEED
         if self.cuda:
@@ -96,7 +98,8 @@ class ClassifierAgent(BaseAgent):
             torch.manual_seed(self.manual_seed)
             self.device = torch.device("cpu")
             self.logger.info("Program will run on CPU")
-
+        # use autiomatic mixed precision if set in config
+        self.use_amp = self.CONFIG.USE_AMP
         # if training resume is True, load model from the latest checkpoint, if not found start from scratch.
         if self.CONFIG.TRAINER.RESUME:
             self.load_checkpoint(self.CONFIG.TRAINER.CHECKPOINT_DIR)
@@ -173,8 +176,11 @@ class ClassifierAgent(BaseAgent):
             data, target = data.to(self.device), target.to(self.device)
             self.optimizer.zero_grad()
             train_size += data.shape[0]
-            output = self.model(data)
-            loss = self.loss(output, target)
+
+            # Enables autocasting for the forward pass (model + loss)
+            with autocast() if self.use_amp else nullcontext():
+                output = self.model(data)
+                loss = self.loss(output, target)
             cum_train_loss += loss.item()
             # get the index of the max log-probability
             pred = output.max(1, keepdim=True)[1]

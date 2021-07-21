@@ -16,6 +16,7 @@ CONFIG = {
     "CUDNN_DETERMINISTIC": True,  # for repeating results together with SEED
     "CUDNN_BENCHMARK": False,     # set to True for faster training with gpu
     "GPU_DEVICE": [0],            # cuda device list for single/multi gpu training
+    "USE_AMP": False,             # automatic mixed precision training for faster train
     "ARCH": {
         "TYPE": Classifier,
         "ARGS": {

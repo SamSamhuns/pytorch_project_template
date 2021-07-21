@@ -15,6 +15,7 @@ CONFIG = {
     "CUDNN_DETERMINISTIC": True,
     "CUDNN_BENCHMARK": False,
     "GPU_DEVICE": [0],
+    "USE_AMP": False,
     "ARCH": {
         "TYPE": Mnist,
         "ARGS": {
