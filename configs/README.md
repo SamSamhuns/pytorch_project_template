@@ -10,6 +10,7 @@ An example Configuration file is provided at `classifier_configs.py`
     'CUDNN_DETERMINISTIC'
     'CUDNN_BENCHMARK'
     'GPU_DEVICE'
+    'USE_AMP'
     'ARCH'
     'DATASET'
     'DATALOADER'

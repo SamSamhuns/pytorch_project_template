@@ -1,4 +1,4 @@
-# Pytorch Project Template
+# Pytorch Project Template, Computer Vision
 
 This is a template for a PyTorch Project for training, testing, inference demo, and FastAPI serving along with Docker support.
 
