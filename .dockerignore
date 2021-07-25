@@ -103,3 +103,6 @@ server
 checkpoints*
 experiments*
 logs*
+
+# training data
+data*
