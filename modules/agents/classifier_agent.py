@@ -6,7 +6,7 @@ import os
 
 import torch
 from torch.cuda.amp import autocast
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 
 from modules.agents.base_agent import BaseAgent
 from modules.utils.statistics import print_cuda_statistics
@@ -188,6 +188,9 @@ class ClassifierAgent(BaseAgent):
 
             loss.backward()
             self.optimizer.step()
+            # OneCycleLR scheduler step is called on each batch instead
+            if isinstance(self.scheduler, OneCycleLR):
+                self.scheduler.step()
             if batch_idx % self.CONFIG.TRAINER.LOG_FREQ == 0:
                 self.logger.info('Train Epoch: {} [{:6d}/{:.0f} ({:.1f}%)] Loss: {:.6f}'.format(
                     self.current_epoch,
@@ -250,9 +253,12 @@ class ClassifierAgent(BaseAgent):
                 [val_accuracy, self.current_epoch])
 
         # scheduler.step should be called after validate()
-        # ReduceLROnPlateau scheduler takes metrics during its step call
         if isinstance(self.scheduler, ReduceLROnPlateau):
+            # ReduceLROnPlateau scheduler takes metrics during its step call
             self.scheduler.step(metrics=val_loss)
+        elif isinstance(self.scheduler, OneCycleLR):
+            # OneCycleLR scheduler step is called on each batch instead
+            pass
         else:
             self.scheduler.step()
 
