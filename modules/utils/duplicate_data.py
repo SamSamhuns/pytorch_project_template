@@ -6,7 +6,7 @@ from tqdm import tqdm
 import os.path as osp
 from util import _fix_path_for_globbing
 
-##################### Raw Data Organization ########################
+# #################### Raw Data Organization ########################
 #   raw_data
 #          |_ dataset
 #                   |_ class_1
@@ -18,11 +18,11 @@ from util import _fix_path_for_globbing
 #                             |_ img2
 #                             |_ ....
 #                   ...
-####################################################################
+# ###################################################################
 
-##################### Data configurations here #####################
+# #################### Data configurations here #####################
 VALID_FILE_EXTS = {'jpg', 'jpeg', 'png', 'ppm', 'bmp', 'pgm'}
-####################################################################
+# ###################################################################
 
 
 def main():
@@ -92,7 +92,8 @@ def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
 
         # skip copying if dir already exists and has required num of files
         if osp.exists(class_target_dir):
-            if len(f_list) >= TARGET_NUMBER:
+            tf_list = glob.glob(class_target_dir + "/*")
+            if len(tf_list) >= TARGET_NUMBER:
                 continue
         os.makedirs(class_target_dir, exist_ok=True)
         f_count = 0
