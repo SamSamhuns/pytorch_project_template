@@ -6,48 +6,79 @@ import numpy as np
 from tqdm import tqdm
 from util import _fix_path_for_globbing
 
+# #################### Raw Data Organization ########################
+#   raw_data
+#          |_ dataset
+#                   |_ class_1
+#                             |_ img1
+#                             |_ img2
+#                             |_ ....
+#                   |_ class_2
+#                             |_ img1
+#                             |_ img2
+#                             |_ ....
+#                   ...
+#
+#   npz_data
+#          |_  000001.npz
+#          |_  000001.npz
+#          |_  000001.npz
+#          ...
+# ###################################################################
+
+
+def generate_npz_files(raw_img_path,
+                       npz_path,
+                       mapping_fname='dataset_mapping.txt') -> None:
+    """ generates a flattened list of npz files
+    from class folder separated data from raw_img_path
+    """
+    os.makedirs(npz_path, exist_ok=True)
+    dir_list = glob.glob(_fix_path_for_globbing(raw_img_path))
+    class_id = 0
+    npz_name = 1
+
+    with open(mapping_fname, 'w') as map_file:
+        for dir_name in tqdm(dir_list):
+            split_string = dir_name.split('/')
+            map_file.write(str(class_id) + "\t" + split_string[-1] + "\n")
+            img_list = glob.glob(dir_name + "/*")
+            for img_name in img_list:
+                try:
+                    img = imageio.imread(img_name, pilmode="RGB")
+                    img = img[..., :3]
+                    np.savez(os.path.join(npz_path, str(npz_name).zfill(6)),
+                             image=img, class_id=class_id)
+                    npz_name += 1
+                except Exception as e:
+                    print(f"{e}. imageio could not read file {img_name}. Skipping...")
+            class_id += 1
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r',
-                        '--raw_img_path',
+    parser.add_argument('-sd',
+                        '--source_data_path',
                         type=str,
                         required=True,
                         help="""Source dataset path with
                         class imgs inside folders""")
-    parser.add_argument('-t',
-                        '--target_npz_img_path',
+    parser.add_argument('-td',
+                        '--target_npz_path',
                         type=str,
                         required=True,
-                        help="""Target directory path to save
-                        npz files in""")
+                        help="""Target dataset path where the
+                        dir structure is flattened & imgs saved as npz""")
+    parser.add_argument('-m',
+                        '--mapping_file_path',
+                        type=str,
+                        required=True,
+                        help="""Mapping file txt path where
+                        class names and index ids will be present""")
     args = parser.parse_args()
-    generate_npz_files(args.raw_img_path, args.target_npz_img_path)
-
-
-def generate_npz_files(raw_img_path, npz_img_path) -> None:
-    os.makedirs(npz_img_path, exist_ok=True)
-    dir_list = glob.glob(_fix_path_for_globbing(raw_img_path))
-
-    for i in tqdm(range(len(dir_list))):
-        npz_name = 1
-        dir_path = dir_list[i]
-        img_list = glob.glob(dir_path + "/*")
-
-        class_name = dir_path.split("/")[-1]
-        class_path = os.path.join(npz_img_path, class_name)
-        os.makedirs(class_path, exist_ok=True)
-        print(f"Converting class {class_name} to npz")
-        for j in tqdm(range(len(img_list))):
-            img_name = img_list[j]
-            try:
-                img = imageio.imread(img_name, pilmode="RGB")
-                img = img[..., :3]
-                img_npz_path = os.path.join(class_path, str(npz_name).zfill(6))
-                np.savez(img_npz_path, image=img)
-                npz_name += 1
-            except Exception as e:
-                print(f"{e}. imageio could not read file {img_name}")
+    generate_npz_files(args.source_data_path,
+                       args.target_npz_path,
+                       args.mapping_file_path)
 
 
 if __name__ == "__main__":
