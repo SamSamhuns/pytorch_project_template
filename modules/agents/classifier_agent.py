@@ -121,7 +121,7 @@ class ClassifierAgent(BaseAgent):
 
         if ckpt_file is None:
             msg = (f"'{path}' is not a torch weight file or a directory containing one. " +
-                   "No weights were loaded and training will be done from scratch")
+                   "No weights were loaded and TRAINING WILL BE DONE FROM SCRATCH")
             self.logger.info(msg)
             return
 

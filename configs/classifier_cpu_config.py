@@ -22,7 +22,7 @@ CONFIG = {
         "ARGS": {
             "backbone": mobilenet_v2,
             "feat_extract": False,
-            "pretrained": False,
+            "pretrained": True,
         },
         "INPUT_WIDTH": 224,
         "INPUT_HEIGHT": 224,
@@ -46,7 +46,7 @@ CONFIG = {
         "TYPE": BaseDataLoader,
         "ARGS": {"batch_size": 32,
                  "shuffle": True,
-                 "num_workers": 0,
+                 "num_workers": 5,
                  "validation_split": 0.,
                  "pin_memory": True,
                  "drop_last": False,
