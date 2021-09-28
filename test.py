@@ -9,10 +9,10 @@ def get_parsed_args():
     parser.add_argument('-c', '--config_file',
                         default="configs/mnist_config.py",
                         help='Config file for agent.\n' +
-                        'Default: configs/mnist_config.py')
+                        'Default: %(default)s')
     parser.add_argument('-ckpt', '--checkpoint_file',
                         help='Path to checkpoint file.\n' +
-                        'Default: None. Uses latest weight file')
+                        'Default: %(default)s')
     args = parser.parse_args()
     # remove / and .py from config path
     args.config_file = args.config_file.replace('/', '.')[:-3]
