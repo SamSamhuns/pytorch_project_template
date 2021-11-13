@@ -18,8 +18,11 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-echo "Docker Container starting with FastAPI port: $http"
+echo "Stopping and removing docker container 'model_server' if it is running"
+docker stop model_server || true
+docker rm model_server || true
 
+echo "Docker Container starting with FastAPI port: $http"
 docker run \
       -ti --rm \
       -p 0.0.0.0:$http:8080 \

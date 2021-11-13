@@ -96,8 +96,8 @@ Install docker in the system first:
 ### For training and testing
 
 ```shell
-$ bash build_docker.sh  # builds the docker image
-$ bash run_docker.sh    # runs the previous docker image creating a shared volume checkpoint_docker outside the container
+$ bash scripts/build_docker.sh  # builds the docker image
+$ bash scripts/run_docker.sh    # runs the previous docker image creating a shared volume checkpoint_docker outside the container
 # inside the docker container
 $ python train.py
 ```
@@ -109,19 +109,19 @@ Using gpus inside docker for training/testing:
 ### For serving the model with FastAPI
 
 ```shell
-$ bash server/build_docker.sh
-$ bash server/run_docker.sh -h/--http 8080
+$ bash server/build_server_docker.sh
+$ bash server/run_server_docker.sh -h/--http 8080
 ```
 
 ### Utility functions
 
-To cleanup:
+To cleanup cached builds, pycache, .DS_Store files, etc:
 
-    bash modules/utils/cleanup.sh
+    bash scripts/cleanup.sh
 
 To copy project structure:
 
-    $ python3 new_project.py ../NewProject
+    $ python3 copy_project.py ../NewProject
 
 ## PyTorch Ecosystem Tools
 
