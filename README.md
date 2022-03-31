@@ -171,3 +171,4 @@ Experimental configuration of model training & testing:
 ### Acknowledgements
 
 -   <https://github.com/victoresque/pytorch-template>
+-   WebDataset <https://modelzoo.co/model/webdataset>
