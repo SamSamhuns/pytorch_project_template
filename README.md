@@ -45,7 +45,7 @@ $ python train.py
 
 ### Image Classification
 
-set training data inside `data` directory in the following format:
+Set training data inside `data` directory in the following format:
 
     data
     |── CUSTOM_DATASET
@@ -115,60 +115,20 @@ $ bash server/run_server_docker.sh -h/--http 8080
 
 ### Utility functions
 
-To cleanup cached builds, pycache, .DS_Store files, etc:
+Clean cached builds, pycache, .DS_Store files, etc:
 
-    bash scripts/cleanup.sh
+    $ bash scripts/cleanup.sh
 
-To copy project structure:
+Copy project structure:
 
     $ python3 copy_project.py ../NewProject
 
-## PyTorch Ecosystem Tools
+Count number of files in sub-directories in PATH
 
-These [Ecosystem Tools](https://pytorch.org/ecosystem/) add to the base PyTorch Ecosystem.
-
-## Example Project
-
-### Bird Recognition task
-
-### Landmark recognition task
-
-Model reached LB score 0.111 using a single ResNet50 for the 2018 Google Landmark Recognition Kaggle Challenge
-
-Experimental configuration of model training & testing:
-
-    Architecture:
-      ResNet50
-
-    Input size:
-      224x224
-
-    Data augmentation:
-      Resize the original images to 256x256
-      Crop at random position
-      Randomly horizontally flip it
-      Demean and normalize it
-
-    Batch size:
-      32
-
-    Initial weights:
-      Pretrained on ImageNet
-
-    Initial learning rate:
-      1e-4
-
-    Learning rate decay:
-      Learning rate is halved at Epoch 5 and halved again at Epoch 7
-
-    Max Epochs:
-      8
-
-    validation:
-      1/8 training images
-      At test stage, center-crop is used instead of random-crop
+    $ bash scripts/count_files.sh PATH
 
 ### Acknowledgements
 
 -   <https://github.com/victoresque/pytorch-template>
 -   WebDataset <https://modelzoo.co/model/webdataset>
+-   PyTorch Ecosystem Tools <https://pytorch.org/ecosystem/>
