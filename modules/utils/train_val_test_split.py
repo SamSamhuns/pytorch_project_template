@@ -11,7 +11,7 @@ from tqdm import tqdm
 from typing import List
 from util import _fix_path_for_globbing
 
-##################### Raw Data Organization #########################
+# #################### Raw Data Organization #########################
 #   raw_data
 #          |_ dataset
 #                   |_ class_1
@@ -23,14 +23,14 @@ from util import _fix_path_for_globbing
 #                             |_ img2
 #                             |_ ....
 #                   ...
-####################################################################
+# ###################################################################
 
-##################### Data Configurations here #####################
+# #################### Data Configurations here #####################
 # example raw data path = "data/raw_data/birds_dataset"
 # example target data path = "data/processed_birds_dataset"
 VALID_FILE_EXTS = {'jpg', 'jpeg', 'png', 'ppm', 'bmp', 'pgm'}
 random.seed(42)
-####################################################################
+# ###################################################################
 
 
 def main():

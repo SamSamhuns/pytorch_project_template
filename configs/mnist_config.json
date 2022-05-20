@@ -7,30 +7,30 @@
   "gpu_device": [0],
   "use_amp": false,
   "arch": {
-    "type": "Classifier",
+    "type": "Mnist",
     "args": {
       "feat_extract": false,
       "pretrained": true
     },
-    "backbone": "mobilenet_v2",
-    "input_width": 224,
-    "input_height": 224,
-    "input_channel": 3
+    "backbone": null,
+    "input_width": 28,
+    "input_height": 28,
+    "input_channel": 1
   },
   "dataset": {
-    "type": "ClassifierDataset",
+    "type": "MnistDataset",
     "args": {
-      "data_root": "data/birds_dataset",
+      "data_root": "data",
       "train_dir": "train",
-      "val_dir": "valid",
+      "val_dir": null,
       "test_dir": "test"
     },
-    "num_classes": 265,
+    "num_classes": 10,
     "preprocess": {
-      "train_transform": "ClassifierPreprocess.train",
-      "val_transform": "ClassifierPreprocess.val",
-      "test_transform": "ClassifierPreprocess.test",
-      "inference_transform": "ClassifierPreprocess.inference"
+      "train_transform": "MnistPreprocess.train",
+      "val_transform": "MnistPreprocess.val",
+      "test_transform": "MnistPreprocess.test",
+      "inference_transform": "MnistPreprocess.inference"
     }
   },
   "dataloader": {
@@ -39,7 +39,7 @@
       "batch_size": 32,
       "num_workers": 0,
       "shuffle": true,
-      "validation_split": 0.0,
+      "validation_split": 0.1,
       "drop_last": false,
       "pin_memory": true,
       "prefetch_factor": 2,
@@ -50,7 +50,7 @@
     "type": "SGD",
     "args": {
       "lr": 1e-2,
-      "momentum": 0.9
+      "momentum": 0.5
     }
   },
   "loss": {
