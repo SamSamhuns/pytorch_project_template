@@ -1,28 +1,29 @@
-from modules.agents import classifier_agent
-from importlib import import_module
 import argparse
+from datetime import datetime
+
+from modules.agents import classifier_agent
+from modules.config_parser import ConfigParser
 
 
-def get_parsed_args():
+def get_config_from_args():
     parser = argparse.ArgumentParser(
         description='PyTorch Test. Currently only supports image classification')
-    parser.add_argument("-c", "--config_file", dest="config_file",
-                        default="configs/classifier_cpu_config.py",
-                        help="Config file for agent. default: %(default)s")
-    parser.add_argument("--ckpt", "--checkpoint_file", dest="checkpoint_file",
-                        help="Path to checkpoint file. default: %(default)s")
-    args = parser.parse_args()
-    # remove / and .py from config path
-    args.config_file = args.config_file.replace('/', '.')[:-3]
-    return args
+    parser.add_argument('--cfg', '--config', type=str, dest="config", default="configs/classifier_cpu_config.json",
+                        help='config file path (default: %(default)s)')
+    parser.add_argument('--id', '--run_id', type=str, dest="run_id", default="test_" + datetime.now().strftime(r'%Y%m%d_%H%M%S'),
+                        help='unique identifier for train process. Annotates train ckpts & logs. (default: %(default)s)')
+    parser.add_argument('-r', '--resume', type=str, dest="resume", required=True,
+                        help='path to checkpoint ckpt for testing')
+
+    config = ConfigParser.from_args(parser)
+    return config
 
 
 def main():
-    args = get_parsed_args()
-    config_module = import_module(args.config_file)
-    agent = classifier_agent.ClassifierAgent(config_module.CONFIG)
+    config = get_config_from_args()
+    agent = classifier_agent.ClassifierAgent(config, "test")
 
-    agent.test(weight_path=args.checkpoint_file)
+    agent.test(weight_path=config.resume)
     agent.finalize_exit()
 
 
