@@ -15,6 +15,11 @@ RUN apt-get update -y \
 # set work directory
 WORKDIR /app
 
+# setup virtual env for python
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 # Install python dependencies
 RUN pip install --upgrade pip
 COPY requirements_${MODE}_server.txt /app/

@@ -14,6 +14,11 @@ RUN apt-get  update -y \
 # set work directory
 WORKDIR /pytorch_model
 
+# setup virtual env for python
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 # install python dependencies
 COPY ./requirements/train.txt /pytorch_model/
 RUN pip install --upgrade pip
