@@ -1,12 +1,10 @@
 import os
 import pprint
 import logging
-from datetime import datetime
 
 
-def get_logger(logger_fname,
+def get_logger(logger_name,
                logger_dir='logs',
-               logger_name='logger',
                file_fmt='%(asctime)s %(levelname)-8s: %(message)s',
                console_fmt='%(message)s',
                logger_level=logging.DEBUG,
@@ -15,12 +13,8 @@ def get_logger(logger_fname,
     """
     Logger settings should be configured and imported from configs dir
     """
-
-    # create a log folder with fmt %Y_%m_%d__%H_%M_%S inside the logger_dirname
-    time_path_str = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-    path_str = os.path.join(logger_dir, time_path_str)
-    os.makedirs(path_str, exist_ok=True)
-    filename = os.path.join(path_str, logger_fname)
+    os.makedirs(logger_dir, exist_ok=True)
+    filename = os.path.join(logger_dir, logger_name)
 
     logger = logging.getLogger(logger_name)
     logger.setLevel(logger_level)
@@ -44,6 +38,6 @@ def get_logger(logger_fname,
 if __name__ == "__main__":
     opt = {'model': 'test', 'stage': 'train', 'epochs': 300}
 
-    logger = get_logger("logs/sample_log.txt")
+    logger = get_logger("test_logger")
     logger.info('\n\nOptions:')
     logger.info(pprint.pformat(opt))

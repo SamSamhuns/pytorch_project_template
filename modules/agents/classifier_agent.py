@@ -1,16 +1,26 @@
 """
 Agent class for general classifier/feature extraction networks
 """
-from contextlib import nullcontext
 import os
+from functools import partial
+from contextlib import nullcontext
 
 import torch
 from torch.cuda.amp import autocast
 from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 
+from modules.config_parser import ConfigParser
 from modules.agents.base_agent import BaseAgent
 from modules.utils.statistics import print_cuda_statistics
-from modules.utils.util import find_latest_file_in_dir
+from modules.utils.util import find_latest_file_in_dir, rgetattr
+
+import modules.losses as module_losses
+import modules.models as module_models
+import modules.datasets as module_datasets
+import modules.optimizers as module_optimizers
+import modules.dataloaders as module_dataloaders
+import modules.schedulers as module_lr_schedulers
+import modules.augmentations as module_transforms
 
 
 class ClassifierAgent(BaseAgent):
@@ -18,76 +28,83 @@ class ClassifierAgent(BaseAgent):
     Main ClassifierAgent with the train, test, validate, load_checkpoint and save_checkpoint funcs
     """
 
-    def __init__(self, CONFIG):
-        """
-        args:
-            CONFIG: a config.py file loaded as a pymodule with importlib
-        """
-        super().__init__(CONFIG)
+    def __init__(self, config: ConfigParser, logger_name: str):
+        super().__init__(config, logger_name)
 
         # define models
-        self.model = self.CONFIG.ARCH.TYPE(**self.CONFIG.ARCH.ARGS,
-                                           num_classes=self.CONFIG.DATASET.NUM_CLASSES)
+        backbone = self.config["arch"]["backbone"]
+        self.model = self.config.init_obj(
+            "arch", module_models,
+            backbone=partial(getattr(module_models, backbone)
+                             ) if backbone else None,
+            num_classes=self.config["dataset"]["num_classes"])
         # define dataset
-        self.data_set = self.CONFIG.DATASET.TYPE(**{**self.CONFIG.DATASET.DATA_DIR,
-                                                    **self.CONFIG.DATASET.PREPROCESS})
+        self.data_set = self.config.init_obj(
+            "dataset", module_datasets,
+            train_transform=rgetattr(module_transforms,
+                                     self.config["dataset"]["preprocess"]["train_transform"]),
+            val_transform=rgetattr(module_transforms,
+                                   self.config["dataset"]["preprocess"]["val_transform"]),
+            test_transform=rgetattr(module_transforms,
+                                    self.config["dataset"]["preprocess"]["test_transform"]))
         # define train, validate, and test data_loaders
         self.train_data_loader, self.val_data_loader, self.test_data_loader = None, None, None
-        # in OSX systems DATALOADER.NUM_WORKERS should be set to 0 which might increasing training time
-        self.train_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.train_dataset,
-                                                             **self.CONFIG.DATALOADER.ARGS)
-        # if VAL_DIR is not None and VALIDATION_SPLIT must be 0
+        # in OSX systems ["dataloader"]["num_workers"] should be set to 0 which might increasing training time
+        self.train_data_loader = self.config.init_obj("dataloader", module_dataloaders,
+                                                      dataset=self.data_set.train_dataset)
+        # if VAL_DIR is not None then dataloader.args.validation_split is assumed to be 0.0
         # if no val dir is provided, take val split from training data
-        if self.CONFIG.DATASET.DATA_DIR.val_dir is None:
+        if self.config["dataset"]["args"]["val_dir"] is None:
             self.val_data_loader = self.train_data_loader.split_validation()
         # if val dir is provided, use all data inside val dir for validation
-        elif self.CONFIG.DATASET.DATA_DIR.val_dir is not None:
-            self.val_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.val_dataset,
-                                                               **self.CONFIG.DATALOADER.ARGS)
-        if self.CONFIG.DATASET.DATA_DIR.test_dir is not None:
-            self.test_data_loader = self.CONFIG.DATALOADER.TYPE(self.data_set.test_dataset,
-                                                                **dict(self.CONFIG.DATALOADER.ARGS,
-                                                                       validation_split=0))
+        elif self.config["dataset"]["args"]["val_dir"] is not None:
+            self.val_data_loader = self.config.init_obj("dataloader", module_dataloaders,
+                                                        dataset=self.data_set.val_dataset)
+        if self.config["dataset"]["args"]["test_dir"] is not None:
+            self.test_data_loader = self.config.init_ftn("dataloader", module_dataloaders,
+                                                         dataset=self.data_set.test_dataset)
+            self.test_data_loader = self.test_data_loader(validation_split=0.0)
         # define loss and instantiate it
-        self.loss = self.CONFIG.LOSS()
+        self.loss = self.config.init_obj("loss", module_losses)
         # define optimizer
-        self.optimizer = self.CONFIG.OPTIMIZER.TYPE(self.model.parameters(),
-                                                    **self.CONFIG.OPTIMIZER.ARGS)
+        self.optimizer = self.config.init_obj("optimizer", module_optimizers,
+                                              params=self.model.parameters())
         # define lr scheduler
-        self.scheduler = self.CONFIG.LR_SCHEDULER.TYPE(self.optimizer,
-                                                       **self.CONFIG.LR_SCHEDULER.ARGS)
+        self.scheduler = self.config.init_obj("lr_scheduler", module_lr_schedulers,
+                                              optimizer=self.optimizer)
         # initialize metrics dict
-        self.best_metric_dict = {metric: [] for metric in self.CONFIG.METRICS}
+        self.best_metric_dict = {metric: []
+                                 for metric in self.config["metrics"]}
         # initialize counter
         self.current_epoch = 0
         self.current_iteration = 0
         # if using tensorboard, register graph for vis with dummy input
-        if self.CONFIG.TRAINER.USE_TENSORBOARD:
-            w = self.CONFIG.ARCH.INPUT_WIDTH
-            h = self.CONFIG.ARCH.INPUT_HEIGHT
-            c = self.CONFIG.ARCH.INPUT_CHANNEL
+        if self.config["trainer"]["use_tensorboard"]:
+            w = self.config["arch"]["input_width"]
+            h = self.config["arch"]["input_height"]
+            c = self.config["arch"]["input_channel"]
             _dummy_input = torch.ones(
                 [1, c, h, w], dtype=torch.float32)
             self.tboard_writer.add_graph(self.model, _dummy_input)
         # set cuda flag
         is_cuda = torch.cuda.is_available()
-        gpu_device = self.CONFIG.GPU_DEVICE
-        if is_cuda and not self.CONFIG.USE_CUDA:
+        gpu_device = self.config["gpu_device"]
+        if is_cuda and not self.config["use_cuda"]:
             self.logger.info(
                 "WARNING: CUDA device is available, enable CUDA for faster training")
         # set cuda devices if available or use cpu
-        self.cuda = is_cuda & self.CONFIG.USE_CUDA
-        self.manual_seed = self.CONFIG.SEED
+        self.cuda = is_cuda & self.config["use_cuda"]
+        self.manual_seed = self.config["seed"]
         if self.cuda:
             torch.cuda.manual_seed(self.manual_seed)
-            torch.backends.cudnn.deterministic = self.CONFIG.CUDNN_DETERMINISTIC
-            torch.backends.cudnn.benchmark = self.CONFIG.CUDNN_BENCHMARK
+            torch.backends.cudnn.deterministic = self.config["cudnn_deterministic"]
+            torch.backends.cudnn.benchmark = self.config["cudnn_benchmark"]
             if len(gpu_device) > 1 and torch.cuda.device_count() > 1:
-                # use multi-gpu devices from config GPU_DEVICE
+                # use multi-gpu devices from config gpu_device
                 self.model = torch.nn.DataParallel(
                     self.model, device_ids=gpu_device)
             else:
-                # use one cuda gpu device from config GPU_DEVICE
+                # use one cuda gpu device from config gpu_device
                 torch.cuda.set_device(gpu_device[0])
             self.device = torch.device("cuda")
             self.model = self.model.to(self.device)
@@ -99,10 +116,10 @@ class ClassifierAgent(BaseAgent):
             self.device = torch.device("cpu")
             self.logger.info("Program will run on CPU")
         # use autiomatic mixed precision if set in config
-        self.use_amp = self.CONFIG.USE_AMP
+        self.use_amp = self.config["use_amp"]
         # if training resume is True, load model from the latest checkpoint, if not found start from scratch.
-        if self.CONFIG.TRAINER.RESUME:
-            self.load_checkpoint(self.CONFIG.TRAINER.CHECKPOINT_DIR)
+        if self.config["trainer"]["resume"]:
+            self.load_checkpoint(self.config.save_dir)
         else:
             print("Training will be done from scratch")
 
@@ -120,7 +137,7 @@ class ClassifierAgent(BaseAgent):
             ckpt_file = find_latest_file_in_dir(path)
 
         if ckpt_file is None:
-            msg = (f"'{path}' is not a torch weight file or a directory containing one. " +
+            msg = (f"'{path}' is not a torch weight file or a directory containing one. "
                    "No weights were loaded and TRAINING WILL BE DONE FROM SCRATCH")
             self.logger.info(msg)
             return
@@ -139,24 +156,23 @@ class ClassifierAgent(BaseAgent):
             file_name: name of the checkpoint file
         """
         # create checkpoint directory if it doesnt exist
-        os.makedirs(self.CONFIG.TRAINER.CHECKPOINT_DIR, exist_ok=True)
-        save_path = os.path.join(self.CONFIG.TRAINER.CHECKPOINT_DIR, filename)
+        self.config.save_dir.mkdir(parents=True, exist_ok=True)
+        save_path = os.path.join(str(self.config.save_dir), filename)
         torch.save(self.model.state_dict(), save_path)
 
     def train(self) -> None:
         """
         Main training function with loop
         """
-        for epoch in range(self.CONFIG.TRAINER.EPOCHS):
+        for epoch in range(self.config["trainer"]["epochs"]):
             self.train_one_epoch()
-            if epoch % self.CONFIG.TRAINER.VALID_FREQ:
+            if epoch % self.config["trainer"]["valid_freq"]:
                 self.validate()
 
                 # save trained model checkpoint
-                for metric in self.CONFIG.METRICS:
+                for metric in self.config["metrics"]:
                     mlist = self.best_metric_dict[metric]
-                    if (not self.CONFIG.TRAINER.SAVE_BEST_ONLY or
-                            (len(mlist) == 1 or mlist[-1] > mlist[-2])):
+                    if (not self.config["trainer"]["save_best_only"] or (len(mlist) == 1 or mlist[-1] > mlist[-2])):
                         self.save_checkpoint(
                             filename=f"checkpoint_{epoch}.pth")
             self.current_epoch += 1
@@ -170,7 +186,7 @@ class ClassifierAgent(BaseAgent):
         train_size = 0
         correct = 0
         train_data_len = len(self.data_set.train_dataset) - (
-            len(self.data_set.train_dataset) * self.CONFIG.DATALOADER.ARGS.validation_split)
+            len(self.data_set.train_dataset) * self.config["dataloader"]["args"]["validation_split"])
 
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
             data, target = data.to(self.device), target.to(self.device)
@@ -191,14 +207,14 @@ class ClassifierAgent(BaseAgent):
             # OneCycleLR scheduler step is called on each batch instead
             if isinstance(self.scheduler, OneCycleLR):
                 self.scheduler.step()
-            if batch_idx % self.CONFIG.TRAINER.LOG_FREQ == 0:
+            if batch_idx % self.config["trainer"]["log_freq"] == 0:
                 self.logger.info('Train Epoch: {} [{:6d}/{:.0f} ({:.1f}%)] Loss: {:.6f}'.format(
                     self.current_epoch,
                     batch_idx * len(data),
                     train_data_len,
                     100 * batch_idx / len(self.train_data_loader),
                     loss.item()))
-            if self.CONFIG.TRAINER.USE_TENSORBOARD:
+            if self.config["trainer"]["use_tensorboard"]:
                 self.tboard_writer.add_scalars('Loss (iteration)',
                                                {'train': loss.item()},
                                                self.current_iteration)
@@ -209,7 +225,7 @@ class ClassifierAgent(BaseAgent):
         self.logger.info('\nTraining set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
             train_loss, correct, train_size, train_accuracy))
 
-        if self.CONFIG.TRAINER.USE_TENSORBOARD:
+        if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_images('preprocessed image batch',
                                           next(iter(self.train_data_loader))[
                                               0],
@@ -264,7 +280,7 @@ class ClassifierAgent(BaseAgent):
 
         self.logger.info('Validation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             val_loss, correct, val_size, val_accuracy))
-        if self.CONFIG.TRAINER.USE_TENSORBOARD:
+        if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_scalars('Loss (epoch)',
                                            {'validation': val_loss},
                                            self.current_epoch)
@@ -283,7 +299,7 @@ class ClassifierAgent(BaseAgent):
             print("Loading new checkpoint for testing")
             self.load_checkpoint(weight_path)
         if self.test_data_loader is None:
-            raise NotImplementedError("test_data_loader is missing. " +
+            raise NotImplementedError("test_data_loader is missing."
                                       "test_dir might not have been set")
         # set model to eval mode
         self.model.eval()
@@ -305,7 +321,7 @@ class ClassifierAgent(BaseAgent):
 
         self.logger.info('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, test_size, test_accuracy))
-        if self.CONFIG.TRAINER.USE_TENSORBOARD:
+        if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_scalars('Test Loss (epoch)',
                                            {'Test': test_loss},
                                            self.current_epoch)

@@ -9,7 +9,7 @@ import torch.utils.data as data
 IMG_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm']
 
 
-def has_file_allowed_extension(filepath: str, extensions: List[str]):
+def is_file_ext_valid(filepath: str, extensions: List[str]):
     """check if a filepath has allowed extensions
     """
     filepath_lower = filepath.lower()
@@ -28,10 +28,10 @@ def _find_classes(root_dir: str):
                       |_ y2.ext
     """
     # list of classes or subfolders under root_dir
-    classes = [d for d in os.listdir(root_dir)
+    classes = [d for d in sorted(os.listdir(root_dir))
                if osp.isdir(osp.join(root_dir, d))]
 
-    # class_name to index dict, order is based on os.listdir
+    # class_name to index dict, order is alphabetical sorting of class names
     class_to_idx = {classes[i]: i for i in range(len(classes))}
     return classes, class_to_idx
 
@@ -50,7 +50,7 @@ def _make_dataset(dir: str,
 
         for root, _, fnames in sorted(os.walk(d)):
             for fname in sorted(fnames):
-                if has_file_allowed_extension(fname, extensions):
+                if is_file_ext_valid(fname, extensions):
                     path = osp.join(root, fname)
                     item = (path, class_to_idx[target])
                     images.append(item)
@@ -91,7 +91,9 @@ def write_class_mapping_to_file(mapping, fpath) -> None:
 
 
 class BaseDataset(data.Dataset):
-    """A generic data loader where the samples are arranged in this way:
+    """
+    A generic data loader where the samples are arranged as follows:
+    Note: ImageNet style class_dir->subdirs->subdirs->images... is also supported
         root
             |_ class_x
                       |_ x1.ext
@@ -125,9 +127,8 @@ class BaseDataset(data.Dataset):
         classes, class_to_idx = _find_classes(root)
         samples = _make_dataset(root, class_to_idx, extensions)
         if len(samples) == 0:
-            raise(RuntimeError("Found 0 files in subfolders of: " + root +
-                               "\n" + "Supported extensions are: " +
-                               ",".join(extensions)))
+            raise(RuntimeError(f"Found 0 files in subfolders of: {root}"
+                               f"\nSupported extensions are: {','.join(extensions)}"))
 
         self.root = root
         self.loader = loader
@@ -182,7 +183,9 @@ class BaseDataset(data.Dataset):
 
 
 class ImageFolderDataset(BaseDataset):
-    """An Image data loader where the images are arranged in this way:
+    """
+    An Image data loader where the images are arranged as follows:
+    Note: ImageNet style class_dir->subdirs->subdirs->images... is also supported
         root
             |_ class_x
                       |_ x1.ext
@@ -214,11 +217,12 @@ class ImageFolderDataset(BaseDataset):
                  transform=None,
                  target_transform=None,
                  loader=default_loader):
-        super(ImageFolderDataset, self).__init__(root,
-                                                 loader,
-                                                 file_extensions,
-                                                 transform=transform,
-                                                 target_transform=target_transform)
+        super(ImageFolderDataset, self).__init__(
+            root,
+            loader,
+            file_extensions,
+            transform=transform,
+            target_transform=target_transform)
         self.imgs = self.samples
 
 

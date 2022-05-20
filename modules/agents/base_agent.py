@@ -3,7 +3,7 @@ Base agent class constains the base train, validate, test, inference, and utilit
 Other agents specific to a network overload the functions of this base agent class
 """
 from modules.loggers.base_logger import get_logger
-from easydict import EasyDict as edict
+from modules.config_parser import ConfigParser
 
 
 class BaseAgent:
@@ -11,44 +11,40 @@ class BaseAgent:
     base functions which will be overloaded
     """
 
-    def __init__(self, CONFIG, logger_fname="train", logger_name="logger") -> None:
-        """
-        config is the edict configurations object
-        """
-        self.CONFIG = edict(CONFIG)
+    def __init__(self, config: ConfigParser, logger_name: str = "logger") -> None:
+        self.config = config
         # General logger
-        self.logger = get_logger(logger_fname=self.CONFIG.LOGGER.LOG_FMT.format(logger_fname),
-                                 logger_dir=self.CONFIG.LOGGER.DIR,
-                                 logger_name=logger_name,
-                                 file_fmt=self.CONFIG.LOGGER.FILE_FMT,
-                                 console_fmt=self.CONFIG.LOGGER.CONSOLE_FMT,
-                                 logger_level=self.CONFIG.LOGGER.LOGGER_LEVEL,
-                                 file_level=self.CONFIG.LOGGER.FILE_LEVEL,
-                                 console_level=self.CONFIG.LOGGER.CONSOLE_LEVEL)
+        self.logger = get_logger(logger_name=logger_name,
+                                 logger_dir=self.config.log_dir,
+                                 file_fmt=self.config["logger"]["file_fmt"],
+                                 console_fmt=self.config["logger"]["console_fmt"],
+                                 logger_level=self.config["logger"]["logger_level"],
+                                 file_level=self.config["logger"]["file_level"],
+                                 console_level=self.config["logger"]["console_level"])
         # Tboard Summary Writer if enabled
-        if self.CONFIG.TRAINER.USE_TENSORBOARD:
+        if self.config["trainer"]["use_tensorboard"]:
             from torch.utils.tensorboard import SummaryWriter
-            from datetime import datetime
 
-            _agent_name = self.CONFIG.NAME
-            _optim_name = self.CONFIG.OPTIMIZER.TYPE.__name__
-            _bsize = self.CONFIG.DATALOADER.ARGS.batch_size
-            _lr = self.CONFIG.OPTIMIZER.ARGS.lr
+            _agent_name = self.config["name"]
+            _optim_name = self.config["optimizer"]["type"]
+            _bsize = self.config["dataloader"]["args"]["batch_size"]
+            _lr = self.config["optimizer"]["args"]["lr"]
 
             _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}"
-            _tboard_log_root_dir = self.CONFIG.TRAINER.TENSORBOARD_EXPERIMENT_DIR
-            _tboard_log_sub_dir = _suffix + datetime.now().strftime("_%Y_%m_%d__%H_%M_%S")
-            _tboard_log_dir = _tboard_log_root_dir + '/' + _tboard_log_sub_dir
+            _tboard_log_root_dir = self.config["trainer"]["tensorboard_log_dir"]
+            _tboard_log_dir = _tboard_log_root_dir
             tboard_writer = SummaryWriter(log_dir=_tboard_log_dir,
                                           filename_suffix=_suffix)
             self.tboard_writer = tboard_writer
 
         # check exclusive config parameters
-        val_dir, val_split = self.CONFIG.DATASET.DATA_DIR.val_dir, self.CONFIG.DATALOADER.ARGS.validation_split
+        val_dir = self.config["dataset"]["args"]["val_dir"]
+        val_split = self.config["dataloader"]["args"]["validation_split"]
         if (val_dir is not None and val_split > 0):
-            raise RuntimeError(f"If VAL_DIR {val_dir} is not None, val_split({val_split}) must be 0")
+            raise RuntimeError(
+                f"If VAL_DIR {val_dir} is not None, val_split({val_split}) must be 0")
 
-    def load_checkpoint(self, file_name):
+    def load_checkpoint(self, file_name: str):
         """
         load latest checkpoint file
         args:
@@ -56,7 +52,7 @@ class BaseAgent:
         """
         raise NotImplementedError
 
-    def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=False):
+    def save_checkpoint(self, file_name: str = "checkpoint.pth.tar", is_best: bool = False):
         """
         save checkpoint
         args:

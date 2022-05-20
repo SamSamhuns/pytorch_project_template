@@ -179,7 +179,7 @@ def main():
         train_loss.append(epoch_loss.detach().numpy() ** (1 / 2))
         train_lr.append(optimizer.param_groups[0]["lr"])
         # step scheduler on each epoch instead of batch
-        scheduler.step(metrics=(1-acc))
+        scheduler.step(metrics=(1 - acc))
         print('Epoch: {} LR {} Accuracy: {}, Loss: {}'.format(
             epoch + 1, optimizer.param_groups[0]["lr"], acc * 100, epoch_loss))
 

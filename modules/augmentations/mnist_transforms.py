@@ -1,7 +1,7 @@
 from torchvision import transforms
 
 
-class Preprocess:
+class MnistPreprocess:
     train = transforms.Compose([transforms.ToTensor(),
                                 transforms.Normalize((0.1307,), (0.3081,))])
     val = train

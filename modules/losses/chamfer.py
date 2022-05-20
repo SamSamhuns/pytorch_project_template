@@ -22,7 +22,7 @@ def _calc_chamfer_loss(A, B, ps=91):
     return ls.mean()
 
 
-class ChamferLoss(nn.module):
+class ChamferLoss(nn.Module):
     def __init__(self):
         super().__init__()
         self.loss = _calc_chamfer_loss
