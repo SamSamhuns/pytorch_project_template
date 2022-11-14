@@ -10,7 +10,7 @@
     "type": "Classifier",
     "args": {
       "feat_extract": false,
-      "pretrained": true
+      "pretrained_weights": "MobileNet_V2_Weights.IMAGENET1K_V1"
     },
     "backbone": "mobilenet_v2",
     "input_width": 224,

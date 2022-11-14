@@ -32,7 +32,7 @@ class Classifier(nn.Module):
                  backbone=models.mobilenet_v2,
                  num_classes=10,
                  feat_extract=False,
-                 pretrained=True,
+                 pretrained_weights="MobileNet_V2_Weights.IMAGENET1K_V1",
                  **kwargs):
         """
         backbone: network to extract features
@@ -41,7 +41,7 @@ class Classifier(nn.Module):
         pretrained: use weights pretrained from imagenet
         """
         super().__init__()
-        self.backbone = backbone(pretrained=pretrained)
+        self.backbone = backbone(weights=pretrained_weights)
         if feat_extract and (num_classes > 0 or num_classes is not None):
             raise RuntimeError(
                 "feat_extract mode is not compatible when num_classes greater than 0")
