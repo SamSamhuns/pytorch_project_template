@@ -52,15 +52,15 @@ class ClassifierAgent(BaseAgent):
         # in OSX systems ["dataloader"]["num_workers"] should be set to 0 which might increasing training time
         self.train_data_loader = self.config.init_obj("dataloader", module_dataloaders,
                                                       dataset=self.data_set.train_dataset)
-        # if VAL_DIR is not None then dataloader.args.validation_split is assumed to be 0.0
+        # if val_path is not None then dataloader.args.validation_split is assumed to be 0.0
         # if no val dir is provided, take val split from training data
-        if self.config["dataset"]["args"]["val_dir"] is None:
+        if self.config["dataset"]["args"]["val_path"] is None:
             self.val_data_loader = self.train_data_loader.split_validation()
         # if val dir is provided, use all data inside val dir for validation
-        elif self.config["dataset"]["args"]["val_dir"] is not None:
+        elif self.config["dataset"]["args"]["val_path"] is not None:
             self.val_data_loader = self.config.init_obj("dataloader", module_dataloaders,
                                                         dataset=self.data_set.val_dataset)
-        if self.config["dataset"]["args"]["test_dir"] is not None:
+        if self.config["dataset"]["args"]["test_path"] is not None:
             self.test_data_loader = self.config.init_ftn("dataloader", module_dataloaders,
                                                          dataset=self.data_set.test_dataset)
             self.test_data_loader = self.test_data_loader(validation_split=0.0)
@@ -300,7 +300,7 @@ class ClassifierAgent(BaseAgent):
             self.load_checkpoint(weight_path)
         if self.test_data_loader is None:
             raise NotImplementedError("test_data_loader is missing."
-                                      "test_dir might not have been set")
+                                      "test_path might not have been set")
         # set model to eval mode
         self.model.eval()
         cum_test_loss = 0

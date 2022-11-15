@@ -17,9 +17,9 @@ class ClassifierDataset:
                  test_transform=None,
                  data_mode="imgs",
                  data_root='data',
-                 train_dir='train',
-                 val_dir='val',
-                 test_dir='test',
+                 train_path='train',
+                 val_path='val',
+                 test_path='test',
                  **kwargs):
         """
         train_transform: torchvision.transforms for train data
@@ -27,35 +27,35 @@ class ClassifierDataset:
         test_transform: torchvision.transforms for test data
         data_mode: Mode for getting data
             data_root: folder containing train & test data dirs
-            train_dir: train dir under data_root
-            val_dir: val dir under data_root
-            test_dir: test dir under data_root
+            train_path: train dir under data_root
+            val_path: val dir under data_root
+            test_path: test dir under data_root
 
         data_root
-                |--train_dir
-                |--val_dir
-                |--test_dir
+                |--train_path
+                |--val_path
+                |--test_path
         """
         if data_mode == "imgs":
-            train_root = osp.join(data_root, train_dir)
+            train_root = osp.join(data_root, train_path)
             self.train_dataset = base_dataset.ImageFolderDataset(train_root,
                                                                  transform=train_transform)
-            if val_dir is not None:
-                val_root = osp.join(data_root, val_dir)
+            if val_path is not None:
+                val_root = osp.join(data_root, val_path)
                 self.val_dataset = base_dataset.ImageFolderDataset(val_root,
                                                                    transform=val_transform)
-            if test_dir is not None:
-                test_root = osp.join(data_root, test_dir)
+            if test_path is not None:
+                test_root = osp.join(data_root, test_path)
                 self.test_dataset = base_dataset.ImageFolderDataset(test_root,
                                                                     transform=test_transform)
         elif data_mode == "webdataset":
-            train_root = osp.join(data_root, train_dir)
+            train_root = osp.join(data_root, train_path)
             self.train_dataset = wds.WebDataset(train_root).shuffle(1000).decode("torchrgb").to_tuple("input.jpg", "output.cls")
-            if val_dir is not None:
-                val_root = osp.join(data_root, val_dir)
+            if val_path is not None:
+                val_root = osp.join(data_root, val_path)
                 self.val_dataset = wds.WebDataset(val_root).shuffle(1000).decode("torchrgb").to_tuple("input.jpg", "output.cls")
-            if test_dir is not None:
-                test_root = osp.join(data_root, test_dir)
+            if test_path is not None:
+                test_root = osp.join(data_root, test_path)
                 self.test_dataset = wds.WebDataset(test_root).shuffle(1000).decode("torchrgb").to_tuple("input.jpg", "output.cls")
         elif data_mode == "numpy":
             raise NotImplementedError("This mode is not implemented YET")

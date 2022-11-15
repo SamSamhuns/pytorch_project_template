@@ -38,11 +38,11 @@ class BaseAgent:
             self.tboard_writer = tboard_writer
 
         # check exclusive config parameters
-        val_dir = self.config["dataset"]["args"]["val_dir"]
+        val_path = self.config["dataset"]["args"]["val_path"]
         val_split = self.config["dataloader"]["args"]["validation_split"]
-        if (val_dir is not None and val_split > 0):
+        if (val_path is not None and val_split > 0):
             raise RuntimeError(
-                f"If VAL_DIR {val_dir} is not None, val_split({val_split}) must be 0")
+                f"If val_path {val_path} is not None, val_split({val_split}) must be 0")
 
     def load_checkpoint(self, file_name: str):
         """

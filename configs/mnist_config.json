@@ -21,9 +21,9 @@
     "type": "MnistDataset",
     "args": {
       "data_root": "data",
-      "train_dir": "train",
-      "val_dir": null,
-      "test_dir": "test"
+      "train_path": "train",
+      "val_path": null,
+      "test_path": "test"
     },
     "num_classes": 10,
     "preprocess": {

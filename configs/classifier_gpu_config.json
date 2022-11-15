@@ -21,9 +21,9 @@
     "type": "ClassifierDataset",
     "args": {
       "data_root": "data/birds_dataset",
-      "train_dir": "train",
-      "val_dir": "valid",
-      "test_dir": "test"
+      "train_path": "train",
+      "val_path": "val",
+      "test_path": "test"
     },
     "num_classes": 265,
     "preprocess": {
