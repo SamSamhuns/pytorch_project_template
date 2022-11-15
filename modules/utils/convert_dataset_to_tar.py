@@ -1,6 +1,6 @@
 # convert dataset to tar format for fast loading with webdataset
 import glob
-import imageio
+import imageio.v2 as imageio
 import argparse
 from tqdm import tqdm
 import webdataset as wds
@@ -21,13 +21,13 @@ from util import _fix_path_for_globbing
 # ###################################################################
 
 
-def generate_tar(raw_img_path,
-                 tar_path,
-                 mapping_fname='dataset_mapping.txt') -> None:
+def generate_tar(src_data_dir: str,
+                 tar_path: str,
+                 mapping_fname: str = 'dataset_mapping.txt') -> None:
     """ generates a combined tar archive for loading into webdataset
-    from class folder separated data from raw_img_path & a class mapping txt file
+    from class folder separated data from src_data_dir & a class mapping txt file
     """
-    dir_list = glob.glob(_fix_path_for_globbing(raw_img_path))
+    dir_list = glob.glob(_fix_path_for_globbing(src_data_dir))
     class_id = 0
     file_count = 1
 
@@ -57,21 +57,18 @@ def generate_tar(raw_img_path,
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-sd',
-                        '--source_data_path',
-                        type=str,
+    parser.add_argument("--sd", "--source_data_path",
+                        type=str, dest="source_data_path",
                         required=True,
                         help="""Source dataset path with
                         class imgs inside folders""")
-    parser.add_argument('-td',
-                        '--target_tar_path',
-                        type=str,
+    parser.add_argument("--td", "--target_tar_path",
+                        type=str, dest="target_tar_path",
                         required=True,
                         help="""Target tar path where the
-                        data is stored for fast retrieval""")
-    parser.add_argument('-m',
-                        '--mapping_file_path',
-                        type=str,
+                        data is stored for fast retrieval i.e. data/custom_data.tar""")
+    parser.add_argument("--mp", "--mapping_file_path",
+                        type=str, dest="mapping_file_path",
                         required=True,
                         help="""Mapping file txt path where
                         class names and index ids will be present""")

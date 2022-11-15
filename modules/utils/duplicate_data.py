@@ -27,26 +27,23 @@ VALID_FILE_EXTS = {'jpg', 'jpeg', 'png', 'ppm', 'bmp', 'pgm'}
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-rd',
-                        '--raw_data_path',
-                        type=str,
+    parser.add_argument("-rd", "--raw_data_path",
+                        type=str, dest="raw_data_path",
                         required=True,
                         help="""Raw dataset path with
                         class imgs inside folders""")
-    parser.add_argument('-td',
-                        '--target_data_path',
-                        type=str,
+    parser.add_argument("-td", "--target_data_path",
+                        type=str, dest="target_data_path",
                         required=True,
                         help="""Target dataset path where
                         imgs will be saved in sub folders
                         repr classes with number matching target_number""")
-    parser.add_argument('-n',
-                        '--target_number',
+    parser.add_argument("-n", "--target_number",
                         type=int,
                         required=False,
                         default=1000,
-                        help="""Default 1000. Target size to reach for
-                        each class after duplication""")
+                        help="""Target size to reach for
+                        each class after duplication (default: %(default)s)""")
     args = parser.parse_args()
     split_train_test(args.raw_data_path,
                      args.target_data_path,
