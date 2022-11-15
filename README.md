@@ -86,7 +86,8 @@ Convert existing dataset to a `tar` archive format used by WebDataset. The data 
 
 ```shell
 # ID_2_CLASSNAME_MAP_TXT_FILE is generated using the modules/utils/train_val_test_split.py file
-python modules/utils/convert_dataset_to_tar.py --sd data/SOURCE_DATASET --td data/TARGET_TAR_DATASET --mp ID_2_CLASSNAME_MAP_TXT_FILE
+# convert train/val/test splits into tar archives
+python modules/utils/convert_dataset_to_tar.py --sd data/SOURCE_DATA_SPLIT --td data/TARGET_TAR_SPLIT.tar --mp ID_2_CLASSNAME_MAP_TXT_FILE
 ```
 
 ## Test
