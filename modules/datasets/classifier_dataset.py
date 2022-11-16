@@ -8,6 +8,17 @@ import webdataset as wds
 import torchvision.utils as v_utils
 
 from modules.datasets import base_dataset
+from modules.utils.util import identity
+
+
+def _get_webdataset_len(data_path) -> int:
+    wdataset = (wds.WebDataset(data_path)
+                .decode("pil")
+                .to_tuple("input.jpg", "output.cls"))
+    length = 0
+    for _ in wdataset:
+        length += 1
+    return length
 
 
 class ClassifierDataset:
@@ -50,13 +61,31 @@ class ClassifierDataset:
                                                                     transform=test_transform)
         elif data_mode == "webdataset":
             train_root = osp.join(data_root, train_path)
-            self.train_dataset = wds.WebDataset(train_root).shuffle(1000).decode("torchrgb").to_tuple("input.jpg", "output.cls")
+            train_len = _get_webdataset_len(train_root)
+            self.train_dataset = (wds.WebDataset(train_root)
+                                  .shuffle(100)
+                                  .decode("pil")
+                                  .to_tuple("input.jpg", "output.cls")
+                                  .map_tuple(train_transform, identity)
+                                  .with_length(train_len))
             if val_path is not None:
                 val_root = osp.join(data_root, val_path)
-                self.val_dataset = wds.WebDataset(val_root).shuffle(1000).decode("torchrgb").to_tuple("input.jpg", "output.cls")
+                val_len = _get_webdataset_len(val_root)
+                self.val_dataset = (wds.WebDataset(val_root)
+                                    .shuffle(100)
+                                    .decode("pil")
+                                    .to_tuple("input.jpg", "output.cls")
+                                    .map_tuple(val_transform, identity)
+                                    .with_length(val_len))
             if test_path is not None:
                 test_root = osp.join(data_root, test_path)
-                self.test_dataset = wds.WebDataset(test_root).shuffle(1000).decode("torchrgb").to_tuple("input.jpg", "output.cls")
+                test_len = _get_webdataset_len(test_root)
+                self.test_dataset = (wds.WebDataset(test_root)
+                                     .shuffle(100)
+                                     .decode("pil")
+                                     .to_tuple("input.jpg", "output.cls")
+                                     .map_tuple(test_transform, identity)
+                                     .with_length(test_len))
         elif data_mode == "numpy":
             raise NotImplementedError("This mode is not implemented YET")
         else:

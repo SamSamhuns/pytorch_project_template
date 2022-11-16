@@ -32,6 +32,10 @@ class MissingConfigError(Exception):
     pass
 
 
+def identity(x):
+    return x
+
+
 def rgetattr(obj, attr, *args):
     """
     recursively get attrs. i.e. rgetattr(module, "sub1.sub2.sub3")
