@@ -75,6 +75,8 @@ cp configs/classifier_cpu_config.json configs/custom_classifier_cpu_config.json
 
 #### Example Training: Image Classification
 
+Sample data used in the custom image classification training downloaded from <https://www.kaggle.com/datasets/gpiosenka/100-bird-species>.
+
 ```shell
 # train on custom data with custom config
 python train.py --cfg custom_classifier_cpu_config.json
