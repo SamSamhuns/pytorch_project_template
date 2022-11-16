@@ -6,7 +6,6 @@ from enum import Enum
 import traceback
 import requests
 import uvicorn
-import base64
 import json
 import uuid
 import sys
@@ -105,22 +104,22 @@ class InferenceProcessTask():
         self.response_data["prediction"] = (self.results).tolist()
         # iterate through results
         # TODO remove when result format is confirmed
-        """
-        for res in self.results:
-            if res.status == "Failure":
-                self.response_data["code"] = "failed"
-                self.response_data['msg'] = "Failed to process image"
-                break
-
-            self.response_data['msg'] = "Processed image successfully"
-            self.response_data["num_detections"] = len(self.results)
-            resp_dict_item = {}
-            with open(input_image_file, mode='rb') as file:
-                img = file.read()
-            resp_dict_item["File"] = base64.b64encode(img)
-            # base64.b64decode(Iod_item["File"]) # for decoding
-            self.response_data["results"] = resp_dict_item
-        """
+        # """
+        # for res in self.results:
+        #     if res.status == "Failure":
+        #         self.response_data["code"] = "failed"
+        #         self.response_data['msg'] = "Failed to process image"
+        #         break
+        #
+        #     self.response_data['msg'] = "Processed image successfully"
+        #     self.response_data["num_detections"] = len(self.results)
+        #     resp_dict_item = {}
+        #     with open(input_image_file, mode='rb') as file:
+        #         img = file.read()
+        #     resp_dict_item["File"] = base64.b64encode(img)
+        #     # base64.b64decode(Iod_item["File"]) # for decoding
+        #     self.response_data["results"] = resp_dict_item
+        # """
         # Remove cached file
         if is_url:
             if os.path.exists(input_image_file):

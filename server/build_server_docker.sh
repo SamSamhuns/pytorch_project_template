@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # check if 2 cmd args have been entered
-if [ $# -ne 2 ]
+if [ "$#" -ne 2 ]
   then
     echo "Mode must be specified for creating Dockerfile"
 		echo "eg. \$ bash build_docker.sh -m pytorch/onnx"
@@ -19,4 +19,4 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 echo "Building Docker Container with $mode inference mode"
-docker build -t model_server --build-arg MODE=$mode .
+docker build -t model_server --build-arg MODE="$mode" .

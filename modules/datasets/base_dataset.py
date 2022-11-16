@@ -6,7 +6,7 @@ from PIL import Image
 import torch.utils.data as data
 
 
-IMG_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm']
+IMG_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm'}
 
 
 def is_file_ext_valid(filepath: str, extensions: List[str]):

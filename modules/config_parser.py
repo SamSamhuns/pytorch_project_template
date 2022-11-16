@@ -49,7 +49,7 @@ class ConfigParser:
                 save_dir / exper_name / run_id / config["trainer"]["tensorboard_log_dir"])
 
         # make directory for saving checkpoints and log.
-        run_id == ''
+        run_id = ''
         self.save_dir.mkdir(parents=True, exist_ok=True)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 

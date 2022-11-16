@@ -8,9 +8,11 @@ ARG CUDNN="7.6"
 LABEL maintainer="fname.lname@domain.com"
 
 # install basics
-RUN apt-get update -y \
+RUN apt-get update -y --no-install-recommends \
  && apt-get install -y apt-utils git curl ca-certificates bzip2 cmake tree htop bmon iotop g++ vim \
- && apt-get install -y libglib2.0-0 libsm6 libxext6 libxrender-dev libgl1-mesa-glx
+ && apt-get install -y libglib2.0-0 libsm6 libxext6 libxrender-dev libgl1-mesa-glx \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 # set work directory
 WORKDIR /app

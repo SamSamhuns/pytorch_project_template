@@ -79,9 +79,9 @@ class Classifier(nn.Module):
 
 def main():
     model = Classifier(train_mode=False).eval()
-    input = torch.rand([1, 3, 244, 244])
-    output = model(input)
-    print(output.shape)
+    model_input = torch.rand([1, 3, 244, 244])
+    model_output = model(model_input)
+    print(model_output.shape)
 
 
 if __name__ == "__main__":

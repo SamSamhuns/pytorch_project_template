@@ -44,19 +44,19 @@ class BaseAgent:
             raise RuntimeError(
                 f"If val_path {val_path} is not None, val_split({val_split}) must be 0")
 
-    def load_checkpoint(self, file_name: str):
+    def load_checkpoint(self, file_path: str):
         """
         load latest checkpoint file
         args:
-            file_name: checkpoint file_name (pth, pt, pkl file)
+            file_path: checkpoint file_path (pth, pt, pkl file)
         """
         raise NotImplementedError
 
-    def save_checkpoint(self, file_name: str = "checkpoint.pth.tar", is_best: bool = False):
+    def save_checkpoint(self, file_path: str = "checkpoint.pth.tar", is_best: bool = False):
         """
         save checkpoint
         args:
-            file_name: checkpoint file_name (pth, pt, pkl file)
+            file_path: checkpoint file_path (pth, pt, pkl file)
         """
         raise NotImplementedError
 

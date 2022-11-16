@@ -1,5 +1,5 @@
 #  splits a directory with object classes in different subdirectories into
-#  train, test and optionally val sub-directory with the same class sub-dir
+#  train, test and optionally val sub-directory with the same class sub-directory
 #  structure
 
 import os
@@ -33,13 +33,13 @@ random.seed(42)
 # ###################################################################
 
 
-def create_dir_and_copy_files(dir: str, f_list: List[str]) -> None:
-    """dir: directory where files will be copied to
-    f_list: list of files which will be copied to dir
+def create_dir_and_copy_files(directory: str, f_list: List[str]) -> None:
+    """directory: directory where files will be copied to
+    f_list: list of files which will be copied to directory
     """
-    os.makedirs(dir, exist_ok=True)
+    os.makedirs(directory, exist_ok=True)
     for file in f_list:
-        shutil.copy(file, dir)
+        shutil.copy(file, directory)
 
 
 def split_train_test(RAW_IMG_DIR: str, PROCESSED_IMG_DIR: str, VAL_SPLIT: float, TEST_SPLIT: float) -> None:
@@ -57,10 +57,10 @@ def split_train_test(RAW_IMG_DIR: str, PROCESSED_IMG_DIR: str, VAL_SPLIT: float,
 
     # for each class in raw data
     for i in tqdm(range(len(dir_list))):
-        dir = dir_list[i]                # get path to class dir
-        class_name = dir.split("/")[-1]  # get class name
+        directory = dir_list[i]                # get path to class directory
+        class_name = directory.split("/")[-1]  # get class name
 
-        f_list = [file for file in glob.glob(dir + "/*")
+        f_list = [file for file in glob.glob(directory + "/*")
                   if file.split(".")[-1] in VALID_FILE_EXTS]
         random.shuffle(f_list)
 

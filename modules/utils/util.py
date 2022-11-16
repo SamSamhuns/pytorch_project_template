@@ -106,17 +106,17 @@ def validate_base_config_dict(cfg: dict) -> None:
 # ################## Internal functions #######################
 
 
-def _fix_path_for_globbing(dir: str):
+def _fix_path_for_globbing(directory: str):
     """ Add * at the end of paths for proper globbing
     """
-    if dir[-1] == '/':         # data/
-        dir += '*'
-    elif dir[-1] != '*':       # data
-        dir += '/*'
+    if directory[-1] == '/':         # data/
+        directory += '*'
+    elif directory[-1] != '*':       # data
+        directory += '/*'
     else:                      # data/*
-        dir = dir
+        directory = directory
 
-    return dir
+    return directory
 
 
 def _validate_keys(dictionary: dict, req_key_list: list) -> None:

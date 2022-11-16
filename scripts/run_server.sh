@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # check if 2 cmd args have been entered
-if [ $# -ne 2 ]
+if [ "$#" -ne 2 ]
   then
     echo "Server inference mode (pytorch/onnx) must be specified"
 		echo "eg. \$ bash run_server.sh -m pytorch/onnx"
@@ -38,7 +38,7 @@ fi
 
 # cd to server dir and create docker file and run dockerfile to start server
 cd server
-bash build_docker.sh -m $mode
+bash build_docker.sh -m "$mode"
 bash run_docker.sh -h 8008
 
 # server will be avai at localhost:8008

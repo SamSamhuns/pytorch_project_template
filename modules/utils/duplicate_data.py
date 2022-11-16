@@ -80,14 +80,14 @@ def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
 
     # for each class in raw data
     for i in tqdm(range(len(dir_list))):
-        dir = dir_list[i]                # get path to class dir
-        class_name = dir.split("/")[-1]  # get class name
-        f_list = [file for file in sorted(glob.glob(dir + "/*"))
+        directory = dir_list[i]                # get path to class directory
+        class_name = directory.split("/")[-1]  # get class name
+        f_list = [file for file in sorted(glob.glob(directory + "/*"))
                   if file.split(".")[-1] in VALID_FILE_EXTS]
 
         class_target_dir = osp.join(target_dir, class_name)
 
-        # skip copying if dir already exists and has required num of files
+        # skip copying if directory already exists and has required num of files
         if osp.exists(class_target_dir):
             tf_list = glob.glob(class_target_dir + "/*")
             if len(tf_list) >= TARGET_NUMBER:
@@ -102,7 +102,7 @@ def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
                 f_count += 1
                 if f_count > TARGET_NUMBER:
                     break
-            if f_count == 0:  # no files in dir
+            if f_count == 0:  # no files in directory
                 break
 
 

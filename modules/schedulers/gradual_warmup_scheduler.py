@@ -39,7 +39,7 @@ class GradualWarmupScheduler(_LRScheduler):
         if not callable(get_last_lr):
             def get_last_lr():
                 return [group['lr'] for group in self.optimizer.param_groups]
-            self.after_scheduler.get_last_lr = get_last_lr
+        self.after_scheduler.get_last_lr = get_last_lr
 
         self.finished = False  # set to True when warmup done
         super(GradualWarmupScheduler, self).__init__(
@@ -140,13 +140,13 @@ def main():
     scheduler = GradualWarmupScheduler(
         optimizer, after_scheduler=after_scheduler)
 
-    """sample scheduler test"""
+    # ####### sample scheduler test ####### #
     # for epoch in range(EPOCHS):
     #     print(f"epoch {epoch}: lr={optimizer.param_groups[0]['lr']}")
     #     scheduler.step(metrics=2)
     # exit()
 
-    """full scheduler test with mnist"""
+    # ####### full scheduler test with mnist ######## #
     mnist_train_data = datasets.MNIST("data",
                                       train=True,
                                       download=True,
@@ -162,7 +162,7 @@ def main():
     for epoch in range(EPOCHS):
         epoch_loss = 0
         correct = 0
-        for bidx, batch in tqdm.tqdm(enumerate(data_train)):
+        for batch in tqdm.tqdm(data_train):
             x_train, y_train = batch
             x_train = x_train.to(device)
             y_train = y_train.to(device)

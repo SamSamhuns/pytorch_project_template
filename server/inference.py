@@ -19,7 +19,7 @@ def init_detectors(models_param_dict: str, device='cuda:0'):
     return models_dict
 
 
-def init_single_detector(f_config, f_checkpoint, device='cuda:0', type='pytorch'):
+def init_single_detector(f_config, f_checkpoint, device='cuda:0', inf_type='pytorch'):
     print(f"Initializing detector from {f_checkpoint} with config {f_config}")
     if not os.path.exists(f_checkpoint) or not os.path.exists(f_config):
         raise RuntimeError(f"{f_checkpoint} and/or {f_config} does not exist!")
@@ -30,9 +30,9 @@ def init_single_detector(f_config, f_checkpoint, device='cuda:0', type='pytorch'
     # import the nodel's config.py file
     config_module = importlib.import_module(f_config)
     detector = config_module.CONFIG["ARCH"]["TYPE"]()
-    if type == "pytorch":
+    if inf_type == "pytorch":
         detector = detector.to(device).eval()
-    elif type == "onnx":
+    elif inf_type == "onnx":
         raise NotImplementedError("onnx inference mode not implemented")
     detector_config = config_module.CONFIG
     return detector, detector_config

@@ -123,21 +123,21 @@ class ClassifierAgent(BaseAgent):
         else:
             print("Training will be done from scratch")
 
-    def load_checkpoint(self, path) -> None:
+    def load_checkpoint(self, file_path) -> None:
         """
         Latest checkpoint loader from torch weights
         args:
-            path: path to checkpoint file/folder with only weights,
+            file_path: file_path to checkpoint file/folder with only weights,
                   if folder is used, latest checkpoint is loaded
         """
         ckpt_file = None
-        if os.path.isfile(path):
-            ckpt_file = path
-        elif os.path.isdir(path):
-            ckpt_file = find_latest_file_in_dir(path)
+        if os.path.isfile(file_path):
+            ckpt_file = file_path
+        elif os.path.isdir(file_path):
+            ckpt_file = find_latest_file_in_dir(file_path)
 
         if ckpt_file is None:
-            msg = (f"'{path}' is not a torch weight file or a directory containing one. "
+            msg = (f"'{file_path}' is not a torch weight file or a directory containing one. "
                    "No weights were loaded and TRAINING WILL BE DONE FROM SCRATCH")
             self.logger.info(msg)
             return
@@ -149,7 +149,7 @@ class ClassifierAgent(BaseAgent):
                                                   map_location=torch.device('cpu')))
         self.logger.info(f"Loaded checkpoint {ckpt_file}")
 
-    def save_checkpoint(self, filename="checkpoint.pth") -> None:
+    def save_checkpoint(self, file_path="checkpoint.pth") -> None:
         """
         Checkpoint saver
         args:
@@ -157,7 +157,7 @@ class ClassifierAgent(BaseAgent):
         """
         # create checkpoint directory if it doesnt exist
         self.config.save_dir.mkdir(parents=True, exist_ok=True)
-        save_path = os.path.join(str(self.config.save_dir), filename)
+        save_path = os.path.join(str(self.config.save_dir), file_path)
         torch.save(self.model.state_dict(), save_path)
 
     def train(self) -> None:
@@ -174,7 +174,7 @@ class ClassifierAgent(BaseAgent):
                     mlist = self.best_metric_dict[metric]
                     if (not self.config["trainer"]["save_best_only"] or (len(mlist) == 1 or mlist[-1] > mlist[-2])):
                         self.save_checkpoint(
-                            filename=f"checkpoint_{epoch}.pth")
+                            file_path=f"checkpoint_{epoch}.pth")
             self.current_epoch += 1
 
     def train_one_epoch(self) -> None:
