@@ -90,6 +90,13 @@ Convert existing dataset to a `tar` archive format used by WebDataset. The data 
 python modules/utils/convert_dataset_to_tar.py --sd data/SOURCE_DATA_SPLIT --td data/TARGET_TAR_SPLIT.tar --mp ID_2_CLASSNAME_MAP_TXT_FILE
 ```
 
+An example configuration for training with the WebDataset format is provided in `configs/classifier_webdataset_cpu_config.json`.
+
+```shell
+# example training with webdataset tar data format
+python train.py --cfg configs/classifier_webdataset_cpu_config.json
+```
+
 ## Test
 
 Test based on CONFIG_FILE. By default testing is done for mnist classification.
