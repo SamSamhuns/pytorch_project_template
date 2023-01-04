@@ -21,25 +21,25 @@ The input images are in the range [0, 1]
          std=[0.229, 0.224, 0.225]
      )])
 """
+from collections import OrderedDict
 import torchvision.models as models
 import torch.nn as nn
 import torch
-from collections import OrderedDict
 
 
 class Classifier(nn.Module):
+    """
+    backbone: network to extract features
+    num_classes: num classes to predict/ num of outputs of network, exclusive to feat_extract
+    feat_extract: only use network for feat extract, exclusive to num_classes
+    pretrained: use weights pretrained from imagenet
+    """
     def __init__(self,
                  backbone=models.mobilenet_v2,
                  num_classes=10,
                  feat_extract=False,
                  pretrained_weights="MobileNet_V2_Weights.IMAGENET1K_V1",
                  **kwargs):
-        """
-        backbone: network to extract features
-        num_classes: num classes to predict/ num of outputs of network, exclusive to feat_extract
-        feat_extract: only use network for feat extract, exclusive to num_classes
-        pretrained: use weights pretrained from imagenet
-        """
         super().__init__()
         self.backbone = backbone(weights=pretrained_weights)
         if feat_extract and (num_classes > 0 or num_classes is not None):

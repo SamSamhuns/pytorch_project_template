@@ -6,6 +6,9 @@ from modules.utils.weights_initializer import weights_init
 
 
 class Example(nn.Module):
+    """
+    Example NN model
+    """
     def __init__(self, config, **kwargs):
         super().__init__()
         self.config = config

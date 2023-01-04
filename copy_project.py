@@ -1,11 +1,12 @@
+"""
+This script initializes new pytorch project with the template files.
+Run `python3 new_project.py ../NewProject` then a new project named
+NewProject will be created
+"""
 import sys
 from pathlib import Path
 from shutil import copytree, ignore_patterns
 
-
-# This script initializes new pytorch project with the template files.
-# Run `python3 new_project.py ../NewProject` then a new project named
-# NewProject will be created
 
 current_dir = Path()
 assert (current_dir / 'copy_project.py').is_file(), 'Script should be executed in the pytorch-project-template directory'

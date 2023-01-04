@@ -109,7 +109,7 @@ class ClassifierAgent(BaseAgent):
             self.device = torch.device("cuda")
             self.model = self.model.to(self.device)
             self.loss = self.loss.to(self.device)
-            self.logger.info(f"Program will run on GPU device {self.device}")
+            self.logger.info("Program will run on GPU device %s", self.device)
             print_cuda_statistics()
         else:
             torch.manual_seed(self.manual_seed)
@@ -147,7 +147,7 @@ class ClassifierAgent(BaseAgent):
         else:          # if gpu is not available
             self.model.load_state_dict(torch.load(ckpt_file,
                                                   map_location=torch.device('cpu')))
-        self.logger.info(f"Loaded checkpoint {ckpt_file}")
+        self.logger.info("Loaded checkpoint %s", ckpt_file)
 
     def save_checkpoint(self, file_path="checkpoint.pth") -> None:
         """

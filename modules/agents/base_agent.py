@@ -52,7 +52,7 @@ class BaseAgent:
         """
         raise NotImplementedError
 
-    def save_checkpoint(self, file_path: str = "checkpoint.pth.tar", is_best: bool = False):
+    def save_checkpoint(self, file_path: str = "checkpoint.pth.tar"):
         """
         save checkpoint
         args:

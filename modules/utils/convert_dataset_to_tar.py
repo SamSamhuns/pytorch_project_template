@@ -1,9 +1,9 @@
 # convert dataset to tar format for fast loading with webdataset
 import glob
-import imageio.v2 as imageio
 import argparse
 from tqdm import tqdm
 import webdataset as wds
+import imageio.v2 as imageio
 from util import _fix_path_for_globbing
 
 # #################### Raw Data Organization ########################

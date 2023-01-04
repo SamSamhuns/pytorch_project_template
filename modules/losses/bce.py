@@ -1,7 +1,6 @@
 """
 Binary Cross Entropy Loss
 """
-
 import torch.nn as nn
 
 

@@ -11,25 +11,25 @@ from modules.utils.util import read_json, write_json, validate_base_config_dict,
 
 
 class ConfigParser:
+    """
+    class to parse configuration json file.
+    Handles hyperparameters for training, initializations of modules,
+    checkpoint saving and logging module.
+    :param config: Dict with configs & HPs to train. contents of `config/train_image_clsf.json` file for example.
+    :param resume: String, path to the checkpoint being loaded.
+    :param run_id: Unique Identifier for train & test. Used to save ckpts & training log. Timestamp is used as default
+    """
     def __init__(self, config: dict,
                  run_id: Optional[str] = None,
                  resume: Optional[str] = None,
                  modification: Optional[dict] = None):
-        """
-        class to parse configuration json file.
-        Handles hyperparameters for training, initializations of modules,
-        checkpoint saving and logging module.
-        :param config: Dict with configs & HPs to train. contents of `config/train_image_clsf.json` file for example.
-        :param resume: String, path to the checkpoint being loaded.
-        :param run_id: Unique Identifier for train & test. Used to save ckpts & training log. Timestamp is used as default
-        """
         # load config file and apply any modification
         config = _update_config(config, modification)
         # check base keys in config & raise warning if absent
         try:
             validate_base_config_dict(config)
-        except MissingConfigError as e:
-            warnings.warn(f"{e}")
+        except MissingConfigError as err:
+            warnings.warn(f"{err}")
         # set seeds
         seed = config["seed"]
         random.seed(seed)

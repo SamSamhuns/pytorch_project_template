@@ -1,3 +1,6 @@
+"""
+Logger object
+"""
 import os
 import pprint
 import logging
