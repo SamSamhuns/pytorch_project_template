@@ -6,6 +6,18 @@
   "cudnn_benchmark": false,
   "gpu_device": null,
   "use_amp": false,
+  "trainer": {
+    "resume_checkpoint": null,
+    "save_best_only": true,
+    "log_freq": 1,
+    "valid_freq": 2,
+    "epochs": 12,
+    "verbosity": 2,
+    "save_dir": "checkpoints",
+    "use_tensorboard": true,
+    "tensorboard_port": 6006,
+    "tensorboard_log_dir": "tf_logs"
+  },
   "arch": {
     "type": "Classifier",
     "args": {
@@ -64,18 +76,6 @@
       "factor": 0.1,
       "patience": 8
     }
-  },
-  "trainer": {
-    "resume": true,
-    "save_best_only": true,
-    "log_freq": 1,
-    "valid_freq": 2,
-    "epochs": 12,
-    "verbosity": 2,
-    "save_dir": "checkpoints",
-    "use_tensorboard": true,
-    "tensorboard_port": 6006,
-    "tensorboard_log_dir": "tf_logs"
   },
   "logger": {
     "file_fmt": "%(asctime)s %(levelname)-8s: %(message)s",
