@@ -1,3 +1,6 @@
+"""
+Testing script, run with: python test.py --cfg JSON_CONFIG_PATH -r TRAINED_PT_MODEL_PATH
+"""
 import argparse
 from datetime import datetime
 

@@ -1,14 +1,16 @@
-#  splits a directory with object classes in different subdirectories into
-#  train, test and optionally val sub-directory with the same class sub-directory
-#  structure
-
+"""
+splits a directory with object classes in different subdirectories into
+train, test and optionally val sub-directory with the same class sub-directory
+structure
+"""
 import os
 import glob
 import shutil
 import random
 import argparse
-from tqdm import tqdm
 from typing import List
+
+from tqdm import tqdm
 from util import _fix_path_for_globbing
 
 # #################### Raw Data Organization #########################

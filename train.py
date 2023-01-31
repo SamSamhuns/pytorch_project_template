@@ -1,3 +1,6 @@
+"""
+Training script, run with: python train.py --cfg JSON_CONFIG_PATH
+"""
 import argparse
 import collections
 from datetime import datetime

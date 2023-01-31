@@ -1,4 +1,6 @@
-# this util.py contains utility funcs meant to be used internally & externally
+"""
+this util.py contains utility funcs meant to be used internally & externally
+"""
 import os
 import json
 import glob
@@ -55,12 +57,12 @@ def get_cfg_object(cfg_json_path: str):
 
 
 def read_json(fname: str):
-    with open(fname, 'r') as handle:
+    with open(fname, 'r', encoding="utf-8") as handle:
         return json.load(handle, object_hook=OrderedDict)
 
 
 def write_json(content: dict, fname: str) -> None:
-    with open(fname, 'w') as handle:
+    with open(fname, 'w', encoding="utf-8") as handle:
         json.dump(content, handle, indent=4, sort_keys=False)
 
 
@@ -92,7 +94,7 @@ def validate_base_config_dict(cfg: dict) -> None:
     _dataloader = ['type', 'args']
     _optimizer = ['type', 'args']
     _lr_scheduler = ['type', 'args']
-    _trainer = ['resume', 'epochs', 'save_dir']
+    _trainer = ['resume_checkpoint', 'epochs', 'save_dir']
 
     _validate_keys(cfg, _required_top_keys)
     _validate_keys(cfg["arch"], _arch)
