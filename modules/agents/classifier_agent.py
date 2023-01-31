@@ -91,7 +91,7 @@ class ClassifierAgent(BaseAgent):
         gpu_device = self.config["gpu_device"]
         if is_cuda and not self.config["use_cuda"]:
             self.logger.info(
-                "WARNING: CUDA device is available, enable CUDA for faster training")
+                "WARNING: CUDA device is available, enable CUDA for faster training/testing")
         # set cuda devices if available or use cpu
         self.cuda = is_cuda & self.config["use_cuda"]
         self.manual_seed = self.config["seed"]
@@ -117,11 +117,15 @@ class ClassifierAgent(BaseAgent):
             self.logger.info("Program will run on CPU")
         # use autiomatic mixed precision if set in config
         self.use_amp = self.config["use_amp"]
-        # if training resume is True, load model from the latest checkpoint, if not found start from scratch.
-        if self.config["trainer"]["resume"]:
-            self.load_checkpoint(self.config.save_dir)
+        # if --resume cli argument is provided, give precedence to --resume ckpt path 
+        if self.config.resume:
+            self.load_checkpoint(self.config.resume)
+        # Alternatively use 'resume_checkpoint' if provided in json config if --resume cli argument is absent 
+        elif self.config["trainer"]["resume_checkpoint"] is not None:
+            self.load_checkpoint(self.config["trainer"]["resume_checkpoint"])
+        # else load from scratch
         else:
-            print("Training will be done from scratch")
+            self.logger.info("Training will be done from scratch")
 
     def load_checkpoint(self, file_path) -> None:
         """
