@@ -6,7 +6,7 @@ from PIL import Image
 import torch.utils.data as data
 
 
-IMG_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm'}
+IMG_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.webp'}
 
 
 def is_file_ext_valid(filepath: str, extensions: List[str]):
@@ -36,15 +36,15 @@ def _find_classes(root_dir: str):
     return classes, class_to_idx
 
 
-def _make_dataset(dir: str,
+def _make_dataset(directory: str,
                   class_to_idx: Dict[str, int],
                   extensions: List[str]):
     """returns a list of img_path, class index tuples
     """
     images = []
-    dir = osp.expanduser(dir)
-    for target in sorted(os.listdir(dir)):
-        d = osp.join(dir, target)
+    directory = osp.expanduser(directory)
+    for target in sorted(os.listdir(directory)):
+        d = osp.join(directory, target)
         if not osp.isdir(d):
             continue
 
@@ -85,7 +85,7 @@ def default_loader(path):
 def write_class_mapping_to_file(mapping, fpath) -> None:
     """mapping must be one level deep dict of class_names to index
     """
-    with open(fpath, 'w') as fw:
+    with open(fpath, 'w', encoding="utf-8") as fw:
         for class_name, class_idx in mapping.items():
             fw.write(''.join([class_name, ' ', str(class_idx), '\n']))
 
@@ -170,9 +170,9 @@ class BaseDataset(data.Dataset):
 
     def __repr__(self):
         fmt_str = 'Dataset ' + self.__class__.__name__ + '\n'
-        fmt_str += '    Root Location: {}\n'.format(self.root)
-        fmt_str += '    Number of datapoints: {}\n'.format(self.__len__())
-        fmt_str += '    Number of classes: {}\n'.format(len(self.classes))
+        fmt_str += f'    Root Location: {self.root}\n'
+        fmt_str += f'    Number of datapoints: {self.__len__()}\n'
+        fmt_str += f'    Number of classes: {len(self.classes)}\n'
         tmp = '    Transforms (if any): '
         fmt_str += '{0}{1}\n'.format(
             tmp, self.transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
