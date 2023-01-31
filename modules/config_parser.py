@@ -1,3 +1,6 @@
+"""
+CLI config parsing module
+"""
 import random
 import warnings
 from pathlib import Path
@@ -86,7 +89,7 @@ class ConfigParser:
             args, opt.dest) for opt in options} if options else None
         return cls(config, run_id, resume, modification)
 
-    def init_obj(self, name, module, *args, **kwargs):
+    def init_obj(self, name, module, *args, **kwargs) -> object:
         """
         Finds a object handle with the 'name' given as 'type' in config, and
         returns the instance initialized with corresponding arguments given.
@@ -105,7 +108,7 @@ class ConfigParser:
         module_args.update(kwargs)
         return getattr(module, module_name)(*args, **module_args)
 
-    def init_ftn(self, name, module, *args, **kwargs):
+    def init_ftn(self, name, module, *args, **kwargs) -> callable:
         """
         Finds a function handle with the name given as 'type' in config, and returns the
         function with given arguments fixed with functools.partial.
@@ -131,15 +134,15 @@ class ConfigParser:
 
     # set read-only attributes
     @property
-    def config(self):
+    def config(self) -> dict:
         return self._config
 
     @property
-    def save_dir(self):
+    def save_dir(self) -> str:
         return self._save_dir
 
     @property
-    def log_dir(self):
+    def log_dir(self) -> str:
         return self._log_dir
 
 

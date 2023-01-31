@@ -2,8 +2,9 @@
 Base agent class constains the base train, validate, test, inference, and utility functions
 Other agents specific to a network overload the functions of this base agent class
 """
-from modules.loggers.base_logger import get_logger
 from modules.config_parser import ConfigParser
+from modules.utils.util import is_port_in_use
+from modules.loggers.base_logger import get_logger
 
 
 class BaseAgent:
@@ -24,6 +25,7 @@ class BaseAgent:
         # Tboard Summary Writer if enabled
         if self.config["trainer"]["use_tensorboard"]:
             from torch.utils.tensorboard import SummaryWriter
+            from tensorboard import program
 
             _agent_name = self.config["name"]
             _optim_name = self.config["optimizer"]["type"]
@@ -31,11 +33,21 @@ class BaseAgent:
             _lr = self.config["optimizer"]["args"]["lr"]
 
             _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}"
-            _tboard_log_root_dir = self.config["trainer"]["tensorboard_log_dir"]
-            _tboard_log_dir = _tboard_log_root_dir
+            _tboard_log_dir = self.config["trainer"]["tensorboard_log_dir"]
             tboard_writer = SummaryWriter(log_dir=_tboard_log_dir,
                                           filename_suffix=_suffix)
             self.tboard_writer = tboard_writer
+            
+            _tboard_port = self.config["trainer"]["tensorboard_port"]
+            if _tboard_port is not None:
+                while is_port_in_use(_tboard_port) and _tboard_port < 65535:
+                    _tboard_port += 1
+                    print(f"Port {_tboard_port} is currently in use. Switching to {_tboard_port} for tensorboard logging")
+
+                tboard = program.TensorBoard()
+                tboard.configure(argv=[None, "--logdir", _tboard_log_dir, "--port", str(_tboard_port)])
+                url = tboard.launch()
+                print(f"Tensorboard logger started on {url}")
 
         # check exclusive config parameters
         val_path = self.config["dataset"]["args"]["val_path"]
