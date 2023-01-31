@@ -26,7 +26,7 @@ def main():
     config = get_config_from_args()
     agent = classifier_agent.ClassifierAgent(config, "test")
 
-    agent.test(weight_path=config.resume)
+    agent.test()
     agent.finalize_exit()
 
 

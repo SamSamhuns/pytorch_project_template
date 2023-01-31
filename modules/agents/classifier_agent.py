@@ -2,9 +2,12 @@
 Agent class for general classifier/feature extraction networks
 """
 import os
+import glob
+from typing import Optional
 from functools import partial
 from contextlib import nullcontext
 
+from PIL import Image
 import torch
 from torch.cuda.amp import autocast
 from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
@@ -13,6 +16,7 @@ from modules.config_parser import ConfigParser
 from modules.agents.base_agent import BaseAgent
 from modules.utils.statistics import print_cuda_statistics
 from modules.utils.util import find_latest_file_in_dir, rgetattr
+from modules.datasets.base_dataset import IMG_EXTENSIONS
 
 import modules.losses as module_losses
 import modules.models as module_models
@@ -127,7 +131,7 @@ class ClassifierAgent(BaseAgent):
         else:
             self.logger.info("Training will be done from scratch")
 
-    def load_checkpoint(self, file_path) -> None:
+    def load_checkpoint(self, file_path: str) -> None:
         """
         Latest checkpoint loader from torch weights
         args:
@@ -153,7 +157,7 @@ class ClassifierAgent(BaseAgent):
                                                   map_location=torch.device('cpu')))
         self.logger.info("Loaded checkpoint %s", ckpt_file)
 
-    def save_checkpoint(self, file_path="checkpoint.pth") -> None:
+    def save_checkpoint(self, file_path: str = "checkpoint.pth") -> None:
         """
         Checkpoint saver
         args:
@@ -226,7 +230,7 @@ class ClassifierAgent(BaseAgent):
 
         train_loss = cum_train_loss / train_size
         train_accuracy = 100. * correct / train_size
-        self.logger.info('\nTraining set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+        self.logger.info('\nTraining set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             train_loss, correct, train_size, train_accuracy))
 
         if self.config["trainer"]["use_tensorboard"]:
@@ -292,7 +296,7 @@ class ClassifierAgent(BaseAgent):
                                            {'validation': val_accuracy},
                                            self.current_epoch)
 
-    def test(self, weight_path=None) -> None:
+    def test(self, weight_path: Optional[str] = None) -> None:
         """
         main test function
         args:
@@ -333,9 +337,7 @@ class ClassifierAgent(BaseAgent):
                                            {'Test': test_accuracy},
                                            self.current_epoch)
 
-    def export_as_onnx(self,
-                       dummy_input,
-                       onnx_save_path="checkpoints/onnx_model.onnx") -> None:
+    def export_as_onnx(self, dummy_input: torch.Tensor, onnx_save_path: str = "checkpoints/onnx_model.onnx") -> None:
         """
         ONNX format export function
         Model should use torch tensors & torch operators for proper export
@@ -356,6 +358,45 @@ class ClassifierAgent(BaseAgent):
                           dynamic_axes={'input': {0: 'batch_size', 2: "height", 3: "width"},    # variable length axes
                                         'output': {0: 'batch_size', 2: "height", 3: "width"}},
                           verbose=False)
+
+    def inference(self, source_path: str, weight_path: Optional[str] = None):
+        """
+        Run inference on an image file or directory with existing model or model loaded with new weight_path
+        Args:
+            source_path: str
+        """
+        if weight_path is not None:
+            print("Loading new checkpoint for inferencing")
+            self.load_checkpoint(weight_path)
+        self.model.eval()
+
+        image_list = []
+        if os.path.isdir(source_path):
+            fpaths = glob.glob(os.path.join(source_path, "*"))
+            image_list = [path for path in fpaths if os.path.splitext(path)[-1] in IMG_EXTENSIONS]
+        elif os.path.isfile(source_path) and os.path.splitext(source_path)[-1] in IMG_EXTENSIONS:
+            image_list = [source_path]
+        else:
+            raise ValueError(f"Inference source {source_path} is not an image file or directory with images")
+
+        pred_file_labels = []
+        inference_transform = rgetattr(module_transforms, self.config["dataset"]["preprocess"]["inference_transform"])
+        with torch.no_grad():
+            for image_path in image_list:
+                image = Image.open(image_path).convert('RGB')
+                data = inference_transform(image)
+                data = data.to(self.device).unsqueeze(0)
+                output = self.model(data)
+                # get the index of the max log-probability
+                pred = output.max(1, keepdim=True)[1].item()
+
+                self.logger.info("Image path=%s: predicted label=%s", image_path, pred)
+                pred_file_labels.append([image_path, pred])
+        with open(os.path.join(self.config.log_dir, "pred.txt"), 'w', encoding="utf-8") as pred_ptr:
+            for image_path, pred in pred_file_labels:
+                pred_ptr.write(f"{image_path}, {pred}\n")
+
+        self.logger.info("Inference complete for %s", source_path)
 
     def finalize_exit(self):
         """
