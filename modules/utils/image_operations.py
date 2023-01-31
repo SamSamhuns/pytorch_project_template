@@ -1,6 +1,7 @@
+from typing import Tuple
+
 import cv2
 import numpy as np
-from typing import Tuple
 
 
 def pad_resize_image(cv2_img: np.ndarray,

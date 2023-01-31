@@ -1,8 +1,8 @@
 """
 Model weight initialization functions
 """
-from torch import nn
 import math
+from torch import nn
 
 
 def weights_init(m) -> None:
@@ -31,6 +31,9 @@ def weights_init_normal(m) -> None:
 
 
 def init_model_weights(m) -> None:
+    """
+    Initialize weights of modules in model if they are Conv2d, BatchNorm2d or Linear layers
+    """
     for m in m.modules():
         if isinstance(m, nn.Conv2d):
             n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels

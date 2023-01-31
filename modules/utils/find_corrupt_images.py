@@ -1,7 +1,8 @@
 import os
 import glob
-import imageio
 import argparse
+
+import imageio
 from tqdm import tqdm
 from util import _fix_path_for_globbing
 
@@ -11,7 +12,7 @@ def validate_imgs(source_path, corrupt_flist_txt, remove) -> None:
     """
     dir_list = glob.glob(_fix_path_for_globbing(source_path))
 
-    with open(corrupt_flist_txt, 'w') as fw:
+    with open(corrupt_flist_txt, 'w', encoding="utf-8") as fw:
         for i in tqdm(range(len(dir_list))):
             dir_name = dir_list[i]
             img_list = glob.glob(dir_name + "/*")
@@ -20,8 +21,8 @@ def validate_imgs(source_path, corrupt_flist_txt, remove) -> None:
                 try:
                     img = imageio.imread(img_name, pilmode="RGB")
                     img = img[..., :3]
-                except Exception as e:
-                    print(f"{e}. imageio could not read file {img_name}")
+                except Exception as excep:
+                    print(f"{excep}. imageio could not read file {img_name}")
                     fw.write(img_name + '\n')
                     if os.path.exists(img_name) and remove:
                         print(f"Removing {img_name}")

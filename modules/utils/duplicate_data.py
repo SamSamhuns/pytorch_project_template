@@ -1,9 +1,10 @@
 import os
+import os.path as osp
 import glob
 import shutil
 import argparse
+
 from tqdm import tqdm
-import os.path as osp
 from util import _fix_path_for_globbing
 
 # #################### Raw Data Organization ########################

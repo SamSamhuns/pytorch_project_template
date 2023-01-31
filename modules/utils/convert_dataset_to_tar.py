@@ -31,7 +31,7 @@ def generate_tar(src_data_dir: str,
     class_id = 0
     file_count = 1
 
-    with open(mapping_fname, 'w') as map_file, wds.TarWriter(tar_path) as sink:
+    with open(mapping_fname, 'w', encoding="utf-8") as map_file, wds.TarWriter(tar_path) as sink:
         for dir_name in tqdm(dir_list):
             split_string = dir_name.split('/')
             map_file.write(str(class_id) + "\t" + split_string[-1] + "\n")
@@ -49,9 +49,9 @@ def generate_tar(src_data_dir: str,
                         "output.cls": class_id,
                     })
                     file_count += 1
-                except Exception as e:
+                except Exception as excep:
                     print(
-                        f"{e}. imageio could not read file {img_name}. Skipping...")
+                        f"{excep}. imageio could not read file {img_name}. Skipping...")
             class_id += 1
 
 

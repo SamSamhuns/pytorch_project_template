@@ -26,7 +26,7 @@ def generate_tar(src_data_dir: str,
     dir_list = sorted(glob.glob(_fix_path_for_globbing(src_data_dir)))
     class_id = 0
 
-    with open(mapping_file_path, "w") as mptr:
+    with open(mapping_file_path, "w", encoding="utf-8") as mptr:
         for dir_path in tqdm(dir_list):
             dir_name = dir_path.split('/')[-1]
             mptr.write(f"{class_id}\t{dir_name}\n")
