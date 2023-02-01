@@ -18,9 +18,11 @@ class ConfigParser:
     class to parse configuration json file.
     Handles hyperparameters for training, initializations of modules,
     checkpoint saving and logging module.
-    :param config: Dict with configs & HPs to train. contents of `config/train_image_clsf.json` file for example.
-    :param resume: String, path to the checkpoint being loaded.
-    :param run_id: Unique Identifier for train & test. Used to save ckpts & training log. Timestamp is used as default
+    Args:
+        config: Dict with configs & HPs to train. contents of `config/train_image_clsf.json` file for example.
+        resume: String, path to the checkpoint being loaded.
+        run_id: Unique Identifier for train & test. Used to save ckpts & training log. Timestamp is used as default
+        modification: additional key-val args to be added to config
     """
     def __init__(self, config: dict,
                  run_id: Optional[str] = None,

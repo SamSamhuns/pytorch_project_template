@@ -3,8 +3,8 @@ Base agent class constains the base train, validate, test, inference, and utilit
 Other agents specific to a network overload the functions of this base agent class
 """
 from modules.config_parser import ConfigParser
-from modules.utils.util import is_port_in_use
 from modules.loggers.base_logger import get_logger
+from modules.utils.util import is_port_in_use, recursively_flatten_dict
 
 
 class BaseAgent:
@@ -37,6 +37,10 @@ class BaseAgent:
             tboard_writer = SummaryWriter(log_dir=_tboard_log_dir,
                                           filename_suffix=_suffix)
             self.tboard_writer = tboard_writer
+
+            flat_cfg = recursively_flatten_dict(self.config._config)
+            for cfg_key, cfg_val in flat_cfg.items():
+                self.tboard_writer.add_text(cfg_key, str(cfg_val))
             
             _tboard_port = self.config["trainer"]["tensorboard_port"]
             if _tboard_port is not None:

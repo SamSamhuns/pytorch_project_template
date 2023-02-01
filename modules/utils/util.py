@@ -7,6 +7,7 @@ import glob
 import socket
 import functools
 from collections import OrderedDict
+from collections.abc import MutableMapping
 from easydict import EasyDict as edict
 
 
@@ -25,14 +26,6 @@ class BColors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
-
-def is_port_in_use(port: int) -> bool:
-    """
-    Checks if a port is free for use
-    """
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as stream:
-        return stream.connect_ex(('localhost', int(port))) == 0
 
 
 class AverageMeter(object):
@@ -58,9 +51,30 @@ class MissingConfigError(Exception):
     """Raised when configurations are missing
     """
 
+def is_port_in_use(port: int) -> bool:
+    """
+    Checks if a port is free for use
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as stream:
+        return stream.connect_ex(('localhost', int(port))) == 0
+
 
 def identity(x):
     return x
+
+
+def recursively_flatten_dict(dictionary, parent_key: str = '', sep: str = '.') -> MutableMapping:
+    """
+    Recursively flattens a potentially nested dict with nested keys seperated by sep
+    """
+    items = []
+    for key, value in dictionary.items():
+        new_key = parent_key + sep + key if parent_key else key
+        if isinstance(value, MutableMapping):
+            items.extend(recursively_flatten_dict(value, new_key, sep=sep).items())
+        else:
+            items.append((new_key, value))
+    return dict(items)
 
 
 def rgetattr(obj, attr, *args):
