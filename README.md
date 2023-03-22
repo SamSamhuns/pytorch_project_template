@@ -2,7 +2,7 @@
 
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/8d13d18c6af947329b09ed473231d36d)](https://www.codacy.com/gh/SamSamhuns/pytorch_project_template/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=SamSamhuns/pytorch_project_template&amp;utm_campaign=Badge_Grade)
 
-[![Python 3.7](https://img.shields.io/badge/python-3.7-green.svg)](https://www.python.org/downloads/release/python-370/)[![Python 3.8](https://img.shields.io/badge/python-3.8-green.svg)](https://www.python.org/downloads/release/python-380/)[![Python 3.9](https://img.shields.io/badge/python-3.9-green.svg)](https://www.python.org/downloads/release/python-390/)
+[![Python 3.8](https://img.shields.io/badge/python-3.8-green.svg)](https://www.python.org/downloads/release/python-380/)[![Python 3.9](https://img.shields.io/badge/python-3.9-green.svg)](https://www.python.org/downloads/release/python-390/)[![Python 3.10](https://img.shields.io/badge/python-3.10-green.svg)](https://www.python.org/downloads/release/python-3100/)
 
 This is a template for a PyTorch Project for training, testing, inference demo, and FastAPI serving along with Docker support.
 
