@@ -1,11 +1,6 @@
-FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
+FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-devel
 
-# resolve GPG error
-RUN apt-key del 7fa2af80
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64/7fa2af80.pub
-
-ARG CUDA="11.1"
+ARG CUDA="11.7"
 ARG CUDNN="8.0"
 
 # maintainer
@@ -13,23 +8,43 @@ LABEL maintainer="fname.lname@domain.com"
 
 # install basics
 RUN apt-get  update -y --no-install-recommends \
- && apt-get install -y apt-utils git curl ca-certificates bzip2 cmake tree htop bmon iotop g++ vim\
- && apt-get install -y libglib2.0-0 libsm6 libxext6 libxrender-dev \
+ && apt-get install -y --no-install-recommends apt-utils git curl ca-certificates bzip2 cmake tree htop bmon iotop g++ vim \
+ && apt-get install -y --no-install-recommends libglib2.0-0 libsm6 libxext6 libxrender-dev \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
-# set work directory
-WORKDIR /pytorch_model
+# remove cache
+RUN apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# set username & uid inside docker
+ARG UNAME=user1
+ARG UID=1000
+ENV WORKDIR="/home/$UNAME/pytorch_model"
+
+# add user UNAME as a member of the sudoers group
+RUN useradd -rm --home-dir "/home/$UNAME" --shell /bin/bash -g root -G sudo -u "$UID" "$UNAME"
+
+# set workdir
+WORKDIR "$WORKDIR"
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
 # setup virtual env for python
-ENV VIRTUAL_ENV=/opt/venv
+ENV VIRTUAL_ENV="/home/$UNAME/venv"
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # install python dependencies
-COPY ./requirements/train.txt /pytorch_model/
 RUN pip install --upgrade pip
-RUN pip install --default-timeout=100 -r train.txt
+COPY ./requirements/train.txt "$WORKDIR/train.txt"
+RUN pip install --no-cache-dir --default-timeout=100 -r "$WORKDIR/train.txt"
 
 # freq changing files are added below
-COPY . /pytorch_model
+COPY . "$WORKDIR"
+
+# change file ownership to docker user
+RUN chown -R "$UNAME" "$WORKDIR"
+
+USER "$UNAME"
