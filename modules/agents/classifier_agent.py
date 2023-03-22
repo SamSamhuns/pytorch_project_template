@@ -1,8 +1,9 @@
 """
 Agent class for general classifier/feature extraction networks
 """
-import os
+import time
 import glob
+import os.path as osp
 from typing import Optional
 from functools import partial
 from contextlib import nullcontext
@@ -15,7 +16,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 from modules.config_parser import ConfigParser
 from modules.agents.base_agent import BaseAgent
 from modules.utils.statistics import print_cuda_statistics
-from modules.utils.util import find_latest_file_in_dir, rgetattr
+from modules.utils.util import find_latest_file_in_dir, rgetattr, BColors
 from modules.datasets.base_dataset import IMG_EXTENSIONS
 
 import modules.losses as module_losses
@@ -35,13 +36,29 @@ class ClassifierAgent(BaseAgent):
     def __init__(self, config: ConfigParser, logger_name: str):
         super().__init__(config, logger_name)
 
+        # check if num classes in cfg match num of avai class folders
+        num_classes = self.config["dataset"]["num_classes"]
+        data_root = self.config["dataset"]["args"]["data_root"]
+        train_path = self.config["dataset"]["args"]["train_path"]
+        val_path = self.config["dataset"]["args"]["val_path"]
+        test_path = self.config["dataset"]["args"]["test_path"]
+        train_count = len(glob.glob(osp.join(data_root, train_path, "*")))
+        val_count = len(glob.glob(osp.join(data_root, val_path, "*"))) if val_path else 0
+        test_count = len(glob.glob(osp.join(data_root, test_path, "*"))) if test_path else 0
+
+        if train_count  != num_classes:
+            raise ValueError(f"num_classes in cfg({num_classes}) != available classes in {train_path}({train_count})")
+        if val_path and val_count != num_classes:
+            raise ValueError(f"num_classes in cfg({num_classes}) != available classes in {val_path}({val_count})")
+        if test_path and test_count != num_classes:
+            raise ValueError(f"num_classes in cfg({num_classes}) != available classes in {test_path}({test_count})")
+
         # define models
         backbone = self.config["arch"]["backbone"]
         self.model = self.config.init_obj(
             "arch", module_models,
-            backbone=partial(getattr(module_models, backbone)
-                             ) if backbone else None,
-            num_classes=self.config["dataset"]["num_classes"])
+            backbone=partial(getattr(module_models, backbone)) if backbone else None,
+            num_classes=num_classes)
         # define dataset
         self.data_set = self.config.init_obj(
             "dataset", module_datasets,
@@ -58,13 +75,13 @@ class ClassifierAgent(BaseAgent):
                                                       dataset=self.data_set.train_dataset)
         # if val_path is not None then dataloader.args.validation_split is assumed to be 0.0
         # if no val dir is provided, take val split from training data
-        if self.config["dataset"]["args"]["val_path"] is None:
+        if val_path is None:
             self.val_data_loader = self.train_data_loader.split_validation()
         # if val dir is provided, use all data inside val dir for validation
-        elif self.config["dataset"]["args"]["val_path"] is not None:
+        elif val_path is not None:
             self.val_data_loader = self.config.init_obj("dataloader", module_dataloaders,
                                                         dataset=self.data_set.val_dataset)
-        if self.config["dataset"]["args"]["test_path"] is not None:
+        if test_path is not None:
             self.test_data_loader = self.config.init_ftn("dataloader", module_dataloaders,
                                                          dataset=self.data_set.test_dataset)
             self.test_data_loader = self.test_data_loader(validation_split=0.0)
@@ -95,7 +112,7 @@ class ClassifierAgent(BaseAgent):
         gpu_device = self.config["gpu_device"]
         if is_cuda and not self.config["use_cuda"]:
             self.logger.info(
-                "WARNING: CUDA device is available, enable CUDA for faster training/testing")
+                f"{BColors.WARNING}WARNING: CUDA device is available, enable CUDA for faster training/testing{BColors.ENDC}")
         # set cuda devices if available or use cpu
         self.cuda = is_cuda & self.config["use_cuda"]
         self.manual_seed = self.config["seed"]
@@ -119,8 +136,13 @@ class ClassifierAgent(BaseAgent):
             torch.manual_seed(self.manual_seed)
             self.device = torch.device("cpu")
             self.logger.info("Program will run on CPU")
+
+        if self.config["torch_compile_model"]:
+            self.logger.info("Using torch compile mode")
+            self.model = torch.compile(self.model)
         # use autiomatic mixed precision if set in config
         self.use_amp = self.config["use_amp"]
+
         # if --resume cli argument is provided, give precedence to --resume ckpt path 
         if self.config.resume:
             self.load_checkpoint(self.config.resume)
@@ -139,9 +161,9 @@ class ClassifierAgent(BaseAgent):
                   if folder is used, latest checkpoint is loaded
         """
         ckpt_file = None
-        if os.path.isfile(file_path):
+        if osp.isfile(file_path):
             ckpt_file = file_path
-        elif os.path.isdir(file_path):
+        elif osp.isdir(file_path):
             ckpt_file = find_latest_file_in_dir(file_path)
 
         if ckpt_file is None:
@@ -165,14 +187,14 @@ class ClassifierAgent(BaseAgent):
         """
         # create checkpoint directory if it doesnt exist
         self.config.save_dir.mkdir(parents=True, exist_ok=True)
-        save_path = os.path.join(str(self.config.save_dir), file_path)
+        save_path = osp.join(str(self.config.save_dir), file_path)
         torch.save(self.model.state_dict(), save_path)
 
     def train(self) -> None:
         """
         Main training function with loop
         """
-        for epoch in range(self.config["trainer"]["epochs"]):
+        for epoch in range(1, self.config["trainer"]["epochs"] + 1):
             self.train_one_epoch()
             if epoch % self.config["trainer"]["valid_freq"]:
                 self.validate()
@@ -189,6 +211,7 @@ class ClassifierAgent(BaseAgent):
         """
         One epoch of training
         """
+        t0 = time.time()
         self.model.train()
         cum_train_loss = 0
         train_size = 0
@@ -197,8 +220,8 @@ class ClassifierAgent(BaseAgent):
             len(self.data_set.train_dataset) * self.config["dataloader"]["args"]["validation_split"])
 
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
-            data, target = data.to(self.device), target.to(self.device)
-            self.optimizer.zero_grad()
+            data, target = data.to(self.device, non_blocking=True), target.to(self.device, non_blocking=True)
+            self.optimizer.zero_grad(set_to_none=True)
             train_size += data.shape[0]
 
             # Enables autocasting for the forward pass (model + loss)
@@ -215,7 +238,7 @@ class ClassifierAgent(BaseAgent):
             # OneCycleLR scheduler step is called on each batch instead
             if isinstance(self.scheduler, OneCycleLR):
                 self.scheduler.step()
-            if batch_idx % self.config["trainer"]["log_freq"] == 0:
+            if batch_idx % self.config["trainer"]["batch_log_freq"] == 0:
                 self.logger.info('Train Epoch: {} [{:6d}/{:.0f} ({:.1f}%)] Loss: {:.6f}'.format(
                     self.current_epoch,
                     batch_idx * len(data),
@@ -230,13 +253,15 @@ class ClassifierAgent(BaseAgent):
 
         train_loss = cum_train_loss / train_size
         train_accuracy = 100. * correct / train_size
-        self.logger.info('\nTraining set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        t1 = time.time()
+        self.logger.info('\nTraining set:')
+        self.logger.info('\tEpoch time: {:.2f}s'.format(t1 - t0))
+        self.logger.info('\tAverage loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             train_loss, correct, train_size, train_accuracy))
 
         if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_images('preprocessed image batch',
-                                          next(iter(self.train_data_loader))[
-                                              0],
+                                          next(iter(self.train_data_loader))[0],
                                           self.current_epoch)
             self.tboard_writer.add_scalars('Loss (epoch)',
                                            {'train': train_loss},
@@ -249,7 +274,7 @@ class ClassifierAgent(BaseAgent):
         """
         One cycle of model validation
         """
-        # set model to eval mode
+        t0 = time.time()
         self.model.eval()
         cum_val_loss = 0
         val_size = 0
@@ -286,7 +311,10 @@ class ClassifierAgent(BaseAgent):
         else:
             self.scheduler.step()
 
-        self.logger.info('Validation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        t1 = time.time()
+        self.logger.info('\nValidation set:')
+        self.logger.info('\tVal time: {:.2f}s'.format(t1 - t0))
+        self.logger.info('\tAverage loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             val_loss, correct, val_size, val_accuracy))
         if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_scalars('Loss (epoch)',
@@ -371,10 +399,10 @@ class ClassifierAgent(BaseAgent):
         self.model.eval()
 
         image_list = []
-        if os.path.isdir(source_path):
-            fpaths = glob.glob(os.path.join(source_path, "*"))
-            image_list = [path for path in fpaths if os.path.splitext(path)[-1] in IMG_EXTENSIONS]
-        elif os.path.isfile(source_path) and os.path.splitext(source_path)[-1] in IMG_EXTENSIONS:
+        if osp.isdir(source_path):
+            fpaths = glob.glob(osp.join(source_path, "*"))
+            image_list = [path for path in fpaths if osp.splitext(path)[-1] in IMG_EXTENSIONS]
+        elif osp.isfile(source_path) and osp.splitext(source_path)[-1] in IMG_EXTENSIONS:
             image_list = [source_path]
         else:
             raise ValueError(f"Inference source {source_path} is not an image file or directory with images")
@@ -392,7 +420,7 @@ class ClassifierAgent(BaseAgent):
 
                 self.logger.info("Image path=%s: predicted label=%s", image_path, pred)
                 pred_file_labels.append([image_path, pred])
-        with open(os.path.join(self.config.log_dir, "pred.txt"), 'w', encoding="utf-8") as pred_ptr:
+        with open(osp.join(self.config.log_dir, "pred.txt"), 'w', encoding="utf-8") as pred_ptr:
             for image_path, pred in pred_file_labels:
                 pred_ptr.write(f"{image_path}, {pred}\n")
 

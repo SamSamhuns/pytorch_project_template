@@ -1,8 +1,8 @@
 easydict==1.10
-imageio==2.25.0
+imageio==2.26.1
 requests==2.28.2
-tensorboard==2.11.2
-torch==1.13.1
-torchvision==0.14.1
-tqdm==4.64.1
-webdataset==0.2.31
+tensorboard==2.12.0
+torch==2.0.0
+torchvision==0.15.1
+tqdm==4.65.0
+webdataset==0.2.48

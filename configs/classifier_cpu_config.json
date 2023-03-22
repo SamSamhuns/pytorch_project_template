@@ -6,10 +6,11 @@
   "cudnn_benchmark": false,
   "gpu_device": null,
   "use_amp": false,
+  "torch_compile_model": false,
   "trainer": {
     "resume_checkpoint": null,
     "save_best_only": true,
-    "log_freq": 1,
+    "batch_log_freq": 10,
     "valid_freq": 2,
     "epochs": 12,
     "verbosity": 2,
@@ -33,11 +34,11 @@
     "type": "ClassifierDataset",
     "args": {
       "data_root": "data/birds_dataset",
-      "train_path": "train",
+      "train_path": "val",
       "val_path": "val",
       "test_path": "test"
     },
-    "num_classes": 265,
+    "num_classes": 510,
     "preprocess": {
       "train_transform": "ClassifierPreprocess.train",
       "val_transform": "ClassifierPreprocess.val",
@@ -49,7 +50,7 @@
     "type": "BaseDataLoader",
     "args": {
       "batch_size": 32,
-      "num_workers": 0,
+      "num_workers": 4,
       "shuffle": true,
       "validation_split": 0.0,
       "drop_last": false,
@@ -83,6 +84,6 @@
     "logger_level": 10,
     "file_level": 10,
     "console_level": 10,
-    "<avai logger levels>": "DEBUG:10, INFO:20, ERROR:40"
+    "<avai logger levels>": "DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50"
   }
 }

@@ -168,6 +168,11 @@ Count number of files in sub-directories in PATH
 bash scripts/count_files.sh PATH
 ```
 
+### Profiling PyTorch
+
+-  Line by line GPU memory usage profiling [pytorch_memlab](https://github.com/Stonesjtu/pytorch_memlab)
+-  Line by line time used profiliing [line_profiler](https://github.com/pyutils/line_profiler)
+
 ### Acknowledgements
 
 -   <https://github.com/victoresque/pytorch-template>

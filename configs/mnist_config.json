@@ -6,10 +6,11 @@
   "cudnn_benchmark": false,
   "gpu_device": [0],
   "use_amp": false,
+  "torch_compile_model": false,
   "trainer": {
     "resume_checkpoint": null,
     "save_best_only": true,
-    "log_freq": 1,
+    "batch_log_freq": 10,
     "valid_freq": 2,
     "epochs": 12,
     "verbosity": 2,
@@ -83,6 +84,6 @@
     "logger_level": 10,
     "file_level": 10,
     "console_level": 10,
-    "<avai logger levels>": "DEBUG:10, INFO:20, ERROR:40"
+    "<avai logger levels>": "DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50"
   }
 }

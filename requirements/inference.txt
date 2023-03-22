@@ -1,5 +1,5 @@
 easydict==1.10
-imageio==2.23.0
-torch==1.13.1
-torchvision==0.14.1
-tqdm==4.64.1
+imageio==2.26.1
+torch==2.0.0
+torchvision==0.15.1
+tqdm==4.65.0

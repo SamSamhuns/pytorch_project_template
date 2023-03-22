@@ -46,7 +46,7 @@ class BaseAgent:
             if _tboard_port is not None:
                 while is_port_in_use(_tboard_port) and _tboard_port < 65535:
                     _tboard_port += 1
-                    print(f"Port {_tboard_port} is currently in use. Switching to {_tboard_port} for tensorboard logging")
+                    print(f"Port {_tboard_port - 1} is currently in use. Switching to {_tboard_port} for tensorboard logging")
 
                 tboard = program.TensorBoard()
                 tboard.configure(argv=[None, "--logdir", _tboard_log_dir, "--port", str(_tboard_port)])

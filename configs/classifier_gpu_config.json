@@ -6,15 +6,16 @@
   "cudnn_benchmark": true,
   "gpu_device": [0, 1],
   "use_amp": true,
+  "torch_compile_model": false,
   "trainer": {
     "resume_checkpoint": null,
     "save_best_only": true,
-    "log_freq": 1,
+    "batch_log_freq": 10,
     "valid_freq": 2,
     "epochs": 12,
     "verbosity": 2,
     "save_dir": "checkpoints",
-    "use_tensorboard": true,
+    "use_tensorboard": false,
     "tensorboard_port": 6006,
     "tensorboard_log_dir": "tf_logs"
   },
@@ -37,7 +38,7 @@
       "val_path": "val",
       "test_path": "test"
     },
-    "num_classes": 265,
+    "num_classes": 510,
     "preprocess": {
       "train_transform": "ClassifierPreprocess.train",
       "val_transform": "ClassifierPreprocess.val",
@@ -83,6 +84,6 @@
     "logger_level": 10,
     "file_level": 10,
     "console_level": 10,
-    "<avai logger levels>": "DEBUG:10, INFO:20, ERROR:40"
+    "<avai logger levels>": "DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50"
   }
 }
