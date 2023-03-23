@@ -96,9 +96,6 @@ venv*
 # fastapi cache
 .data_cache
 
-# server file
-server
-
 # training artifacts
 checkpoints*
 experiments*

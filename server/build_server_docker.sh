@@ -19,4 +19,4 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 echo "Building Docker Container with $mode inference mode"
-docker build -t model_server --build-arg MODE="$mode" .
+docker build -t pytorch_model_server -f server/Dockerfile --build-arg MODE="$mode" --build-arg UID=$(id -u) .

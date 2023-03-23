@@ -1,32 +1,40 @@
 #!/bin/bash
 
-# check if 2 cmd args have been entered
-if [ "$#" -ne 2 ]
-  then
-    echo "HTTP port must be specified for FastAPI"
-		echo "eg. \$ bash run_docker.sh -h 8080"
-		exit
-fi
+def_cont_name=pytorch_model_server_cont
 
-# check if -h/--http flag has been entered
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        -h|--http) http="$2"; shift ;;
-        *) echo "Unknown parameter: $1";
-	exit 1 ;;
-    esac
-    shift
+helpFunction()
+{
+   echo ""
+   echo "Usage: $0 -p port"
+   echo -e "\t-p http_port"
+   exit 1 # Exit script after printing help
+}
+
+while getopts "p:" opt
+do
+   case "$opt" in
+      p ) port="$OPTARG" ;;
+      ? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
+   esac
 done
 
-echo "Stopping and removing docker container 'model_server' if it is running"
-docker stop model_server || true
-docker rm model_server || true
+# Print helpFunction in case parameters are empty
+if [ -z "$port" ]
+then
+   echo "Some or all of the parameters are empty";
+   helpFunction
+fi
 
-echo "Docker Container starting with FastAPI port: $http"
+echo "Stopping and removing docker container '$def_cont_name' if it is running"
+docker stop "$def_cont_name" || true
+docker rm "$def_cont_name" || true
+
+echo "Docker Container starting with FastAPI port: $port"
 docker run \
       -ti --rm \
-      -p 0.0.0.0:"$http":8080 \
-      --name model_server \
+      -p 0.0.0.0:"$port":8080 \
+      -v "$PWD"/checkpoints_server:/home/user1/app/checkpoints_server \
+      --name "$def_cont_name" \
       --env LANG=en_US.UTF-8 \
-      model_server \
+      pytorch_model_server \
       bash

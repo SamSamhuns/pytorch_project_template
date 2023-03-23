@@ -39,7 +39,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install python dependencies
 RUN pip install --upgrade pip
-COPY "requirements_${MODE}_server.txt" "$WORKDIR/"
+COPY "./server/requirements_${MODE}_server.txt" "$WORKDIR/"
 RUN pip install -r "$WORKDIR/requirements_${MODE}_server.txt"
 
 # copy req files to app
@@ -48,5 +48,5 @@ COPY . "$WORKDIR"
 # change file ownership to docker user
 RUN chown -R "$UNAME" "$WORKDIR"
 
-# USER "$UNAME"
-CMD ["python3", "server.py"]
+USER "$UNAME"
+CMD ["python3", "server/server.py"]

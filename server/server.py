@@ -12,7 +12,7 @@ import sys
 import os
 import re
 
-from inference import init_detectors, run_detector
+from inference_server import init_detectors, run_detector
 
 
 # The root is the absolute path of the __init_.py under the source
@@ -25,10 +25,10 @@ app = FastAPI(title="Custom Model Inference")
 model1 = "mnist_model_1"
 model2 = "mnist_model_11"
 # pair{weight_path:config_file}
-models_param_dict = {model1: ["checkpoints/checkpoint_1.pth", "configs/mnist_config.py"],
-                     model2: ["checkpoints/checkpoint_11.pth", "configs/mnist_config.py"]}
+models_param_dict = {model1: ["checkpoints_server/checkpoint_1.pth", "checkpoints_server/checkpoint_1.json"],
+                     model2: ["checkpoints_server/checkpoint_11.pth", "checkpoints_server/checkpoint_11.json"]}
 # init all models
-loaded_models_dict = init_detectors(models_param_dict, "cpu")
+loaded_models_dict = init_detectors(models_param_dict, device="cpu")
 
 
 class InputModel(BaseModel):
@@ -95,13 +95,11 @@ class InferenceProcessTask():
 
         # Prepare the results
         # run the inference function
-        inference_model = loaded_models_dict[self.input_data.model_name]['detector']
-        inference_model_config = loaded_models_dict[self.input_data.model_name]['config']
-        preprocess_func = inference_model_config["DATASET"]["PREPROCESS_INFERENCE"]
-        self.results = self.func(
-            inference_model, preprocess_func, input_image_file, self.input_data.threshold)
+        inference_model = loaded_models_dict[self.input_data.model_name]
+        self.result = self.func(
+            inference_model, input_image_file, self.input_data.threshold)
         self.response_data["code"] = "success"
-        self.response_data["prediction"] = (self.results).tolist()
+        self.response_data["prediction"] = self.result
         # iterate through results
         # TODO remove when result format is confirmed
         # """
