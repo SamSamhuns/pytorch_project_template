@@ -2,7 +2,6 @@
 Training script, run with: python train.py --cfg JSON_CONFIG_PATH
 """
 import argparse
-import collections
 from datetime import datetime
 
 from modules.agents import classifier_agent
@@ -37,7 +36,7 @@ def get_config_from_args():
          "nargs": "*",
          "type": int, "target": "gpu_device"},
         {"flags": ['--mode'],
-         "dest": "mode", 
+         "dest": "mode",
          "help": "Running mode. Cannot be changed & fixed to TRAIN (default: %(default)s)",
          "default": "TRAIN", "choices": ["TRAIN"],
          "type": str, "target": "mode"}

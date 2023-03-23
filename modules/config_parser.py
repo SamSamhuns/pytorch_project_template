@@ -75,7 +75,7 @@ class ConfigParser:
             for opt_dict in options:
                 # unpack opt_dict ignoring key 'target'
                 parser.add_argument(
-                    *opt_dict["flags"], 
+                    *opt_dict["flags"],
                     **{k:opt_dict[k] for k in opt_dict if k not in {"flags", "target"}})
         if not isinstance(parser, tuple):
             args = parser.parse_args()
@@ -135,7 +135,7 @@ class ConfigParser:
     def __getitem__(self, name: str):
         """Access items like ordinary dict."""
         return self.config[name]
-    
+
     def __str__(self):
         return str(self._config)
 

@@ -37,8 +37,9 @@ class GradualWarmupScheduler(_LRScheduler):
 
         get_last_lr = getattr(self.after_scheduler, "get_last_lr", None)
         if not callable(get_last_lr):
-            def get_last_lr():
+            def _get_last_lr():
                 return [group['lr'] for group in self.optimizer.param_groups]
+            get_last_lr = _get_last_lr
         self.after_scheduler.get_last_lr = get_last_lr
 
         self.finished = False  # set to True when warmup done
@@ -186,7 +187,7 @@ def main():
     epoch_list = [i for i in range(EPOCHS)]
 
     # plot the leraing rate along with training accuracy over epochs
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     plt.title(f"Train with BSIZE {BATCH_SIZE}")
     ax.plot(epoch_list, train_accuracy, color="red")
     ax.set_xlabel("EPOCHS", fontsize=14)

@@ -41,7 +41,7 @@ class BaseAgent:
             flat_cfg = recursively_flatten_dict(self.config._config)
             for cfg_key, cfg_val in flat_cfg.items():
                 self.tboard_writer.add_text(cfg_key, str(cfg_val))
-            
+
             _tboard_port = self.config["trainer"]["tensorboard_port"]
             if _tboard_port is not None:
                 while is_port_in_use(_tboard_port) and _tboard_port < 65535:

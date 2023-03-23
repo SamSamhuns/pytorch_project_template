@@ -5,7 +5,6 @@ Note: The inference script can be ported for use without a config file as well.
 Use the torch checkpoint file and the necessary transforms that are used for porting
 """
 import argparse
-import collections
 from datetime import datetime
 
 from modules.agents import classifier_agent

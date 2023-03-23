@@ -65,7 +65,7 @@ class ClassifierAgent(BaseAgent):
             backbone=partial(getattr(module_models, backbone)
                              ) if backbone else None,
             num_classes=num_classes)
-        
+
         # set cuda flag
         is_cuda = torch.cuda.is_available()
         gpu_device = self.config["gpu_device"]
@@ -186,7 +186,7 @@ class ClassifierAgent(BaseAgent):
             self.logger.info(msg)
             return
 
-        if self.cuda:  
+        if self.cuda:
             # if gpu is available
             state_dict = torch.load(ckpt_file)
         else:
@@ -197,7 +197,9 @@ class ClassifierAgent(BaseAgent):
         if len(self.config["gpu_device"]) > 1 and torch.cuda.device_count() > 1:
             _state_dict = OrderedDict()
             for k, v in state_dict.items():
-                k = 'module.'+ k if 'module' not in k else k.replace('features.module.', 'module.features.')
+                k = 'module.' + \
+                    k if 'module' not in k else k.replace(
+                        'features.module.', 'module.features.')
                 _state_dict[k] = v
             state_dict = _state_dict
 
@@ -436,7 +438,8 @@ class ClassifierAgent(BaseAgent):
         elif osp.isfile(source_path) and osp.splitext(source_path)[-1] in IMG_EXTENSIONS:
             image_list = [source_path]
         else:
-            raise ValueError(f"Inference source {source_path} is not an image file or dir with images")
+            raise ValueError(
+                f"Inference source {source_path} is not an image file or dir with images")
 
         pred_file_labels = []
         inference_transform = rgetattr(module_transforms, self.config["dataset"]["preprocess"]["inference_transform"])
