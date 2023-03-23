@@ -23,16 +23,23 @@ def get_config_from_args():
     parser.add_argument('-r', '--resume', type=str, dest="resume", required=True,
                         help='path to resume ckpt for running inference.')
 
-    # additional custom cli options
-    OverrideArgs = collections.namedtuple(
-        'OverrideArgs', 'flags dest help type target')
-    options = [
-        OverrideArgs(
-            ['-s', '--source_path'],
-            dest="source_path", help="path to source image file or directory for running inference. (default: %(default)s)",
-            type=str, target='source_path')
+    # additional custom cli options that ovveride or add new config params from json config file
+    override_options = [
+        {"flags": ['-s', '--source_path'],
+         "dest": "source_path",
+         "help": "path to source image file or directory for running inference. (default: %(default)s)",
+         "type": str, "target": "source_path"},
+        {"flags": ['--dev', '--gpu_device'],
+         "dest": "gpu_device",
+         "help": "gpu_device list i.e. None or 0, 0 1, 0 1 2. (default: %(default)s)",
+         "nargs": "*",
+         "type": int, "target": "gpu_device"},
+        {"flags": ['--mode'],
+         "dest": "mode", "default": "INFERENCE", "choices": ["INFERENCE"],
+         "help": "Running mode. Cannot be changed & fixed to INFERENCE (default: %(default)s)",
+         "type": str, "target": "mode"}
     ]
-    config = ConfigParser.from_args(parser, options)
+    config = ConfigParser.from_args(parser, override_options)
     return config
 
 

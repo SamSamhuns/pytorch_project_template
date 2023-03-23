@@ -18,7 +18,23 @@ def get_config_from_args():
     parser.add_argument('-r', '--resume', type=str, dest="resume", required=True,
                         help='path to checkpoint ckpt for testing')
 
-    config = ConfigParser.from_args(parser)
+    # additional custom cli options that ovveride or add new config params from json config file
+    override_options = [
+        {"flags": ['--bs', '--test_bsize'],
+         "dest": "test_bsize",
+         "help": "test bsize to override from config. (default: %(default)s)",
+         "type": int, "target": "dataloader;args;batch_size"},
+        {"flags": ['--dev', '--gpu_device'],
+         "dest": "gpu_device",
+         "help": "gpu_device list i.e. None or 0, 0 1, 0 1 2. (default: %(default)s)",
+         "nargs": "*",
+         "type": int, "target": "gpu_device"},
+         {"flags": ['--mode'],
+         "dest": "mode", "default": "TEST", "choices": ["TEST"],
+         "help": "Running mode. Cannot be changed & fixed to TEST (default: %(default)s)",
+         "type": str, "target": "mode"}
+    ]
+    config = ConfigParser.from_args(parser, override_options)
     return config
 
 

@@ -4,9 +4,10 @@ Agent class for general classifier/feature extraction networks
 import time
 import glob
 import os.path as osp
-from typing import Optional
 from functools import partial
 from contextlib import nullcontext
+from collections import OrderedDict
+from typing import Optional, List, Tuple
 
 from PIL import Image
 import torch
@@ -46,19 +47,59 @@ class ClassifierAgent(BaseAgent):
         val_count = len(glob.glob(osp.join(data_root, val_path, "*"))) if val_path else 0
         test_count = len(glob.glob(osp.join(data_root, test_path, "*"))) if test_path else 0
 
-        if train_count  != num_classes:
-            raise ValueError(f"num_classes in cfg({num_classes}) != available classes in {train_path}({train_count})")
-        if val_path and val_count != num_classes:
-            raise ValueError(f"num_classes in cfg({num_classes}) != available classes in {val_path}({val_count})")
-        if test_path and test_count != num_classes:
-            raise ValueError(f"num_classes in cfg({num_classes}) != available classes in {test_path}({test_count})")
+        if config["mode"] in {"TRAIN", "TEST"}:
+            if train_count != num_classes:
+                raise ValueError(
+                    f"num_classes in cfg({num_classes}) != available classes in {train_path}({train_count})")
+            if val_path and val_count != num_classes:
+                raise ValueError(
+                    f"num_classes in cfg({num_classes}) != available classes in {val_path}({val_count})")
+            if test_path and test_count != num_classes:
+                raise ValueError(
+                    f"num_classes in cfg({num_classes}) != available classes in {test_path}({test_count})")
 
         # define models
         backbone = self.config["arch"]["backbone"]
         self.model = self.config.init_obj(
             "arch", module_models,
-            backbone=partial(getattr(module_models, backbone)) if backbone else None,
+            backbone=partial(getattr(module_models, backbone)
+                             ) if backbone else None,
             num_classes=num_classes)
+        
+        # set cuda flag
+        is_cuda = torch.cuda.is_available()
+        gpu_device = self.config["gpu_device"]
+        if is_cuda and not self.config["use_cuda"]:
+            self.logger.info(
+                f"{BColors.WARNING}WARNING: CUDA device is available, enable CUDA for faster training/testing{BColors.ENDC}")
+        # set cuda devices if available or use cpu
+        self.cuda = is_cuda and self.config["use_cuda"]
+        self.manual_seed = self.config["seed"]
+        if self.cuda:
+            torch.cuda.manual_seed(self.manual_seed)
+            torch.backends.cudnn.deterministic = self.config["cudnn_deterministic"]
+            torch.backends.cudnn.benchmark = self.config["cudnn_benchmark"]
+            if len(gpu_device) > 1 and torch.cuda.device_count() > 1:
+                # use multi-gpu devices from config gpu_device
+                self.model = torch.nn.DataParallel(
+                    self.model, device_ids=gpu_device)
+            else:
+                # use one cuda gpu device from config gpu_device
+                torch.cuda.set_device(gpu_device[0])
+            self.device = torch.device("cuda")
+            self.logger.info("Program will run on GPU device %s", self.device)
+            print_cuda_statistics()
+        else:
+            torch.manual_seed(self.manual_seed)
+            self.device = torch.device("cpu")
+            self.logger.info("Program will run on CPU")
+        # do not load datasets for INFERENCE mode
+        if config["mode"] in {"INFERENCE"}:
+            self.model = self.model.to(self.device)
+            if self.config.resume:
+                self.load_checkpoint(self.config.resume)
+            return
+
         # define dataset
         self.data_set = self.config.init_obj(
             "dataset", module_datasets,
@@ -107,46 +148,19 @@ class ClassifierAgent(BaseAgent):
             _dummy_input = torch.ones(
                 [1, c, h, w], dtype=torch.float32)
             self.tboard_writer.add_graph(self.model, _dummy_input)
-        # set cuda flag
-        is_cuda = torch.cuda.is_available()
-        gpu_device = self.config["gpu_device"]
-        if is_cuda and not self.config["use_cuda"]:
-            self.logger.info(
-                f"{BColors.WARNING}WARNING: CUDA device is available, enable CUDA for faster training/testing{BColors.ENDC}")
-        # set cuda devices if available or use cpu
-        self.cuda = is_cuda & self.config["use_cuda"]
-        self.manual_seed = self.config["seed"]
-        if self.cuda:
-            torch.cuda.manual_seed(self.manual_seed)
-            torch.backends.cudnn.deterministic = self.config["cudnn_deterministic"]
-            torch.backends.cudnn.benchmark = self.config["cudnn_benchmark"]
-            if len(gpu_device) > 1 and torch.cuda.device_count() > 1:
-                # use multi-gpu devices from config gpu_device
-                self.model = torch.nn.DataParallel(
-                    self.model, device_ids=gpu_device)
-            else:
-                # use one cuda gpu device from config gpu_device
-                torch.cuda.set_device(gpu_device[0])
-            self.device = torch.device("cuda")
-            self.model = self.model.to(self.device)
-            self.loss = self.loss.to(self.device)
-            self.logger.info("Program will run on GPU device %s", self.device)
-            print_cuda_statistics()
-        else:
-            torch.manual_seed(self.manual_seed)
-            self.device = torch.device("cpu")
-            self.logger.info("Program will run on CPU")
 
+        self.model = self.model.to(self.device)
+        self.loss = self.loss.to(self.device)
         if self.config["torch_compile_model"]:
             self.logger.info("Using torch compile mode")
             self.model = torch.compile(self.model)
         # use autiomatic mixed precision if set in config
         self.use_amp = self.config["use_amp"]
 
-        # if --resume cli argument is provided, give precedence to --resume ckpt path 
+        # if --resume cli argument is provided, give precedence to --resume ckpt path
         if self.config.resume:
             self.load_checkpoint(self.config.resume)
-        # Alternatively use 'resume_checkpoint' if provided in json config if --resume cli argument is absent 
+        # Alternatively use 'resume_checkpoint' if provided in json config if --resume cli argument is absent
         elif self.config["trainer"]["resume_checkpoint"] is not None:
             self.load_checkpoint(self.config["trainer"]["resume_checkpoint"])
         # else load from scratch
@@ -172,11 +186,22 @@ class ClassifierAgent(BaseAgent):
             self.logger.info(msg)
             return
 
-        if self.cuda:  # if gpu is available
-            self.model.load_state_dict(torch.load(ckpt_file))
-        else:          # if gpu is not available
-            self.model.load_state_dict(torch.load(ckpt_file,
-                                                  map_location=torch.device('cpu')))
+        if self.cuda:  
+            # if gpu is available
+            state_dict = torch.load(ckpt_file)
+        else:
+            # if gpu is not available
+            state_dict = torch.load(ckpt_file, map_location=torch.device('cpu'))
+
+        # rename keys for dataparallel mode
+        if len(self.config["gpu_device"]) > 1 and torch.cuda.device_count() > 1:
+            _state_dict = OrderedDict()
+            for k, v in state_dict.items():
+                k = 'module.'+ k if 'module' not in k else k.replace('features.module.', 'module.features.')
+                _state_dict[k] = v
+            state_dict = _state_dict
+
+        self.model.load_state_dict(state_dict)
         self.logger.info("Loaded checkpoint %s", ckpt_file)
 
     def save_checkpoint(self, file_path: str = "checkpoint.pth") -> None:
@@ -261,7 +286,8 @@ class ClassifierAgent(BaseAgent):
 
         if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_images('preprocessed image batch',
-                                          next(iter(self.train_data_loader))[0],
+                                          next(iter(self.train_data_loader))[
+                                              0],
                                           self.current_epoch)
             self.tboard_writer.add_scalars('Loss (epoch)',
                                            {'train': train_loss},
@@ -331,6 +357,7 @@ class ClassifierAgent(BaseAgent):
             weight_path: Path to pth weight file that will be loaded for test
                          Default is set to None which uses latest chkpt weight file
         """
+        t0 = time.time()
         if weight_path is not None:
             print("Loading new checkpoint for testing")
             self.load_checkpoint(weight_path)
@@ -355,7 +382,10 @@ class ClassifierAgent(BaseAgent):
         test_loss = cum_test_loss / test_size
         test_accuracy = 100. * correct / test_size
 
-        self.logger.info('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        t1 = time.time()
+        self.logger.info('\nTest set:')
+        self.logger.info('\tTest time: {:.2f}s'.format(t1 - t0))
+        self.logger.info('\tAverage loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, test_size, test_accuracy))
         if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_scalars('Test Loss (epoch)',
@@ -375,19 +405,20 @@ class ClassifierAgent(BaseAgent):
             onnx_save_path: path where onnx file will be saved
         """
         # Export with ONNX
-        torch.onnx.export(self.model,
-                          dummy_input,
-                          onnx_save_path,
-                          export_params=True,
-                          do_constant_folding=True,
-                          opset_version=11,
-                          input_names=['input'],    # the model's input names
-                          output_names=['output'],  # the model's output names
-                          dynamic_axes={'input': {0: 'batch_size', 2: "height", 3: "width"},    # variable length axes
-                                        'output': {0: 'batch_size', 2: "height", 3: "width"}},
-                          verbose=False)
+        torch.onnx.export(
+            self.model,
+            dummy_input,
+            onnx_save_path,
+            export_params=True,
+            do_constant_folding=True,
+            opset_version=11,
+            input_names=['input'],    # the model's input names
+            output_names=['output'],  # the model's output names
+            dynamic_axes={'input': {0: 'batch_size', 2: "height", 3: "width"},    # variable length axes
+                          'output': {0: 'batch_size', 2: "height", 3: "width"}},
+            verbose=False)
 
-    def inference(self, source_path: str, weight_path: Optional[str] = None):
+    def inference(self, source_path: str, weight_path: Optional[str] = None, log_txt_preds: bool = True) -> List[Tuple[str, float]]:
         """
         Run inference on an image file or directory with existing model or model loaded with new weight_path
         Args:
@@ -405,7 +436,7 @@ class ClassifierAgent(BaseAgent):
         elif osp.isfile(source_path) and osp.splitext(source_path)[-1] in IMG_EXTENSIONS:
             image_list = [source_path]
         else:
-            raise ValueError(f"Inference source {source_path} is not an image file or directory with images")
+            raise ValueError(f"Inference source {source_path} is not an image file or dir with images")
 
         pred_file_labels = []
         inference_transform = rgetattr(module_transforms, self.config["dataset"]["preprocess"]["inference_transform"])
@@ -420,11 +451,13 @@ class ClassifierAgent(BaseAgent):
 
                 self.logger.info("Image path=%s: predicted label=%s", image_path, pred)
                 pred_file_labels.append([image_path, pred])
-        with open(osp.join(self.config.log_dir, "pred.txt"), 'w', encoding="utf-8") as pred_ptr:
-            for image_path, pred in pred_file_labels:
-                pred_ptr.write(f"{image_path}, {pred}\n")
+        if log_txt_preds:
+            with open(osp.join(self.config.log_dir, "pred.txt"), 'w', encoding="utf-8") as pred_ptr:
+                for image_path, pred in pred_file_labels:
+                    pred_ptr.write(f"{image_path}, {pred}\n")
 
         self.logger.info("Inference complete for %s", source_path)
+        return pred_file_labels
 
     def finalize_exit(self):
         """

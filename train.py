@@ -22,17 +22,28 @@ def get_config_from_args():
 
     # custom cli options to modify configuration from default values given in json file.
     # should be used to reset train params when resuming checkpoint, i.e. reducing LR
-    OverrideArgs = collections.namedtuple(
-        'OverrideArgs', 'flags dest help type target')
-    options = [
-        OverrideArgs(['--lr', '--learning_rate'],
-                     dest="learning_rate", help="lr param to override that in config. (default: %(default)s)",
-                     type=float, target='optimizer;args;learning_rate'),
-        OverrideArgs(['--bs', '--train_bsize'],
-                     dest="train_bsize", help="train bsize to override that in config. (default: %(default)s)",
-                     type=int, target='data;train_bsize')
+    override_options = [
+        {"flags": ['--lr', '--learning_rate'],
+         "dest": "learning_rate",
+         "help": "lr param to override from config. (default: %(default)s)",
+         "type": float, "target": "optimizer;args;lr"},
+        {"flags": ['--bs', '--train_bsize'],
+         "dest": "train_bsize",
+         "help": "train bsize to override that in config. (default: %(default)s)",
+         "type": int, "target": "dataloader;args;batch_size"},
+        {"flags": ['--dev', '--gpu_device'],
+         "dest": "gpu_device",
+         "help": "gpu_device list i.e. None or 0, 0 1, 0 1 2. (default: %(default)s)",
+         "nargs": "*",
+         "type": int, "target": "gpu_device"},
+        {"flags": ['--mode'],
+         "dest": "mode", 
+         "help": "Running mode. Cannot be changed & fixed to TRAIN (default: %(default)s)",
+         "default": "TRAIN", "choices": ["TRAIN"],
+         "type": str, "target": "mode"}
     ]
-    config = ConfigParser.from_args(parser, options)
+
+    config = ConfigParser.from_args(parser, override_options)
     return config
 
 

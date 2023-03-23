@@ -26,7 +26,7 @@ then
    helpFunction
 fi
 
-echo "Stopping and removing docker container '$def_cont' if it is running on port $port"
+echo "Stopping and removing docker container '$def_cont_name' if it is running on port $port"
 echo "Ignore No such container Error messages"
 docker stop "$def_cont_name" || true
 docker rm "$def_cont_name" || true

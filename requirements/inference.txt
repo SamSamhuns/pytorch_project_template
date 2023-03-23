@@ -3,3 +3,4 @@ imageio==2.26.1
 torch==2.0.0
 torchvision==0.15.1
 tqdm==4.65.0
+webdataset==0.2.48

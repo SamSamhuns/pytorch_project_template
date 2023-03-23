@@ -20,8 +20,8 @@ class ConfigParser:
     checkpoint saving and logging module.
     Args:
         config: Dict with configs & HPs to train. contents of `config/train_image_clsf.json` file for example.
-        resume: String, path to the checkpoint being loaded.
         run_id: Unique Identifier for train & test. Used to save ckpts & training log. Timestamp is used as default
+        resume: String, path to the checkpoint being loaded.
         modification: additional key-val args to be added to config
     """
     def __init__(self, config: dict,
@@ -66,15 +66,17 @@ class ConfigParser:
         self.resume = resume
 
     @classmethod
-    def from_args(cls, parser, options: Optional[List] = None):
+    def from_args(cls, parser, options: Optional[List[dict]] = None):
         """
         Initialize this class from some cli arguments. Used in train, test.
         """
         if options:
             # add optional overrride arguments to parser
-            for opt in options:
+            for opt_dict in options:
+                # unpack opt_dict ignoring key 'target'
                 parser.add_argument(
-                    *opt.flags, default=None, type=opt.type, dest=opt.dest, help=opt.help)
+                    *opt_dict["flags"], 
+                    **{k:opt_dict[k] for k in opt_dict if k not in {"flags", "target"}})
         if not isinstance(parser, tuple):
             args = parser.parse_args()
 
@@ -87,8 +89,8 @@ class ConfigParser:
             config.update(read_json(args.config))
 
         # parse custom cli options into dictionary
-        modification = {opt.target: getattr(
-            args, opt.dest) for opt in options} if options else None
+        modification = {opt["target"]: getattr(
+            args, opt["dest"]) for opt in options} if options else None
         return cls(config, run_id, resume, modification)
 
     def init_obj(self, name, module, *args, **kwargs) -> object:
@@ -133,6 +135,9 @@ class ConfigParser:
     def __getitem__(self, name: str):
         """Access items like ordinary dict."""
         return self.config[name]
+    
+    def __str__(self):
+        return str(self._config)
 
     # set read-only attributes
     @property
