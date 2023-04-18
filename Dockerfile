@@ -10,8 +10,7 @@ LABEL maintainer="fname.lname@domain.com"
 RUN apt-get  update -y --no-install-recommends \
  && apt-get install -y --no-install-recommends apt-utils git curl ca-certificates bzip2 cmake tree htop bmon iotop g++ vim \
  && apt-get install -y --no-install-recommends libglib2.0-0 libsm6 libxext6 libxrender-dev \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+ && apt-get clean
 
 # remove cache
 RUN apt-get autoremove -y \
