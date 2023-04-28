@@ -28,7 +28,6 @@ fi
 
 # Check if the container is running
 if [ "$(docker ps -q -f name=$def_cont_name)" ]; then
-    # Stop the container
     echo "Stopping docker container '$def_cont_name'"
     docker stop "$def_cont_name"
     echo "Stopped container '$def_cont_name'"

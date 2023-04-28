@@ -144,7 +144,7 @@ Using gpus inside docker for training/testing:
 ### For serving the model with FastAPI
 
 ```shell
-bash server/build_server_docker.sh
+bash server/build_server_docker.sh -m pytorch/onnx
 bash server/run_server_docker.sh -h/--http 8080
 ```
 

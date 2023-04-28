@@ -27,7 +27,7 @@ ENV WORKDIR="/home/$UNAME/app"
 RUN useradd -rm --home-dir "/home/$UNAME" --shell /bin/bash -g root -G sudo -u "$UID" "$UNAME"
 
 # set workdir
-WORKDIR "$WORKDIR"
+WORKDIR ${WORKDIR}
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -38,7 +38,7 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install python dependencies
-RUN pip install --upgrade pip
+RUN pip install pip==23.1.2
 COPY "./server/requirements_${MODE}_server.txt" "$WORKDIR/"
 RUN pip install -r "$WORKDIR/requirements_${MODE}_server.txt"
 

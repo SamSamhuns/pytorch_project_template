@@ -25,7 +25,7 @@ ENV WORKDIR="/home/$UNAME/pytorch_model"
 RUN useradd -rm --home-dir "/home/$UNAME" --shell /bin/bash -g root -G sudo -u "$UID" "$UNAME"
 
 # set workdir
-WORKDIR "$WORKDIR"
+WORKDIR ${WORKDIR}
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -36,7 +36,7 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # install python dependencies
-RUN pip install --upgrade pip
+RUN pip install pip==23.1.2
 COPY ./requirements/train.txt "$WORKDIR/train.txt"
 RUN pip install --no-cache-dir --default-timeout=100 -r "$WORKDIR/train.txt"
 
