@@ -34,6 +34,7 @@ if [ "$(docker ps -q -f name=$def_cont_name)" ]; then
 fi
 
 # 6006 is tensorboard default port
+mkdir -p checkpoints_docker  # create checkpoints_docker dir so that it has proper perm
 docker run \
       -ti --rm \
       -p "0.0.0.0:$port:6006" \

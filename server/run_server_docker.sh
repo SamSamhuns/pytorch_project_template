@@ -25,11 +25,15 @@ then
    helpFunction
 fi
 
-echo "Stopping and removing docker container '$def_cont_name' if it is running"
-docker stop "$def_cont_name" || true
-docker rm "$def_cont_name" || true
+# Check if the container is running
+if [ "$(docker ps -q -f name=$def_cont_name)" ]; then
+    echo "Stopping docker container '$def_cont_name'"
+    docker stop "$def_cont_name"
+    echo "Stopped container '$def_cont_name'"
+fi
 
 echo "Docker Container starting with FastAPI port: $port"
+mkdir -p checkpoints_server  # create checkpoints_server dir so that it has proper perm
 docker run \
       -ti --rm \
       -p 0.0.0.0:"$port":8080 \
