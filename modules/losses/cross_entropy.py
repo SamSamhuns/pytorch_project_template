@@ -8,7 +8,7 @@ import numpy as np
 
 class CrossEntropyLoss(nn.Module):
     def __init__(self, config=None):
-        super(CrossEntropyLoss, self).__init__()
+        super().__init__()
         if config is None:
             self.loss = nn.CrossEntropyLoss()
         else:

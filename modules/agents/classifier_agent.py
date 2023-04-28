@@ -48,15 +48,13 @@ class ClassifierAgent(BaseAgent):
         test_count = len(glob.glob(osp.join(data_root, test_path, "*"))) if test_path else 0
 
         if config["mode"] in {"TRAIN", "TEST"}:
+            warn_msg = f"{BColors.WARNING}WARNING: num_classes in cfg(%s) != avai classes in %s(%s){BColors.ENDC}"
             if train_count != num_classes:
-                raise ValueError(
-                    f"num_classes in cfg({num_classes}) != available classes in {train_path}({train_count})")
+                self.logger.info(warn_msg, num_classes, train_path, train_count)
             if val_path and val_count != num_classes:
-                raise ValueError(
-                    f"num_classes in cfg({num_classes}) != available classes in {val_path}({val_count})")
+                self.logger.info(warn_msg, num_classes, val_path, val_count)
             if test_path and test_count != num_classes:
-                raise ValueError(
-                    f"num_classes in cfg({num_classes}) != available classes in {test_path}({test_count})")
+                self.logger.info(warn_msg, num_classes, test_path, test_count)
 
         # define models
         backbone = self.config["arch"]["backbone"]
@@ -111,7 +109,7 @@ class ClassifierAgent(BaseAgent):
                                     self.config["dataset"]["preprocess"]["test_transform"]))
         # define train, validate, and test data_loaders
         self.train_data_loader, self.val_data_loader, self.test_data_loader = None, None, None
-        # in OSX systems ["dataloader"]["num_workers"] should be set to 0 which might increasing training time
+        # in OSX systems ["dataloader"]["num_workers"] should be 0 which might increase train time
         self.train_data_loader = self.config.init_obj("dataloader", module_dataloaders,
                                                       dataset=self.data_set.train_dataset)
         # if val_path is not None then dataloader.args.validation_split is assumed to be 0.0
@@ -142,11 +140,11 @@ class ClassifierAgent(BaseAgent):
         self.current_iteration = 0
         # if using tensorboard, register graph for vis with dummy input
         if self.config["trainer"]["use_tensorboard"]:
-            w = self.config["arch"]["input_width"]
-            h = self.config["arch"]["input_height"]
-            c = self.config["arch"]["input_channel"]
+            i_w = self.config["arch"]["input_width"]
+            i_h = self.config["arch"]["input_height"]
+            i_c = self.config["arch"]["input_channel"]
             _dummy_input = torch.ones(
-                [1, c, h, w], dtype=torch.float32)
+                [1, i_c, i_h, i_w], dtype=torch.float32)
             self.tboard_writer.add_graph(self.model, _dummy_input)
 
         self.model = self.model.to(self.device)
@@ -160,7 +158,7 @@ class ClassifierAgent(BaseAgent):
         # if --resume cli argument is provided, give precedence to --resume ckpt path
         if self.config.resume:
             self.load_checkpoint(self.config.resume)
-        # Alternatively use 'resume_checkpoint' if provided in json config if --resume cli argument is absent
+        # else use 'resume_checkpoint' if provided in json config if --resume cli argument is absent
         elif self.config["trainer"]["resume_checkpoint"] is not None:
             self.load_checkpoint(self.config["trainer"]["resume_checkpoint"])
         # else load from scratch
@@ -196,11 +194,11 @@ class ClassifierAgent(BaseAgent):
         # rename keys for dataparallel mode
         if len(self.config["gpu_device"]) > 1 and torch.cuda.device_count() > 1:
             _state_dict = OrderedDict()
-            for k, v in state_dict.items():
+            for k, val in state_dict.items():
                 k = 'module.' + \
                     k if 'module' not in k else k.replace(
                         'features.module.', 'module.features.')
-                _state_dict[k] = v
+                _state_dict[k] = val
             state_dict = _state_dict
 
         self.model.load_state_dict(state_dict)
@@ -238,7 +236,7 @@ class ClassifierAgent(BaseAgent):
         """
         One epoch of training
         """
-        t0 = time.time()
+        t_0 = time.time()
         self.model.train()
         cum_train_loss = 0
         train_size = 0
@@ -247,7 +245,8 @@ class ClassifierAgent(BaseAgent):
             len(self.data_set.train_dataset) * self.config["dataloader"]["args"]["validation_split"])
 
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
-            data, target = data.to(self.device, non_blocking=True), target.to(self.device, non_blocking=True)
+            data = data.to(self.device, non_blocking=True)
+            target = target.to(self.device, non_blocking=True)
             self.optimizer.zero_grad(set_to_none=True)
             train_size += data.shape[0]
 
@@ -266,12 +265,12 @@ class ClassifierAgent(BaseAgent):
             if isinstance(self.scheduler, OneCycleLR):
                 self.scheduler.step()
             if batch_idx % self.config["trainer"]["batch_log_freq"] == 0:
-                self.logger.info('Train Epoch: {} [{:6d}/{:.0f} ({:.1f}%)] Loss: {:.6f}'.format(
+                self.logger.info('Train Epoch: %s [%6d/%.0f (%.1f%%)] Loss: %.6f',
                     self.current_epoch,
                     batch_idx * len(data),
                     train_data_len,
                     100 * batch_idx / len(self.train_data_loader),
-                    loss.item()))
+                    loss.item())
             if self.config["trainer"]["use_tensorboard"]:
                 self.tboard_writer.add_scalars('Loss (iteration)',
                                                {'train': loss.item()},
@@ -280,11 +279,11 @@ class ClassifierAgent(BaseAgent):
 
         train_loss = cum_train_loss / train_size
         train_accuracy = 100. * correct / train_size
-        t1 = time.time()
+        t_1 = time.time()
         self.logger.info('\nTraining set:')
-        self.logger.info('\tEpoch time: {:.2f}s'.format(t1 - t0))
-        self.logger.info('\tAverage loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            train_loss, correct, train_size, train_accuracy))
+        self.logger.info('\tEpoch time: %.2fs', (t_1 - t_0))
+        self.logger.info('\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n',
+            train_loss, correct, train_size, train_accuracy)
 
         if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_images('preprocessed image batch',
@@ -302,7 +301,7 @@ class ClassifierAgent(BaseAgent):
         """
         One cycle of model validation
         """
-        t0 = time.time()
+        t_0 = time.time()
         self.model.eval()
         cum_val_loss = 0
         val_size = 0
@@ -339,11 +338,11 @@ class ClassifierAgent(BaseAgent):
         else:
             self.scheduler.step()
 
-        t1 = time.time()
-        self.logger.info('\nValidation set:')
-        self.logger.info('\tVal time: {:.2f}s'.format(t1 - t0))
-        self.logger.info('\tAverage loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            val_loss, correct, val_size, val_accuracy))
+        t_1 = time.time()
+        self.logger.info('Validation set:')
+        self.logger.info('\tVal time: %.2fs', (t_1 - t_0))
+        self.logger.info('\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n',
+            val_loss, correct, val_size, val_accuracy)
         if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_scalars('Loss (epoch)',
                                            {'validation': val_loss},
@@ -359,7 +358,7 @@ class ClassifierAgent(BaseAgent):
             weight_path: Path to pth weight file that will be loaded for test
                          Default is set to None which uses latest chkpt weight file
         """
-        t0 = time.time()
+        t_0 = time.time()
         if weight_path is not None:
             print("Loading new checkpoint for testing")
             self.load_checkpoint(weight_path)
@@ -384,11 +383,11 @@ class ClassifierAgent(BaseAgent):
         test_loss = cum_test_loss / test_size
         test_accuracy = 100. * correct / test_size
 
-        t1 = time.time()
+        t_1 = time.time()
         self.logger.info('\nTest set:')
-        self.logger.info('\tTest time: {:.2f}s'.format(t1 - t0))
-        self.logger.info('\tAverage loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            test_loss, correct, test_size, test_accuracy))
+        self.logger.info('\tTest time: %.2fs', (t_1 - t_0))
+        self.logger.info('\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n',
+            test_loss, correct, test_size, test_accuracy)
         if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_scalars('Test Loss (epoch)',
                                            {'Test': test_loss},
@@ -416,7 +415,7 @@ class ClassifierAgent(BaseAgent):
             opset_version=11,
             input_names=['input'],    # the model's input names
             output_names=['output'],  # the model's output names
-            dynamic_axes={'input': {0: 'batch_size', 2: "height", 3: "width"},    # variable length axes
+            dynamic_axes={'input': {0: 'batch_size', 2: "height", 3: "width"},  # variable length axes
                           'output': {0: 'batch_size', 2: "height", 3: "width"}},
             verbose=False)
 
@@ -442,7 +441,8 @@ class ClassifierAgent(BaseAgent):
                 f"Inference source {source_path} is not an image file or dir with images")
 
         pred_file_labels = []
-        inference_transform = rgetattr(module_transforms, self.config["dataset"]["preprocess"]["inference_transform"])
+        inference_transform = rgetattr(
+            module_transforms, self.config["dataset"]["preprocess"]["inference_transform"])
         with torch.no_grad():
             for image_path in image_list:
                 image = Image.open(image_path).convert('RGB')

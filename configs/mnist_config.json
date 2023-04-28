@@ -50,7 +50,7 @@
     "type": "BaseDataLoader",
     "args": {
       "batch_size": 32,
-      "num_workers": 0,
+      "num_workers": 4,
       "shuffle": true,
       "validation_split": 0.1,
       "drop_last": false,

@@ -14,4 +14,3 @@ class MnistPreprocess:
         """
         Class to store the train, test, inference transforms or augmentations
         """
-        pass

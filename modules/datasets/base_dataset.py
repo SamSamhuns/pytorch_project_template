@@ -10,7 +10,8 @@ IMG_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.webp'}
 
 
 def is_file_ext_valid(filepath: str, extensions: List[str]):
-    """check if a filepath has allowed extensions
+    """
+    check if a filepath has allowed extensions
     """
     filepath_lower = filepath.lower()
     return any(filepath_lower.endswith(ext) for ext in extensions)
@@ -39,7 +40,8 @@ def _find_classes(root_dir: str):
 def _make_dataset(directory: str,
                   class_to_idx: Dict[str, int],
                   extensions: List[str]):
-    """returns a list of img_path, class index tuples
+    """
+    returns a list of img_path, class index tuples
     """
     images = []
     directory = osp.expanduser(directory)
@@ -58,10 +60,12 @@ def _make_dataset(directory: str,
 
 
 def get_pil_img(path):
-    # open path as file to avoid ResourceWarning
+    """
+    open path as file to avoid ResourceWarning
+    """
     # (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as f:
-        img = Image.open(f)
+    with open(path, 'rb') as fread:
+        img = Image.open(fread)
         return img.convert('RGB')
 
 
@@ -83,7 +87,8 @@ def default_loader(path):
 
 
 def write_class_mapping_to_file(mapping, fpath) -> None:
-    """mapping must be one level deep dict of class_names to index
+    """
+    mapping must be one level deep dict of class_names to index
     """
     with open(fpath, 'w', encoding="utf-8") as fw:
         for class_name, class_idx in mapping.items():
@@ -161,8 +166,8 @@ class BaseDataset(data.Dataset):
                 target = self.target_transform(target)
 
             return sample, target
-        except Exception as e:
-            print(e)
+        except Exception as excep:
+            print(excep)
             return None
 
     def __len__(self):
@@ -217,7 +222,7 @@ class ImageFolderDataset(BaseDataset):
                  transform=None,
                  target_transform=None,
                  loader=default_loader):
-        super(ImageFolderDataset, self).__init__(
+        super().__init__(
             root,
             loader,
             file_extensions,

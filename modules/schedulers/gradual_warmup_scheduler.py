@@ -43,7 +43,7 @@ class GradualWarmupScheduler(_LRScheduler):
         self.after_scheduler.get_last_lr = get_last_lr
 
         self.finished = False  # set to True when warmup done
-        super(GradualWarmupScheduler, self).__init__(
+        super().__init__(
             optimizer, last_epoch, verbose)
 
     def get_lr(self):

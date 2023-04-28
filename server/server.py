@@ -67,10 +67,10 @@ async def cache_file(name: str, data: bytes):
 
 class InferenceProcessTask():
     def __init__(self, func, input_data):
-        super(InferenceProcessTask, self).__init__()
+        super().__init__()
         self.func = func
         self.input_data = input_data
-        self.response_data = dict()
+        self.response_data = {}
 
     def run(self):
         # check if the input image_file is an existing path or a url
@@ -86,8 +86,8 @@ class InferenceProcessTask():
                 input_image_file = os.path.join(
                     ROOT_DOWNLOAD_URL, str(uuid.uuid4()) + '.jpg')
                 download_url_file(self.input_data.image_file, input_image_file)
-            except Exception as e:
-                print(e)
+            except Exception as excep:
+                print(excep)
                 self.response_data["code"] = "failed"
                 self.response_data['msg'] = "Can not download image from \'%s\'. Not a valid link." % (
                     self.input_data.image_file)
@@ -101,7 +101,7 @@ class InferenceProcessTask():
         self.response_data["code"] = "success"
         self.response_data["prediction"] = self.result
         # iterate through results
-        # TODO remove when result format is confirmed
+        # remove when result format is confirmed
         # """
         # for res in self.results:
         #     if res.status == "Failure":
@@ -131,8 +131,8 @@ class InferenceProcessTask():
                                  data=json.dumps(self.response_data),
                                  timeout=(3, 100))
                 print("successfully sent")
-        except Exception as e:
-            print(e)
+        except Exception as excep:
+            print(excep)
 
 
 @app.post("/inference_model_file/{inputModel}_model")
@@ -141,7 +141,7 @@ async def inference_model_file(input_model: model_name,
                                file: UploadFile = File(...),
                                display_image_only: bool = Form(False),
                                threshold: float = Form(0.55)):
-    response_data = dict()
+    response_data = {}
     image_file_path = ""
     try:
         # Save this image to the temp file
@@ -163,8 +163,8 @@ async def inference_model_file(input_model: model_name,
         if display_image_only:
             return FileResponse(path=image_file_path,
                                 media_type=file.content_type)
-    except Exception as e:
-        print(e)
+    except Exception as excep:
+        print(excep)
         print(traceback.print_exc())
         response_data["code"] = "failed"
         response_data["msg"] = "failed to run inference on file"
@@ -176,7 +176,7 @@ async def inference_model_file(input_model: model_name,
 async def inference_model_url(*, input_model: model_name,
                               input_data: InputModel,
                               background_tasks: BackgroundTasks):
-    response_data = dict()
+    response_data = {}
     try:
         task = InferenceProcessTask(
             run_detector,
@@ -189,8 +189,8 @@ async def inference_model_url(*, input_model: model_name,
             background_tasks.add_task(task.run)
         response_data = task.response_data
 
-    except Exception as e:
-        print(e)
+    except Exception as excep:
+        print(excep)
         print(traceback.print_exc())
         response_data["code"] = "failed"
         response_data["msg"] = "failed to run inference on file from url"

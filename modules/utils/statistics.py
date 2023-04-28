@@ -14,8 +14,8 @@ def print_cuda_statistics():
     logger.info('__CUDA VERSION')
     try:
         call(["nvcc", "--version"])
-    except Exception as e:
-        logger.error(f"{e}: nvcc not found")
+    except Exception as excep:
+        logger.error(f"{excep}: nvcc not found")
     logger.info('__CUDNN VERSION: %s', torch.backends.cudnn.version())
     logger.info('__Number CUDA Devices: %s', torch.cuda.device_count())
     logger.info('__Devices')
