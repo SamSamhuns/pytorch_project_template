@@ -46,11 +46,11 @@ class Classifier(nn.Module):
             raise RuntimeError(
                 "feat_extract mode is not compatible when num_classes greater than 0")
 
-        final_layer = None
+        final_layer_name = None
         if hasattr(self.backbone, 'classifier'):
-            final_layer = 'classifier'
+            final_layer_name = 'classifier'
         elif hasattr(self.backbone, 'fc'):
-            final_layer = 'fc'
+            final_layer_name = 'fc'
         else:
             print("custom backbone")
             self.model = self.backbone
@@ -58,18 +58,19 @@ class Classifier(nn.Module):
 
         # use net as a feat extractor by setting final layer as Identity
         if feat_extract:
-            setattr(self.backbone, final_layer, nn.Identity())
+            setattr(self.backbone, final_layer_name, nn.Identity())
         # use net as classifier
         else:
             # self.backbone.fc.in_features
-            n_inputs = getattr(getattr(self.backbone, final_layer)[-1],
-                               "in_features")
+            final_layer = getattr(self.backbone, final_layer_name)
+            final_layer = final_layer[-1] if isinstance(final_layer, nn.Sequential) else final_layer
+            n_inputs = getattr(final_layer, "in_features")
             classifier = nn.Sequential(OrderedDict([
                 ('dropout', nn.Dropout(p=0.2, inplace=False)),
                 ('fc1', nn.Linear(n_inputs, num_classes)),
                 ('softmax', nn.LogSoftmax(dim=1))
             ]))
-            setattr(self.backbone, final_layer, classifier)
+            setattr(self.backbone, final_layer_name, classifier)
         self.model = self.backbone
 
     def forward(self, x):
