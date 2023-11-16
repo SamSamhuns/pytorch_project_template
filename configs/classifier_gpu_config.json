@@ -38,7 +38,7 @@
       "val_path": "val",
       "test_path": "test"
     },
-    "num_classes": 510,
+    "num_classes": 525,
     "preprocess": {
       "train_transform": "ClassifierPreprocess.train",
       "val_transform": "ClassifierPreprocess.val",
