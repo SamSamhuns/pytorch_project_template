@@ -1,2 +1,3 @@
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from .gradual_warmup_scheduler import GradualWarmupScheduler
+from .warmup_cosine_annealing_scheduler import WarmupCosineAnnealingScheduler
