@@ -236,7 +236,7 @@ class ClassifierAgent(BaseAgent):
         """
         One epoch of training
         """
-        t_0 = time.time()
+        t_0 = time.perf_counter()
         self.model.train()
         cum_train_loss = 0
         train_size = 0
@@ -279,7 +279,7 @@ class ClassifierAgent(BaseAgent):
 
         train_loss = cum_train_loss / train_size
         train_accuracy = 100. * correct / train_size
-        t_1 = time.time()
+        t_1 = time.perf_counter()
         self.logger.info('\nTraining set:')
         self.logger.info('\tEpoch time: %.2fs', (t_1 - t_0))
         self.logger.info('\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n',
@@ -301,7 +301,7 @@ class ClassifierAgent(BaseAgent):
         """
         One cycle of model validation
         """
-        t_0 = time.time()
+        t_0 = time.perf_counter()
         self.model.eval()
         cum_val_loss = 0
         val_size = 0
@@ -338,7 +338,7 @@ class ClassifierAgent(BaseAgent):
         else:
             self.scheduler.step()
 
-        t_1 = time.time()
+        t_1 = time.perf_counter()
         self.logger.info('Validation set:')
         self.logger.info('\tVal time: %.2fs', (t_1 - t_0))
         self.logger.info('\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n',
@@ -358,7 +358,7 @@ class ClassifierAgent(BaseAgent):
             weight_path: Path to pth weight file that will be loaded for test
                          Default is set to None which uses latest chkpt weight file
         """
-        t_0 = time.time()
+        t_0 = time.perf_counter()
         if weight_path is not None:
             print("Loading new checkpoint for testing")
             self.load_checkpoint(weight_path)
@@ -383,7 +383,7 @@ class ClassifierAgent(BaseAgent):
         test_loss = cum_test_loss / test_size
         test_accuracy = 100. * correct / test_size
 
-        t_1 = time.time()
+        t_1 = time.perf_counter()
         self.logger.info('\nTest set:')
         self.logger.info('\tTest time: %.2fs', (t_1 - t_0))
         self.logger.info('\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n',
