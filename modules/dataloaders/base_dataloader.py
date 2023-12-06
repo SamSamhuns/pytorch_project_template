@@ -4,7 +4,7 @@ from torch.utils.data.dataloader import default_collate
 from torch.utils.data.sampler import SubsetRandomSampler
 
 
-def collate_fn(batch):
+def default_collate_fn(batch):
     """
     collate function to filter out None
     batch is None when there is an error in loading a data point
@@ -24,7 +24,7 @@ class BaseDataLoader(DataLoader):
                  shuffle,
                  num_workers,
                  validation_split=0.,
-                 collate_fn=collate_fn,
+                 collate_fn=default_collate_fn,
                  timeout=0,
                  drop_last=False,
                  pin_memory=False,
@@ -65,7 +65,7 @@ class BaseDataLoader(DataLoader):
 
         if isinstance(split, int):
             assert split > 0
-            assert split < self.n_samples, "validation set size is configured to be larger than entire dataset."
+            assert split < self.n_samples, "val set size cannot exceed entire dataset size."
             len_valid = split
         else:
             len_valid = int(self.n_samples * split)
@@ -82,7 +82,7 @@ class BaseDataLoader(DataLoader):
 
         return train_sampler, valid_sampler
 
-    def split_validation(self):
+    def get_validation_split(self):
         if self.valid_sampler is None:
             return None
         else:
@@ -95,11 +95,11 @@ if __name__ == "__main__":
     import torchvision.datasets as datasets
     import torchvision.transforms as transforms
 
-    dataset = datasets.ImageFolder(root="data/birds_dataset/val",
+    img_dataset = datasets.ImageFolder(root="data/birds_dataset/val",
                                    transform=transforms.ToTensor())
-    print(dataset)
-    print(f"len of dataset(Number of datapoints): {len(dataset)}")
-    data_loader = BaseDataLoader(dataset,
+    print(img_dataset)
+    print(f"len of img_dataset(Number of datapoints): {len(img_dataset)}")
+    data_loader = BaseDataLoader(img_dataset,
                                  batch_size=32,
                                  shuffle=True,
                                  validation_split=0.1,
@@ -115,9 +115,9 @@ if __name__ == "__main__":
     print(f"\t num of datapoints: {train_len}")
 
     # validation dataloader
-    if data_loader.split_validation() is not None:
+    if data_loader.get_validation_split() is not None:
         val_len = 0
-        for (X_batch, y_batch) in data_loader.split_validation():
+        for (X_batch, y_batch) in data_loader.get_validation_split():
             X, y = X_batch, y_batch
             val_len += X.shape[0]
         print("val dataloader")

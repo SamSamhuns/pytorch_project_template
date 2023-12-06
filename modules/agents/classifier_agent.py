@@ -115,7 +115,7 @@ class ClassifierAgent(BaseAgent):
         # if val_path is not None then dataloader.args.validation_split is assumed to be 0.0
         # if no val dir is provided, take val split from training data
         if val_path is None:
-            self.val_data_loader = self.train_data_loader.split_validation()
+            self.val_data_loader = self.train_data_loader.get_validation_split()
         # if val dir is provided, use all data inside val dir for validation
         elif val_path is not None:
             self.val_data_loader = self.config.init_obj("dataloader", module_dataloaders,

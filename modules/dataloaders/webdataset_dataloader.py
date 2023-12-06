@@ -64,7 +64,7 @@ class WebDatasetDataLoader(DataLoader):
             Recommended to create separate train and validation tar datasets instead.
             """)
 
-    def split_validation(self):
+    def get_validation_split(self):
         if self.valid_sampler is None:
             return None
         else:
