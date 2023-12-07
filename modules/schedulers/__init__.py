@@ -1,3 +1,3 @@
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR, StepLR, MultiStepLR, ExponentialLR
 from .gradual_warmup_scheduler import GradualWarmupScheduler
 from .warmup_cosine_annealing_scheduler import WarmupCosineAnnealingScheduler
