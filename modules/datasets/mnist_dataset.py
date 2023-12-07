@@ -20,11 +20,11 @@ class MnistDataset:
         data_mode: Mode for getting data
         """
         if data_mode == "download":
-            self.train_dataset = datasets.MNIST(data_root,
+            self.train_set = datasets.MNIST(data_root,
                                                 train=True,
                                                 download=True,
                                                 transform=train_transform)
-            self.test_dataset = datasets.MNIST(data_root,
+            self.test_set = datasets.MNIST(data_root,
                                                train=False,
                                                transform=test_transform)
         elif data_mode == "imgs":

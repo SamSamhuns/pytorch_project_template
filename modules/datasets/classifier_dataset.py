@@ -49,20 +49,20 @@ class ClassifierDataset:
         """
         if data_mode == "imgs":
             train_root = osp.join(data_root, train_path)
-            self.train_dataset = base_dataset.ImageFolderDataset(train_root,
+            self.train_set = base_dataset.ImageFolderDataset(train_root,
                                                                  transform=train_transform)
             if val_path is not None:
                 val_root = osp.join(data_root, val_path)
-                self.val_dataset = base_dataset.ImageFolderDataset(val_root,
+                self.val_set = base_dataset.ImageFolderDataset(val_root,
                                                                    transform=val_transform)
             if test_path is not None:
                 test_root = osp.join(data_root, test_path)
-                self.test_dataset = base_dataset.ImageFolderDataset(test_root,
+                self.test_set = base_dataset.ImageFolderDataset(test_root,
                                                                     transform=test_transform)
         elif data_mode == "webdataset":
             train_root = osp.join(data_root, train_path)
             train_len = _get_webdataset_len(train_root)
-            self.train_dataset = (wds.WebDataset(train_root)
+            self.train_set = (wds.WebDataset(train_root)
                                   .shuffle(100)
                                   .decode("pil")
                                   .to_tuple("input.jpg", "output.cls")
@@ -71,7 +71,7 @@ class ClassifierDataset:
             if val_path is not None:
                 val_root = osp.join(data_root, val_path)
                 val_len = _get_webdataset_len(val_root)
-                self.val_dataset = (wds.WebDataset(val_root)
+                self.val_set = (wds.WebDataset(val_root)
                                     .shuffle(100)
                                     .decode("pil")
                                     .to_tuple("input.jpg", "output.cls")
@@ -80,14 +80,15 @@ class ClassifierDataset:
             if test_path is not None:
                 test_root = osp.join(data_root, test_path)
                 test_len = _get_webdataset_len(test_root)
-                self.test_dataset = (wds.WebDataset(test_root)
+                self.test_set = (wds.WebDataset(test_root)
                                      .shuffle(100)
                                      .decode("pil")
                                      .to_tuple("input.jpg", "output.cls")
                                      .map_tuple(test_transform, identity)
                                      .with_length(test_len))
         elif data_mode == "numpy":
-            raise NotImplementedError("This mode is not implemented YET")
+            raise NotImplementedError(
+                "This mode is not implemented YET")
         else:
             raise Exception(
                 "Please specify in the json a specified mode in data_mode")
