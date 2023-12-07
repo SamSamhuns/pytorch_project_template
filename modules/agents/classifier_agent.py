@@ -111,7 +111,7 @@ class ClassifierAgent(BaseAgent):
         self.train_data_loader, self.val_data_loader, self.test_data_loader = None, None, None
         # in OSX systems ["dataloader"]["num_workers"] should be 0 which might increase train time
         self.train_data_loader = self.config.init_obj("dataloader", module_dataloaders,
-                                                      dataset=self.data_set.train_dataset)
+                                                      dataset=self.data_set.train_set)
         # if val_path is not None then dataloader.args.validation_split is assumed to be 0.0
         # if no val dir is provided, take val split from training data
         if val_path is None:
@@ -119,10 +119,10 @@ class ClassifierAgent(BaseAgent):
         # if val dir is provided, use all data inside val dir for validation
         elif val_path is not None:
             self.val_data_loader = self.config.init_obj("dataloader", module_dataloaders,
-                                                        dataset=self.data_set.val_dataset)
-        if test_path is not None:
+                                                        dataset=self.data_set.val_set)
+        if test_path is not None or self.data_set.test_set is not None:
             self.test_data_loader = self.config.init_ftn("dataloader", module_dataloaders,
-                                                         dataset=self.data_set.test_dataset)
+                                                         dataset=self.data_set.test_set)
             self.test_data_loader = self.test_data_loader(validation_split=0.0)
         # define loss and instantiate it
         self.loss = self.config.init_obj("loss", module_losses)
@@ -192,7 +192,7 @@ class ClassifierAgent(BaseAgent):
             state_dict = torch.load(ckpt_file, map_location=torch.device('cpu'))
 
         # rename keys for dataparallel mode
-        if len(self.config["gpu_device"]) > 1 and torch.cuda.device_count() > 1:
+        if self.config["gpu_device"] and len(self.config["gpu_device"]) > 1 and torch.cuda.device_count() > 1:
             _state_dict = OrderedDict()
             for k, val in state_dict.items():
                 k = 'module.' + \
@@ -235,7 +235,8 @@ class ClassifierAgent(BaseAgent):
                 # save trained model checkpoint
                 for metric in self.config["metrics"]:
                     mlist = self.best_metric_dict[metric]
-                    if (not self.config["trainer"]["save_best_only"] or (len(mlist) == 1 or mlist[-1] > mlist[-2])):
+                    # save if save_best_only is False or 1 or 0 metrics present or if metric is better than previous best
+                    if (not self.config["trainer"]["save_best_only"] or (len(mlist) <= 1 or mlist[-1] > mlist[-2])):
                         self.save_checkpoint(
                             file_path=f"checkpoint_{epoch}.pth")
             self.current_epoch += 1
@@ -249,8 +250,8 @@ class ClassifierAgent(BaseAgent):
         cum_train_loss = 0
         train_size = 0
         correct = 0
-        train_data_len = len(self.data_set.train_dataset) - (
-            len(self.data_set.train_dataset) * self.config["dataloader"]["args"]["validation_split"])
+        train_data_len = len(self.data_set.train_set) - (
+            len(self.data_set.train_set) * self.config["dataloader"]["args"]["validation_split"])
 
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
             data = data.to(self.device, non_blocking=True)
