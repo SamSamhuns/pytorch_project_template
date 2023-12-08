@@ -70,7 +70,18 @@
     "type": "NLLLoss",
     "args": {}
   },
-  "metrics": ["val_accuracy"],
+  "metrics": {
+    "val": [
+      "accuracy_score"
+    ],
+    "test": [
+      "accuracy_score",
+      "f1_score",
+      "precision_score",
+      "recall_score",
+      "roc_auc_score"
+    ]
+  },
   "lr_scheduler": {
     "type": "ReduceLROnPlateau",
     "args": {
