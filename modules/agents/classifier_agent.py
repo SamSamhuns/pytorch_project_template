@@ -11,7 +11,9 @@ from typing import Optional, List, Tuple
 
 from PIL import Image
 import torch
+import torch.nn.functional as F
 from torch.cuda.amp import autocast
+from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 
 from modules.config_parser import ConfigParser
@@ -22,6 +24,7 @@ from modules.datasets.base_dataset import IMG_EXTENSIONS
 
 import modules.losses as module_losses
 import modules.models as module_models
+import modules.metrics as module_metrics
 import modules.datasets as module_datasets
 import modules.optimizers as module_optimizers
 import modules.dataloaders as module_dataloaders
@@ -133,8 +136,8 @@ class ClassifierAgent(BaseAgent):
         self.scheduler = self.config.init_obj("lr_scheduler", module_lr_schedulers,
                                               optimizer=self.optimizer)
         # initialize metrics dict
-        self.best_metric_dict = {metric: []
-                                 for metric in self.config["metrics"]}
+        self.best_val_metric_dict = {
+            metric: [] for metric in self.config["metrics"]["val"]}
         # initialize counter
         self.current_epoch = 0
         self.current_iteration = 0
@@ -221,7 +224,7 @@ class ClassifierAgent(BaseAgent):
         """
         for epoch in range(1, self.config["trainer"]["epochs"] + 1):
             self.train_one_epoch()
-            if epoch % self.config["trainer"]["valid_freq"]:
+            if epoch % self.config["trainer"]["valid_freq"] == 0:
                 if self.val_data_loader is not None:
                     self.validate()
                 # scheduler.step should be called after validate()
@@ -232,13 +235,18 @@ class ClassifierAgent(BaseAgent):
                 else:
                     self.scheduler.step()
 
-                # save trained model checkpoint
-                for metric in self.config["metrics"]:
-                    mlist = self.best_metric_dict[metric]
-                    # save if save_best_only is False or 1 or 0 metrics present or if metric is better than previous best
-                    if (not self.config["trainer"]["save_best_only"] or (len(mlist) <= 1 or mlist[-1] > mlist[-2])):
-                        self.save_checkpoint(
-                            file_path=f"checkpoint_{epoch}.pth")
+            # save trained model checkpoint
+            if self.config["trainer"]["save_best_only"]:
+                for metric in self.config["metrics"]["val"]:
+                    mlist = self.best_val_metric_dict[metric]
+                    # save if 1 or 0 metrics present or if metric is better than previous best
+                    if (len(mlist) <= 1 or
+                        (metric == "loss" and mlist[-1][0] < mlist[-2][0]) or
+                            (metric == "accuracy_score" and mlist[-1][0] > mlist[-2][0])):
+                        self.save_checkpoint(file_path="best.pth")
+
+            if epoch % self.config["trainer"]["weight_save_freq"] == 0:
+                self.save_checkpoint(file_path=f"checkpoint_{epoch}.pth")
             self.current_epoch += 1
 
     def train_one_epoch(self) -> None:
@@ -293,6 +301,10 @@ class ClassifierAgent(BaseAgent):
         self.logger.info('\tEpoch time: %.2fs', (t_1 - t_0))
         self.logger.info('\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n',
             train_loss, correct, train_size, train_accuracy)
+        # if no val_data_loader, then run ReduceLROnPlateau on train_loss instead
+        if self.val_data_loader is None and isinstance(self.scheduler, ReduceLROnPlateau):
+            # ReduceLROnPlateau scheduler takes metrics during its step call
+            self.scheduler.step(metrics=train_loss)
 
         if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_images('preprocessed image batch',
@@ -311,31 +323,22 @@ class ClassifierAgent(BaseAgent):
         One cycle of model validation
         """
         t_0 = time.perf_counter()
-        self.model.eval()
-        cum_val_loss = 0
-        val_size = 0
-        correct = 0
-        with torch.no_grad():
-            for data, target in self.val_data_loader:
-                data, target = data.to(self.device), target.to(self.device)
-                val_size += data.shape[0]
-                output = self.model(data)
-                # sum up batch loss
-                cum_val_loss += self.loss(output, target).item()
-                # get the index of the max log-probability
-                pred = output.max(1, keepdim=True)[1]
-                correct += pred.eq(target.view_as(pred)).sum().item()
 
-        val_loss = cum_val_loss / val_size
+        cumu_val_loss, y_true, _, y_pred = self.validate_one_epoch(
+            self.val_data_loader)
+
+        val_size = len(self.data_set.val_set)
+        val_loss = cumu_val_loss / val_size
+        correct = sum(y_true == y_pred)
         val_accuracy = 100. * correct / val_size
 
         # add metrics to tracking best_metric_dicts
-        if "val_accuracy" in self.best_metric_dict:
-            self.best_metric_dict["val_accuracy"].append(
+        if "accuracy_score" in self.best_val_metric_dict:
+            self.best_val_metric_dict["accuracy_score"].append(
                 [val_accuracy, self.current_epoch])
-        if "val_loss" in self.best_metric_dict:
-            self.best_metric_dict["val_loss"].append(
-                [val_accuracy, self.current_epoch])
+        if "loss" in self.best_val_metric_dict:
+            self.best_val_metric_dict["loss"].append(
+                [val_loss, self.current_epoch])
 
         if isinstance(self.scheduler, ReduceLROnPlateau):
             # ReduceLROnPlateau scheduler takes metrics during its step call
@@ -363,41 +366,75 @@ class ClassifierAgent(BaseAgent):
         """
         t_0 = time.perf_counter()
         if weight_path is not None:
-            print("Loading new checkpoint for testing")
+            print(f"Loading new checkpoint from {weight_path} for testing")
             self.load_checkpoint(weight_path)
         if self.test_data_loader is None:
-            raise NotImplementedError("test_data_loader is missing."
+            raise NotImplementedError("test_data_loader is None or missing."
                                       "test_path might not have been set")
-        # set model to eval mode
-        self.model.eval()
-        cum_test_loss = 0
-        test_size = 0
-        correct = 0
-        with torch.no_grad():
-            for data, target in self.test_data_loader:
-                data, target = data.to(self.device), target.to(self.device)
-                test_size += data.shape[0]
-                output = self.model(data)
-                # sum up batch loss
-                cum_test_loss += self.loss(output, target).item()
-                # get the index of the max log-probability
-                pred = output.max(1, keepdim=True)[1]
-                correct += pred.eq(target.view_as(pred)).sum().item()
-        test_loss = cum_test_loss / test_size
-        test_accuracy = 100. * correct / test_size
-
+        cumu_test_loss, y_true, y_score, y_pred = self.validate_one_epoch(
+            self.test_data_loader)
         t_1 = time.perf_counter()
+
+        test_size = len(self.data_set.test_set)
+        test_loss = cumu_test_loss / test_size
+
         self.logger.info('\nTest set:')
         self.logger.info('\tTest time: %.2fs', (t_1 - t_0))
-        self.logger.info('\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n',
-            test_loss, correct, test_size, test_accuracy)
+        self.logger.info('\tAverage loss: %.4f', test_loss)
         if self.config["trainer"]["use_tensorboard"]:
-            self.tboard_writer.add_scalars('Test Loss (epoch)',
-                                           {'Test': test_loss},
-                                           self.current_epoch)
-            self.tboard_writer.add_scalars('Test Accuracy (epoch)',
-                                           {'Test': test_accuracy},
-                                           self.current_epoch)
+            self.tboard_writer.add_scalars(
+                'Test Loss (epoch)',
+                {'Test': test_loss},
+                self.current_epoch)
+            
+        num_classes = self.config["dataset"]["num_classes"]
+        # add all test metrics
+        for metric_name in self.config["metrics"]["test"]:
+            metric_func = partial(getattr(module_metrics, metric_name))
+            # set correct kwargs for metrics
+            kwargs = {"y_true": y_true, "y_score": y_score, "y_pred": y_pred}
+            if metric_name not in {"roc_auc_score"} and "y_score" in kwargs:
+                del kwargs["y_score"]
+            if metric_name in {"roc_auc_score"} and "y_pred" in kwargs:
+                if num_classes > 1:
+                    continue
+                del kwargs["y_pred"]
+            if num_classes > 1 and metric_name in {"f1_score", "precision_score", "recall_score"}:
+                kwargs["average"] = "macro"
+
+            metric_val = metric_func(**kwargs)
+            self.logger.info('\t%s: %.4f', metric_name, metric_val)
+            if self.config["trainer"]["use_tensorboard"]:
+                self.tboard_writer.add_scalars(
+                    f'Test {metric_name} (epoch)',
+                    {'Test': metric_val},
+                    self.current_epoch)
+
+    def validate_one_epoch(self, data_loader: DataLoader) -> Tuple[float, List[int], List[float], List[int]]:
+        """
+        Evaluate model on one epoch with the given dataloader
+        """
+        self.model.eval()
+        cumu_test_loss = 0
+        y_true, y_score, y_pred = [], [], []
+        with torch.no_grad():
+            for data, target in data_loader:
+                data = data.to(self.device, non_blocking=True)
+                target = target.to(self.device, non_blocking=True)
+                output = self.model(data)
+                # sum up batch loss
+                cumu_test_loss += self.loss(output, target).item()
+                # get the log-probability (proba) & index of the max log-probability (preds)
+                proba, pred = F.softmax(output, dim=1).max(1)
+
+                y_true.append(target)
+                y_score.append(proba)
+                y_pred.append(pred)
+        y_true = torch.concat(y_true).cpu().numpy()
+        y_score = torch.concat(y_score).cpu().numpy()
+        y_pred = torch.concat(y_pred).cpu().numpy()
+
+        return cumu_test_loss, y_true, y_score, y_pred
 
     def export_as_onnx(self, dummy_input: torch.Tensor, onnx_save_path: str = "checkpoints/onnx_model.onnx") -> None:
         """
