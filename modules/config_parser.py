@@ -107,7 +107,7 @@ class ConfigParser:
             name = [name]
         module_name = _get_by_path(self, name + ["type"])
         module_args = dict(_get_by_path(self, name + ["args"]))
-        assert all([k not in module_args for k in kwargs]
+        assert all((k not in module_args for k in kwargs)
                    ), 'Overwriting kwargs given in config file is not allowed'
         module_args.update(kwargs)
         return getattr(module, module_name)(*args, **module_args)
@@ -127,7 +127,7 @@ class ConfigParser:
             name = [name]
         module_name = _get_by_path(self, name + ["type"])
         module_args = dict(_get_by_path(self, name + ["args"]))
-        assert all([k not in module_args for k in kwargs]
+        assert all((k not in module_args for k in kwargs)
                    ), 'Overwriting kwargs given in config file is not allowed'
         module_args.update(kwargs)
         return partial(getattr(module, module_name), *args, **module_args)
