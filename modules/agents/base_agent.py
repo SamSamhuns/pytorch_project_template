@@ -46,18 +46,24 @@ class BaseAgent:
             if _tboard_port is not None:
                 while is_port_in_use(_tboard_port) and _tboard_port < 65535:
                     _tboard_port += 1
-                    print(f"Port {_tboard_port - 1} is currently in use. Switching to {_tboard_port} for tensorboard logging")
+                    print(f"Port {_tboard_port - 1} unavailable." \
+                          "Switching to {_tboard_port} for tboard logging")
 
                 tboard = program.TensorBoard()
-                tboard.configure(argv=[None, "--logdir", _tboard_log_dir, "--port", str(_tboard_port)])
+                tboard.configure(
+                    argv=[None, "--logdir", _tboard_log_dir, "--port", str(_tboard_port)])
                 url = tboard.launch()
                 print(f"Tensorboard logger started on {url}")
+        # check if val_metrics present when save_best_only is True
+        if self.config["trainer"]["save_best_only"] and not self.config["metrics"]["val"]:
+            raise ValueError(
+                "val metrics must be present to save best model")
 
         # check exclusive config parameters
         val_path = self.config["dataset"]["args"]["val_path"]
         val_split = self.config["dataloader"]["args"]["validation_split"]
         if (val_path is not None and val_split > 0):
-            raise RuntimeError(
+            raise ValueError(
                 f"If val_path {val_path} is not None, val_split({val_split}) must be 0")
 
     def load_checkpoint(self, file_path: str):
