@@ -308,14 +308,16 @@ class ClassifierAgent(BaseAgent):
 
         if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_images('preprocessed image batch',
-                                          next(iter(self.train_data_loader))[
-                                              0],
+                                          next(iter(self.train_data_loader))[0],
                                           self.current_epoch)
             self.tboard_writer.add_scalars('Loss (epoch)',
                                            {'train': train_loss},
                                            self.current_epoch)
             self.tboard_writer.add_scalars('Accuracy (epoch)',
                                            {'train': train_accuracy},
+                                           self.current_epoch)
+            self.tboard_writer.add_scalars('Learning Rate (epoch)',
+                                           {'train': self.optimizer.param_groups[0]['lr']},
                                            self.current_epoch)
 
     def validate(self) -> None:
