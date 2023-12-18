@@ -6,7 +6,6 @@ An example Configuration file is provided at `classifier_cpu_config.json`
 
     'name'
     "seed"
-    'use_cuda'            # set to true for gpu training
     'cudnn_deterministic' # for repeating results together with seed
     'cudnn_benchmark'     # set to true for faster training with gpu
     'gpu_device'          # cuda device list for single/multi gpu training

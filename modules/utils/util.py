@@ -123,7 +123,7 @@ def validate_base_config_dict(cfg: dict) -> None:
     """
     validates if required keys exist in cfg obj loaded from JSON config file
     """
-    _required_top_keys = ['name', 'seed', 'use_cuda',
+    _required_top_keys = ['name', 'seed',
                           'cudnn_deterministic', 'cudnn_benchmark',
                           'gpu_device', 'arch', 'dataset',
                           'dataloader', 'optimizer', 'loss', 'metrics',

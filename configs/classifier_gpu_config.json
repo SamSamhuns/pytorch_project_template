@@ -1,7 +1,6 @@
 {
   "name": "image_classifier",
   "seed": 42,
-  "use_cuda": true,
   "cudnn_deterministic": true,
   "cudnn_benchmark": true,
   "gpu_device": [0, 1],
