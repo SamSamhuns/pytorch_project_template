@@ -70,11 +70,12 @@ class ClassifierAgent(BaseAgent):
         # set cuda flag
         is_cuda = torch.cuda.is_available()
         gpu_device = self.config["gpu_device"]
-        if is_cuda and not self.config["use_cuda"]:
-            self.logger.info(
-                f"{BColors.WARNING}WARNING: CUDA device is available, enable CUDA for faster training/testing{BColors.ENDC}")
-        # set cuda devices if available or use cpu
-        self.cuda = is_cuda and self.config["use_cuda"]
+        gpu_device = [gpu_device] if isinstance(gpu_device, int) else gpu_device
+        if is_cuda and not gpu_device:
+            msg = f"{BColors.WARNING}WARNING: CUDA available but not used{BColors.ENDC}"
+            self.logger.info(msg)
+        # set cuda devices if cuda available & gpu_device set or use cpu
+        self.cuda = is_cuda and (gpu_device not in (None, []))
         self.manual_seed = self.config["seed"]
         if self.cuda:
             torch.cuda.manual_seed(self.manual_seed)
@@ -155,7 +156,7 @@ class ClassifierAgent(BaseAgent):
         if self.config["torch_compile_model"]:
             self.logger.info("Using torch compile mode")
             self.model = torch.compile(self.model)
-        # use autiomatic mixed precision if set in config
+        # use automatic mixed precision if set in config
         self.use_amp = self.config["use_amp"]
 
         # if --resume cli argument is provided, give precedence to --resume ckpt path
@@ -222,6 +223,7 @@ class ClassifierAgent(BaseAgent):
         """
         Main training function with loop
         """
+        t0 = time.perf_counter()
         for epoch in range(1, self.config["trainer"]["epochs"] + 1):
             self.train_one_epoch()
             if epoch % self.config["trainer"]["valid_freq"] == 0:
@@ -248,6 +250,8 @@ class ClassifierAgent(BaseAgent):
             if epoch % self.config["trainer"]["weight_save_freq"] == 0:
                 self.save_checkpoint(file_path=f"checkpoint_{epoch}.pth")
             self.current_epoch += 1
+        t1 = time.perf_counter()
+        self.logger.info("Train time: %.2fs", (t1 - t0) % 60)
 
     def train_one_epoch(self) -> None:
         """
