@@ -334,7 +334,10 @@ class ClassifierAgent(BaseAgent):
         cumu_val_loss, y_true, _, y_pred = self.validate_one_epoch(
             self.val_data_loader)
 
-        val_size = len(self.data_set.val_set)
+        if self.data_set.val_set:
+            val_size = len(self.data_set.val_set)
+        else:  # take val set size from sampler if data_set.val_set is None
+            val_size = len(self.val_data_loader.sampler.indices)
         val_loss = cumu_val_loss / val_size
         correct = sum(y_true == y_pred)
         val_accuracy = 100. * correct / val_size
