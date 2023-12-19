@@ -244,8 +244,8 @@ class ClassifierAgent(BaseAgent):
                     mlist = self.best_val_metric_dict[metric]
                     # save if 1 or 0 metrics present or if metric is better than previous best
                     if (len(mlist) <= 1 or
-                        (metric == "loss" and mlist[-1][0] < mlist[-2][0]) or
-                            (metric == "accuracy_score" and mlist[-1][0] > mlist[-2][0])):
+                        (metric == "loss" and mlist[-1][1] < mlist[-2][1]) or
+                            (metric == "accuracy_score" and mlist[-1][1] > mlist[-2][1])):
                         self.save_checkpoint(file_path="best.pth")
 
             if epoch % self.config["trainer"]["weight_save_freq"] == 0:
@@ -342,10 +342,10 @@ class ClassifierAgent(BaseAgent):
         # add metrics to tracking best_metric_dicts
         if "accuracy_score" in self.best_val_metric_dict:
             self.best_val_metric_dict["accuracy_score"].append(
-                [val_accuracy, self.current_epoch])
+                [self.current_epoch, val_accuracy])
         if "loss" in self.best_val_metric_dict:
             self.best_val_metric_dict["loss"].append(
-                [val_loss, self.current_epoch])
+                [self.current_epoch, val_loss])
 
         if isinstance(self.scheduler, ReduceLROnPlateau):
             # ReduceLROnPlateau scheduler takes metrics during its step call
