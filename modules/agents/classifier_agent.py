@@ -229,13 +229,14 @@ class ClassifierAgent(BaseAgent):
             if epoch % self.config["trainer"]["valid_freq"] == 0:
                 if self.val_data_loader is not None:
                     self.validate()
-                # scheduler.step should be called after validate()
-                if isinstance(self.scheduler, (ReduceLROnPlateau, OneCycleLR)):
-                    # ReduceLROnPlateau takes metrics during its step call (inside validate())
-                    # OneCycleLR is called on each batch instead (inside train_one_epoch())
-                    pass
-                else:
-                    self.scheduler.step()
+            # scheduler.step should be called after validate()
+            if isinstance(self.scheduler, (ReduceLROnPlateau, OneCycleLR)):
+                # ReduceLROnPlateau takes metrics during its step call (inside validate())
+                # if no validation, ReduceLROnPlateau takes train loss as metric (inside train_one_epoch())
+                # OneCycleLR is called on each batch instead (inside train_one_epoch())
+                pass
+            else:
+                self.scheduler.step()
 
             # save trained model checkpoint
             if self.config["trainer"]["save_best_only"]:
