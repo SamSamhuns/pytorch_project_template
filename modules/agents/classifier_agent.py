@@ -140,7 +140,7 @@ class ClassifierAgent(BaseAgent):
         self.best_val_metric_dict = {
             metric: [] for metric in self.config["metrics"]["val"]}
         # initialize counter
-        self.current_epoch = 0
+        self.current_epoch = 1
         self.current_iteration = 0
         # if using tensorboard, register graph for vis with dummy input
         if self.config["trainer"]["use_tensorboard"]:
