@@ -248,11 +248,12 @@ class ClassifierAgent(BaseAgent):
                             (metric == "accuracy_score" and mlist[-1][1] > mlist[-2][1])):
                         self.save_checkpoint(file_path="best.pth")
 
-            if epoch % self.config["trainer"]["weight_save_freq"] == 0:
+            if (not self.config["trainer"]["save_best_only"] and
+                    epoch % self.config["trainer"]["weight_save_freq"] == 0):
                 self.save_checkpoint(file_path=f"checkpoint_{epoch}.pth")
             self.current_epoch += 1
         t1 = time.perf_counter()
-        self.logger.info("Train time: %.2fs", (t1 - t0) % 60)
+        self.logger.info("Train time: %.2fs", (t1 - t0))
 
     def train_one_epoch(self) -> None:
         """
