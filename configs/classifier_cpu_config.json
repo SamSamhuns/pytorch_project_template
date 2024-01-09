@@ -9,7 +9,7 @@
   "trainer": {
     "resume_checkpoint": null,
     "save_best_only": true,
-    "batch_log_freq": 10,
+    "batch_log_freq": 5,
     "weight_save_freq": 5,
     "valid_freq": 2,
     "epochs": 12,
@@ -54,7 +54,7 @@
       "shuffle": true,
       "validation_split": 0.0,
       "drop_last": false,
-      "pin_memory": true,
+      "pin_memory": false,
       "prefetch_factor": 2,
       "worker_init_fn": null
     }

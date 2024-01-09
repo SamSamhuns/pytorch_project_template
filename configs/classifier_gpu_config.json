@@ -9,7 +9,7 @@
   "trainer": {
     "resume_checkpoint": null,
     "save_best_only": true,
-    "batch_log_freq": 10,
+    "batch_log_freq": 5,
     "weight_save_freq": 5,
     "valid_freq": 2,
     "epochs": 12,
