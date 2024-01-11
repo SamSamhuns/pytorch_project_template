@@ -47,7 +47,7 @@ class BaseAgent:
                 while is_port_in_use(_tboard_port) and _tboard_port < 65535:
                     _tboard_port += 1
                     print(f"Port {_tboard_port - 1} unavailable." \
-                          "Switching to {_tboard_port} for tboard logging")
+                          f"Switching to {_tboard_port} for tboard logging")
 
                 tboard = program.TensorBoard()
                 tboard.configure(

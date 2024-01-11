@@ -1,2 +1,2 @@
-from .base_dataloader import BaseDataLoader
+from .base_dataloader import CustomDataLoader
 from .webdataset_dataloader import WebDatasetDataLoader

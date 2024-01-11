@@ -13,7 +13,7 @@ def default_collate_fn(batch):
     return default_collate(batch)
 
 
-class BaseDataLoader(DataLoader):
+class CustomDataLoader(DataLoader):
     """
     Base class for all data loaders
     """
@@ -99,7 +99,7 @@ if __name__ == "__main__":
                                    transform=transforms.ToTensor())
     print(img_dataset)
     print(f"len of img_dataset(Number of datapoints): {len(img_dataset)}")
-    data_loader = BaseDataLoader(img_dataset,
+    data_loader = CustomDataLoader(img_dataset,
                                  batch_size=32,
                                  shuffle=True,
                                  validation_split=0.1,
