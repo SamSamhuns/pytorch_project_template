@@ -25,9 +25,10 @@ from collections import OrderedDict
 import torchvision.models as models
 import torch.nn as nn
 import torch
+from .base_model import BaseModel
 
 
-class Classifier(nn.Module):
+class Classifier(BaseModel):
     """
     backbone: network to extract features
     num_classes: num classes to predict/ num of outputs of network, exclusive to feat_extract
