@@ -1,7 +1,7 @@
 easydict==1.11
-imageio==2.32.0
-torch==2.1.1
-torchvision==0.16.1
+imageio==2.33.1
+torch==2.1.2
+torchvision==0.16.2
 torchsummary==1.5.1
 tqdm==4.66.2
-webdataset==0.2.77
+webdataset==0.2.86
