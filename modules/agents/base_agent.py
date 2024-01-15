@@ -2,9 +2,12 @@
 Base agent class constains the base train, validate, test, inference, and utility functions
 Other agents specific to a network overload the functions of this base agent class
 """
+import torch
+
 from modules.config_parser import ConfigParser
 from modules.loggers.base_logger import get_logger
-from modules.utils.util import is_port_in_use, recursively_flatten_dict
+from modules.utils.statistics import print_cuda_statistics
+from modules.utils.util import is_port_in_use, recursively_flatten_dict, BColors
 
 
 class BaseAgent:
@@ -58,6 +61,33 @@ class BaseAgent:
         if self.config["trainer"]["save_best_only"] and not self.config["metrics"]["val"]:
             raise ValueError(
                 "val metrics must be present to save best model")
+
+        # set cuda flag
+        is_cuda = torch.cuda.is_available()
+        gpu_device = self.config["gpu_device"]
+        gpu_device = [gpu_device] if isinstance(gpu_device, int) else gpu_device
+        if is_cuda and not gpu_device:
+            msg = f"{BColors.WARNING}WARNING: CUDA available but not used{BColors.ENDC}"
+            self.logger.info(msg)
+        # set cuda devices if cuda available & gpu_device set or use cpu
+        self.cuda = is_cuda and (gpu_device not in (None, []))
+        self.manual_seed = self.config["seed"]
+        torch.backends.cudnn.deterministic = self.config["cudnn_deterministic"]
+        torch.backends.cudnn.benchmark = self.config["cudnn_benchmark"]
+        if self.cuda:
+            if len(gpu_device) > 1 and torch.cuda.device_count() == 1:
+                msg = f"Multi-gpu device ({gpu_device}) set, but only one GPU avai."
+                self.logger.error(msg)
+                raise ValueError(msg)
+            torch.cuda.manual_seed(self.manual_seed)
+            # for dataparallel, only gpu_device[0] can be specified
+            self.device = torch.device("cuda", gpu_device[0])
+            self.logger.info("Program will run on GPU device %s", self.device)
+            print_cuda_statistics()
+        else:
+            torch.manual_seed(self.manual_seed)
+            self.device = torch.device("cpu")
+            self.logger.info("Program will run on CPU")
 
         # check exclusive config parameters
         val_path = self.config["dataset"]["args"]["val_path"]

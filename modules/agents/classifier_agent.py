@@ -18,7 +18,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 
 from modules.config_parser import ConfigParser
 from modules.agents.base_agent import BaseAgent
-from modules.utils.statistics import print_cuda_statistics
 from modules.utils.util import find_latest_file_in_dir, rgetattr, BColors
 from modules.datasets.base_dataset import IMG_EXTENSIONS
 
@@ -67,34 +66,12 @@ class ClassifierAgent(BaseAgent):
                              ) if backbone else None,
             num_classes=num_classes)
 
-        # set cuda flag
-        is_cuda = torch.cuda.is_available()
+        # use multi-gpu if cuda available and multi-dev set with gpu_device
         gpu_device = self.config["gpu_device"]
         gpu_device = [gpu_device] if isinstance(gpu_device, int) else gpu_device
-        if is_cuda and not gpu_device:
-            msg = f"{BColors.WARNING}WARNING: CUDA available but not used{BColors.ENDC}"
-            self.logger.info(msg)
-        # set cuda devices if cuda available & gpu_device set or use cpu
-        self.cuda = is_cuda and (gpu_device not in (None, []))
-        self.manual_seed = self.config["seed"]
-        if self.cuda:
-            torch.cuda.manual_seed(self.manual_seed)
-            torch.backends.cudnn.deterministic = self.config["cudnn_deterministic"]
-            torch.backends.cudnn.benchmark = self.config["cudnn_benchmark"]
-            if len(gpu_device) > 1 and torch.cuda.device_count() > 1:
-                # use multi-gpu devices from config gpu_device
-                self.model = torch.nn.DataParallel(
-                    self.model, device_ids=gpu_device)
-            else:
-                # use one cuda gpu device from config gpu_device
-                torch.cuda.set_device(gpu_device[0])
-            self.device = torch.device("cuda")
-            self.logger.info("Program will run on GPU device %s", self.device)
-            print_cuda_statistics()
-        else:
-            torch.manual_seed(self.manual_seed)
-            self.device = torch.device("cpu")
-            self.logger.info("Program will run on CPU")
+        if self.cuda and len(gpu_device) > 1 and torch.cuda.device_count() > 1:
+            self.model = torch.nn.DataParallel(self.model, device_ids=gpu_device)
+
         # do not load datasets for INFERENCE mode
         if config["mode"] in {"INFERENCE"}:
             self.model = self.model.to(self.device)
