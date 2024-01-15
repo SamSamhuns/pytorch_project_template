@@ -114,8 +114,10 @@ class ClassifierAgent(BaseAgent):
             ckpt_file = find_latest_file_in_dir(file_path)
 
         if ckpt_file is None:
-            msg = (f"'{file_path}' is not a torch weight file or a directory containing one. "
-                   "No weights were loaded and TRAINING WILL BE DONE FROM SCRATCH")
+            msg = f"'{file_path}' is not a torch weight file or a directory containing one."
+            if self.config["mode"] in {"TEST", "INFERENCE"}:
+                raise ValueError(msg)
+            msg += " No weights were loaded and TRAINING WILL BE DONE FROM SCRATCH"
             self.logger.info(msg)
             return
 
