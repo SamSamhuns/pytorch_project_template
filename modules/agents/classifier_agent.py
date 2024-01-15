@@ -18,15 +18,13 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 
 from modules.config_parser import ConfigParser
 from modules.agents.base_agent import BaseAgent
-from modules.utils.util import find_latest_file_in_dir, rgetattr, BColors
+from modules.utils.util import find_latest_file_in_dir, rgetattr
 from modules.datasets.base_dataset import IMG_EXTENSIONS
 
 import modules.losses as module_losses
 import modules.models as module_models
 import modules.metrics as module_metrics
-import modules.datasets as module_datasets
 import modules.optimizers as module_optimizers
-import modules.dataloaders as module_dataloaders
 import modules.schedulers as module_lr_schedulers
 import modules.augmentations as module_transforms
 
@@ -39,25 +37,7 @@ class ClassifierAgent(BaseAgent):
     def __init__(self, config: ConfigParser, logger_name: str):
         super().__init__(config, logger_name)
 
-        # check if num classes in cfg match num of avai class folders
         num_classes = self.config["dataset"]["num_classes"]
-        data_root = self.config["dataset"]["args"]["data_root"]
-        train_path = self.config["dataset"]["args"]["train_path"]
-        val_path = self.config["dataset"]["args"]["val_path"]
-        test_path = self.config["dataset"]["args"]["test_path"]
-        train_count = len(glob.glob(osp.join(data_root, train_path, "*")))
-        val_count = len(glob.glob(osp.join(data_root, val_path, "*"))) if val_path else 0
-        test_count = len(glob.glob(osp.join(data_root, test_path, "*"))) if test_path else 0
-
-        if config["mode"] in {"TRAIN", "TEST"}:
-            warn_msg = f"{BColors.WARNING}WARNING: num_classes in cfg(%s) != avai classes in %s(%s){BColors.ENDC}"
-            if train_count != num_classes:
-                self.logger.info(warn_msg, num_classes, train_path, train_count)
-            if val_path and val_count != num_classes:
-                self.logger.info(warn_msg, num_classes, val_path, val_count)
-            if test_path and test_count != num_classes:
-                self.logger.info(warn_msg, num_classes, test_path, test_count)
-
         # define models
         backbone = self.config["arch"]["backbone"]
         self.model = self.config.init_obj(
@@ -72,39 +52,13 @@ class ClassifierAgent(BaseAgent):
         if self.cuda and len(gpu_device) > 1 and torch.cuda.device_count() > 1:
             self.model = torch.nn.DataParallel(self.model, device_ids=gpu_device)
 
-        # do not load datasets for INFERENCE mode
+        # do not progress beyond for INFERENCE mode
         if config["mode"] in {"INFERENCE"}:
             self.model = self.model.to(self.device)
             if self.config.resume:
                 self.load_checkpoint(self.config.resume)
             return
 
-        # define dataset
-        self.data_set = self.config.init_obj(
-            "dataset", module_datasets,
-            train_transform=rgetattr(module_transforms,
-                                     self.config["dataset"]["preprocess"]["train_transform"]),
-            val_transform=rgetattr(module_transforms,
-                                   self.config["dataset"]["preprocess"]["val_transform"]),
-            test_transform=rgetattr(module_transforms,
-                                    self.config["dataset"]["preprocess"]["test_transform"]))
-        # define train, validate, and test data_loaders
-        self.train_data_loader, self.val_data_loader, self.test_data_loader = None, None, None
-        # in OSX systems ["dataloader"]["num_workers"] should be 0 which might increase train time
-        self.train_data_loader = self.config.init_obj("dataloader", module_dataloaders,
-                                                      dataset=self.data_set.train_set)
-        # if val_path is not None then dataloader.args.validation_split is assumed to be 0.0
-        # if no val dir is provided, take val split from training data
-        if val_path is None and self.config["dataloader"]["args"]["validation_split"] > 0:
-            self.val_data_loader = self.train_data_loader.get_validation_split()
-        # if val dir is provided, use all data inside val dir for validation
-        elif val_path is not None or self.data_set.val_set is not None:
-            self.val_data_loader = self.config.init_obj("dataloader", module_dataloaders,
-                                                        dataset=self.data_set.val_set)
-        if test_path is not None or self.data_set.test_set is not None:
-            self.test_data_loader = self.config.init_ftn("dataloader", module_dataloaders,
-                                                         dataset=self.data_set.test_set)
-            self.test_data_loader = self.test_data_loader(validation_split=0.0)
         # define loss and instantiate it
         self.loss = self.config.init_obj("loss", module_losses)
         # define optimizer
