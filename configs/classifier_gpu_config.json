@@ -3,10 +3,11 @@
   "seed": 42,
   "cudnn_deterministic": false,
   "cudnn_benchmark": true,
-  "gpu_device": [0, 1],
+  "gpu_device": [0],
   "use_amp": true,
   "torch_compile_model": false,
   "trainer": {
+    "type": "ClassifierAgent",
     "resume_checkpoint": null,
     "save_best_only": true,
     "batch_log_freq": 5,
@@ -15,7 +16,7 @@
     "epochs": 12,
     "verbosity": 2,
     "save_dir": "checkpoints",
-    "use_tensorboard": false,
+    "use_tensorboard": true,
     "tensorboard_port": 6006,
     "tensorboard_log_dir": "tf_logs"
   },

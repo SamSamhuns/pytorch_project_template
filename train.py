@@ -4,7 +4,7 @@ Training script, run with: python train.py --cfg JSON_CONFIG_PATH
 import argparse
 from datetime import datetime
 
-from modules.agents import classifier_agent
+import modules.agents as module_agents
 from modules.config_parser import ConfigParser
 
 
@@ -48,7 +48,8 @@ def get_config_from_args():
 
 def main():
     config = get_config_from_args()
-    agent = classifier_agent.ClassifierAgent(config, "train")
+    agent = getattr(module_agents, config["trainer"]["type"])(
+        config=config, logger_name="train")
 
     agent.train()
     agent.finalize_exit()

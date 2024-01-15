@@ -54,7 +54,7 @@ class BaseAgent:
             if _tboard_port is not None:
                 while is_port_in_use(_tboard_port) and _tboard_port < 65535:
                     _tboard_port += 1
-                    print(f"Port {_tboard_port - 1} unavailable." \
+                    print(f"Port {_tboard_port - 1} unavailable."
                           f"Switching to {_tboard_port} for tboard logging")
 
                 tboard = program.TensorBoard()
@@ -96,7 +96,7 @@ class BaseAgent:
             self.device = torch.device("cpu")
             self.logger.info("Program will run on CPU")
         # #############################################################
-            
+
         # check if num classes in cfg match num of avai class folders
         num_classes = self.config["dataset"]["num_classes"]
         data_root = self.config["dataset"]["args"]["data_root"]
@@ -125,7 +125,7 @@ class BaseAgent:
         if (val_path is not None and val_split > 0):
             raise ValueError(
                 f"If val_path {val_path} is not None, val_split({val_split}) must be 0")
-        
+
         # do not load datasets for INFERENCE mode
         if config["mode"] in {"INFERENCE"}:
             return
