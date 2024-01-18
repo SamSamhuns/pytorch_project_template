@@ -30,44 +30,6 @@ class BaseAgent:
                                  logger_level=self.config["logger"]["logger_level"],
                                  file_level=self.config["logger"]["file_level"],
                                  console_level=self.config["logger"]["console_level"])
-        # ############ Tboard Summary Writer if enabled ###############
-        if self.config["trainer"]["use_tensorboard"]:
-            from torch.utils.tensorboard import SummaryWriter
-            from tensorboard import program
-
-            _agent_name = self.config["name"]
-            _optim_name = self.config["optimizer"]["type"]
-            _bsize = self.config["dataloader"]["args"]["batch_size"]
-            _lr = self.config["optimizer"]["args"]["lr"]
-
-            _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}"
-            _tboard_log_dir = self.config["trainer"]["tensorboard_log_dir"]
-            tboard_writer = SummaryWriter(log_dir=_tboard_log_dir,
-                                          filename_suffix=_suffix)
-            self.tboard_writer = tboard_writer
-
-            flat_cfg = recursively_flatten_dict(self.config._config)
-            for cfg_key, cfg_val in flat_cfg.items():
-                self.tboard_writer.add_text(cfg_key, str(cfg_val))
-
-            _tboard_port = self.config["trainer"]["tensorboard_port"]
-            if _tboard_port is not None:
-                while is_port_in_use(_tboard_port) and _tboard_port < 65535:
-                    _tboard_port += 1
-                    print(f"Port {_tboard_port - 1} unavailable."
-                          f"Switching to {_tboard_port} for tboard logging")
-
-                tboard = program.TensorBoard()
-                tboard.configure(
-                    argv=[None, "--logdir", _tboard_log_dir, "--port", str(_tboard_port)])
-                url = tboard.launch()
-                print(f"Tensorboard logger started on {url}")
-        # #############################################################
-
-        # check if val_metrics present when save_best_only is True
-        if self.config["trainer"]["save_best_only"] and not self.config["metrics"]["val"]:
-            raise ValueError(
-                "val metrics must be present to save best model")
 
         # ###################### set cuda vars ########################
         is_cuda = torch.cuda.is_available()
@@ -157,6 +119,45 @@ class BaseAgent:
                                                          dataset=self.data_set.test_set)
             self.test_data_loader = self.test_data_loader(validation_split=0.0)
         # #############################################################
+
+        # ############ Tboard Summary Writer if enabled ###############
+        if self.config["trainer"]["use_tensorboard"]:
+            from torch.utils.tensorboard import SummaryWriter
+            from tensorboard import program
+
+            _agent_name = self.config["name"]
+            _optim_name = self.config["optimizer"]["type"]
+            _bsize = self.config["dataloader"]["args"]["batch_size"]
+            _lr = self.config["optimizer"]["args"]["lr"]
+
+            _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}"
+            _tboard_log_dir = self.config["trainer"]["tensorboard_log_dir"]
+            tboard_writer = SummaryWriter(log_dir=_tboard_log_dir,
+                                          filename_suffix=_suffix)
+            self.tboard_writer = tboard_writer
+
+            flat_cfg = recursively_flatten_dict(self.config._config)
+            for cfg_key, cfg_val in flat_cfg.items():
+                self.tboard_writer.add_text(cfg_key, str(cfg_val))
+
+            _tboard_port = self.config["trainer"]["tensorboard_port"]
+            if _tboard_port is not None:
+                while is_port_in_use(_tboard_port) and _tboard_port < 65535:
+                    _tboard_port += 1
+                    print(f"Port {_tboard_port - 1} unavailable."
+                          f"Switching to {_tboard_port} for tboard logging")
+
+                tboard = program.TensorBoard()
+                tboard.configure(
+                    argv=[None, "--logdir", _tboard_log_dir, "--port", str(_tboard_port)])
+                url = tboard.launch()
+                print(f"Tensorboard logger started on {url}")
+        # #############################################################
+
+        # check if val_metrics present when save_best_only is True
+        if self.config["trainer"]["save_best_only"] and not self.config["metrics"]["val"]:
+            raise ValueError(
+                "val metrics must be present to save best model")
 
     def load_checkpoint(self, file_path: str):
         """
