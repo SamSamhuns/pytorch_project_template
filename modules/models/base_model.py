@@ -1,5 +1,5 @@
 from typing import Tuple
-import numpy as np
+import torch
 import torch.nn as nn
 from torchsummary import summary
 
@@ -58,9 +58,9 @@ class BaseModel(nn.Module):
         """
         Get total number of params in model 
         """
-        total_params = sum(np.prod(p.size()) for p in self.parameters())
-        net_parameters = filter(lambda p: p.requires_grad, self.parameters())
-        trainable_params = sum(np.prod(p.size()) for p in net_parameters)
+        total_params = sum(torch.numel(p) for p in self.parameters())
+        net_params = filter(lambda p: p.requires_grad, self.parameters())
+        trainable_params = sum(torch.numel(p) for p in net_params)
         return {'Model': self.__class__,
                 'Total params': total_params,
                 'Trainable params': trainable_params,
