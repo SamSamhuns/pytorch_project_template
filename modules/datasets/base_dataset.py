@@ -1,9 +1,12 @@
+"""
+Base Dataset Class
+"""
 import os
 import os.path as osp
 from typing import List, Dict
 
 from PIL import Image
-import torch.utils.data as data
+from torch.utils import data
 
 
 IMG_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.webp'}
