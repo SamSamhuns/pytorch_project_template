@@ -26,8 +26,10 @@ class BaseModel(nn.Module):
                 if layer.bias is not None:
                     nn.init.constant_(layer.bias, 0)
             elif isinstance(layer, nn.BatchNorm2d):
-                nn.init.constant_(layer.weight, 1)
-                nn.init.constant_(layer.bias, 0)
+                if layer.weight is not None:
+                    nn.init.constant_(layer.weight, 1)
+                if layer.bias is not None:
+                    nn.init.constant_(layer.bias, 0)
 
     def _glorot_init(self):
         """Apply Glorot (Xavier) uniform initialization"""
@@ -37,8 +39,10 @@ class BaseModel(nn.Module):
                 if layer.bias is not None:
                     nn.init.constant_(layer.bias, 0)
             elif isinstance(layer, nn.BatchNorm1d):
-                nn.init.constant_(layer.weight, 1)
-                nn.init.constant_(layer.bias, 0)
+                if layer.weight is not None:
+                    nn.init.constant_(layer.weight, 1)
+                if layer.bias is not None:
+                    nn.init.constant_(layer.bias, 0)
 
     def initialize_weights(self, method: str = "he"):
         """Initialize encoder and head weights randomly."""
