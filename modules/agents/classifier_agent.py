@@ -6,7 +6,6 @@ import glob
 import os.path as osp
 from functools import partial
 from contextlib import nullcontext
-from collections import OrderedDict
 from typing import Optional, List, Tuple
 
 from PIL import Image
@@ -18,8 +17,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 
 from modules.config_parser import ConfigParser
 from modules.agents.base_agent import BaseAgent
-from modules.utils.util import find_latest_file_in_dir, rgetattr
 from modules.datasets.base_dataset import IMG_EXTENSIONS
+from modules.utils.util import rgetattr
 
 import modules.losses as module_losses
 import modules.models as module_models
@@ -56,7 +55,7 @@ class ClassifierAgent(BaseAgent):
         if config["mode"] in {"INFERENCE"}:
             self.model = self.model.to(self.device)
             if self.config.resume:
-                self.load_checkpoint(self.config.resume)
+                self.model = self.load_checkpoint(self.model, self.config.resume)
             return
 
         # define loss and instantiate it
@@ -92,65 +91,13 @@ class ClassifierAgent(BaseAgent):
 
         # if --resume cli argument is provided, give precedence to --resume ckpt path
         if self.config.resume:
-            self.load_checkpoint(self.config.resume)
+            self.model = self.load_checkpoint(self.model, self.config.resume)
         # else use 'resume_checkpoint' if provided in json config if --resume cli argument is absent
         elif self.config["trainer"]["resume_checkpoint"] is not None:
-            self.load_checkpoint(self.config["trainer"]["resume_checkpoint"])
+            self.model = self.load_checkpoint(self.model, self.config["trainer"]["resume_checkpoint"])
         # else load from scratch
         else:
             self.logger.info("Training will be done from scratch")
-
-    def load_checkpoint(self, file_path: str) -> None:
-        """
-        Latest checkpoint loader from torch weights
-        args:
-            file_path: file_path to checkpoint file/folder with only weights,
-                  if folder is used, latest checkpoint is loaded
-        """
-        ckpt_file = None
-        if osp.isfile(file_path):
-            ckpt_file = file_path
-        elif osp.isdir(file_path):
-            ckpt_file = find_latest_file_in_dir(file_path)
-
-        if ckpt_file is None:
-            msg = f"'{file_path}' is not a torch weight file or a directory containing one."
-            if self.config["mode"] in {"TEST", "INFERENCE"}:
-                raise ValueError(msg)
-            msg += " No weights were loaded and TRAINING WILL BE DONE FROM SCRATCH"
-            self.logger.info(msg)
-            return
-
-        if self.cuda:
-            # if gpu is available
-            state_dict = torch.load(ckpt_file)
-        else:
-            # if gpu is not available
-            state_dict = torch.load(ckpt_file, map_location=torch.device('cpu'))
-
-        # rename keys for dataparallel mode
-        if self.config["gpu_device"] and len(self.config["gpu_device"]) > 1 and torch.cuda.device_count() > 1:
-            _state_dict = OrderedDict()
-            for k, val in state_dict.items():
-                k = 'module.' + \
-                    k if 'module' not in k else k.replace(
-                        'features.module.', 'module.features.')
-                _state_dict[k] = val
-            state_dict = _state_dict
-
-        self.model.load_state_dict(state_dict)
-        self.logger.info("Loaded checkpoint %s", ckpt_file)
-
-    def save_checkpoint(self, file_path: str = "checkpoint.pth") -> None:
-        """
-        Checkpoint saver
-        args:
-            file_name: name of the checkpoint file
-        """
-        # create checkpoint directory if it doesnt exist
-        self.config.save_dir.mkdir(parents=True, exist_ok=True)
-        save_path = osp.join(str(self.config.save_dir), file_path)
-        torch.save(self.model.state_dict(), save_path)
 
     def train(self) -> None:
         """
@@ -179,11 +126,11 @@ class ClassifierAgent(BaseAgent):
                     if (len(mlist) <= 1 or
                         (metric == "loss" and mlist[-1][1] < mlist[-2][1]) or
                             (metric == "accuracy_score" and mlist[-1][1] > mlist[-2][1])):
-                        self.save_checkpoint(file_path="best.pth")
+                        self.save_checkpoint(self.model, "best.pth")
 
             if (not self.config["trainer"]["save_best_only"] and
                     epoch % self.config["trainer"]["weight_save_freq"] == 0):
-                self.save_checkpoint(file_path=f"checkpoint_{epoch}.pth")
+                self.save_checkpoint(self.model, f"checkpoint_{epoch}.pth")
             self.current_epoch += 1
         t1 = time.perf_counter()
         self.logger.info("Train time: %.2fs", (t1 - t0))
@@ -311,7 +258,7 @@ class ClassifierAgent(BaseAgent):
         t_0 = time.perf_counter()
         if weight_path is not None:
             print(f"Loading new checkpoint from {weight_path} for testing")
-            self.load_checkpoint(weight_path)
+            self.model = self.load_checkpoint(self.model, weight_path)
         if self.test_data_loader is None:
             raise NotImplementedError("test_data_loader is None or missing."
                                       "test_path might not have been set")
@@ -411,7 +358,7 @@ class ClassifierAgent(BaseAgent):
         """
         if weight_path is not None:
             print("Loading new checkpoint for inferencing")
-            self.load_checkpoint(weight_path)
+            self.model = self.load_checkpoint(self.model, weight_path)
         self.model.eval()
 
         image_list = []

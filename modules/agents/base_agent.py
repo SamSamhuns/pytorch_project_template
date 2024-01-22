@@ -4,7 +4,10 @@ Other agents specific to a network overload the functions of this base agent cla
 """
 import glob
 import os.path as osp
+from collections import OrderedDict
+
 import torch
+import torch.nn as nn
 
 from modules.config_parser import ConfigParser
 import modules.datasets as module_datasets
@@ -12,7 +15,7 @@ import modules.dataloaders as module_dataloaders
 import modules.augmentations as module_transforms
 from modules.loggers.base_logger import get_logger
 from modules.utils.statistics import print_cuda_statistics
-from modules.utils.util import is_port_in_use, recursively_flatten_dict, rgetattr, BColors
+from modules.utils.util import is_port_in_use, recursively_flatten_dict, rgetattr, find_latest_file_in_dir, BColors
 
 
 class BaseAgent:
@@ -159,21 +162,60 @@ class BaseAgent:
             raise ValueError(
                 "val metrics must be present to save best model")
 
-    def load_checkpoint(self, file_path: str):
+    def load_checkpoint(self, model: nn.Module, file_path: str) -> nn.Module:
         """
-        load latest checkpoint file
+        Load checkpoint for model from file_path
         args:
-            file_path: checkpoint file_path (pth, pt, pkl file)
+            model: model whose weights are loaded from file_path
+            file_path: file_path to checkpoint file/folder with only weights,
+                  if folder is used, latest checkpoint having extension 'ext' is loaded
         """
-        raise NotImplementedError
+        ckpt_file = None
+        if osp.isfile(file_path):
+            ckpt_file = file_path
+        elif osp.isdir(file_path):
+            ckpt_file = find_latest_file_in_dir(file_path, ext="pth")
 
-    def save_checkpoint(self, file_path: str = "checkpoint.pth.tar"):
+        if ckpt_file is None:
+            msg = f"'{file_path}' is not a torch weight file or a directory containing one."
+            if self.config["mode"] in {"TEST"}:
+                raise ValueError(msg)
+            msg += " No weights were loaded and TRAINING WILL BE DONE FROM SCRATCH"
+            self.logger.info(msg)
+            return model
+
+        if self.cuda:
+            # if gpu is available
+            state_dict = torch.load(ckpt_file)
+        else:
+            # if gpu is not available
+            state_dict = torch.load(
+                ckpt_file, map_location=torch.device('cpu'))
+
+        # rename keys for dataparallel mode
+        if (self.config["gpu_device"] and len(self.config["gpu_device"]) > 1 and torch.cuda.device_count() > 1):
+            _state_dict = OrderedDict()
+            for k, val in state_dict.items():
+                k = 'module.' + \
+                    k if 'module' not in k else k.replace(
+                        'features.module.', 'module.features.')
+                _state_dict[k] = val
+            state_dict = _state_dict
+
+        model.load_state_dict(state_dict)
+        self.logger.info("Loaded checkpoint %s", ckpt_file)
+        return model
+
+    def save_checkpoint(self, model: nn.Module, ckpt_save_name: str = "checkpoint.pth") -> None:
         """
-        save checkpoint
+        Checkpoint saver
         args:
-            file_path: checkpoint file_path (pth, pt, pkl file)
+            ckpt_save_name: checkpoint file name which is saved inside self.config.save_dir
         """
-        raise NotImplementedError
+        # create checkpoint directory if it doesnt exist
+        self.config.save_dir.mkdir(parents=True, exist_ok=True)
+        save_path = osp.join(str(self.config.save_dir), ckpt_save_name)
+        torch.save(model.state_dict(), save_path)
 
     def train(self):
         """
@@ -205,7 +247,7 @@ class BaseAgent:
         """
         raise NotImplementedError
 
-    def export_as_onnx(self):
+    def export_as_onnx(self, dummy_input: torch.Tensor, onnx_save_path: str):
         """
         ONNX format export function
         """
