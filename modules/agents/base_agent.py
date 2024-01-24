@@ -175,22 +175,11 @@ class BaseAgent:
             ckpt_file = file_path
         elif osp.isdir(file_path):
             ckpt_file = find_latest_file_in_dir(file_path, ext="pth")
-
         if ckpt_file is None:
-            msg = f"'{file_path}' is not a torch weight file or a directory containing one."
-            if self.config["mode"] in {"TEST"}:
-                raise ValueError(msg)
-            msg += " No weights were loaded and TRAINING WILL BE DONE FROM SCRATCH"
-            self.logger.info(msg)
-            return model
+            raise ValueError(f"'{file_path}' is not a torch weight file or a dir containing one.")
 
-        if self.cuda:
-            # if gpu is available
-            state_dict = torch.load(ckpt_file)
-        else:
-            # if gpu is not available
-            state_dict = torch.load(
-                ckpt_file, map_location=torch.device('cpu'))
+        state_dict = torch.load(ckpt_file) if self.cuda else torch.load(
+            ckpt_file, map_location=torch.device('cpu'))
 
         # rename keys for dataparallel mode
         if (self.config["gpu_device"] and len(self.config["gpu_device"]) > 1 and torch.cuda.device_count() > 1):
