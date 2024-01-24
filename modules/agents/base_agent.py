@@ -47,11 +47,11 @@ class BaseAgent:
         torch.backends.cudnn.deterministic = self.config["cudnn_deterministic"]
         torch.backends.cudnn.benchmark = self.config["cudnn_benchmark"]
         if self.cuda:
+            torch.cuda.manual_seed(self.manual_seed)
             if len(gpu_device) > 1 and torch.cuda.device_count() == 1:
                 msg = f"Multi-gpu device ({gpu_device}) set, but only one GPU avai."
                 self.logger.error(msg)
                 raise ValueError(msg)
-            torch.cuda.manual_seed(self.manual_seed)
             # for dataparallel, only gpu_device[0] can be specified
             self.device = torch.device("cuda", gpu_device[0])
             self.logger.info("Program will run on GPU device %s", self.device)
@@ -134,25 +134,23 @@ class BaseAgent:
             _lr = self.config["optimizer"]["args"]["lr"]
 
             _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}"
-            _tboard_log_dir = self.config["trainer"]["tensorboard_log_dir"]
-            tboard_writer = SummaryWriter(log_dir=_tboard_log_dir,
-                                          filename_suffix=_suffix)
+            tboard_log_dir = self.config["trainer"]["tensorboard_log_dir"]
+            tboard_writer = SummaryWriter(log_dir=tboard_log_dir, filename_suffix=_suffix)
             self.tboard_writer = tboard_writer
 
             flat_cfg = recursively_flatten_dict(self.config._config)
             for cfg_key, cfg_val in flat_cfg.items():
                 self.tboard_writer.add_text(cfg_key, str(cfg_val))
 
-            _tboard_port = self.config["trainer"]["tensorboard_port"]
-            if _tboard_port is not None:
-                while is_port_in_use(_tboard_port) and _tboard_port < 65535:
-                    _tboard_port += 1
-                    print(f"Port {_tboard_port - 1} unavailable."
-                          f"Switching to {_tboard_port} for tboard logging")
+            tboard_port = self.config["trainer"]["tensorboard_port"]
+            if tboard_port is not None:
+                while is_port_in_use(tboard_port) and tboard_port < 65535:
+                    tboard_port += 1
+                    print(f"Port {tboard_port - 1} unavailable."
+                          f"Switching to {tboard_port} for tboard logging")
 
                 tboard = program.TensorBoard()
-                tboard.configure(
-                    argv=[None, "--logdir", _tboard_log_dir, "--port", str(_tboard_port)])
+                tboard.configure(argv=[None, "--logdir", tboard_log_dir, "--port", str(tboard_port)])
                 url = tboard.launch()
                 print(f"Tensorboard logger started on {url}")
         # #############################################################
@@ -176,7 +174,9 @@ class BaseAgent:
         elif osp.isdir(file_path):
             ckpt_file = find_latest_file_in_dir(file_path, ext="pth")
         if ckpt_file is None:
-            raise ValueError(f"'{file_path}' is not a torch weight file or a dir containing one.")
+            msg = f"'{file_path}' is not a torch weight file or a dir containing one."
+            self.logger.error(msg)
+            raise ValueError(msg)
 
         state_dict = torch.load(ckpt_file) if self.cuda else torch.load(
             ckpt_file, map_location=torch.device('cpu'))
