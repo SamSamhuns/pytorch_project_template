@@ -37,7 +37,7 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # install python dependencies
-RUN pip install pip==23.1.2
+RUN pip install pip==23.3.2
 COPY ./requirements/train.txt "$WORKDIR/train.txt"
 RUN pip install --no-cache-dir --default-timeout=100 -r "$WORKDIR/train.txt"
 
