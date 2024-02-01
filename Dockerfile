@@ -1,7 +1,8 @@
-FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-devel
+FROM pytorch/pytorch:2.1.2-cuda11.8-cudnn8-devel
 
-ARG CUDA="11.7"
+ARG CUDA="11.8"
 ARG CUDNN="8.0"
+ARG DEBIAN_FRONTEND=noninteractive
 
 # maintainer
 LABEL maintainer="fname.lname@domain.com"
