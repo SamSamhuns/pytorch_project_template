@@ -181,9 +181,9 @@ class ClassifierAgent(BaseAgent):
                     100 * batch_idx / len(self.train_data_loader),
                     loss.item())
             if self.config["trainer"]["use_tensorboard"]:
-                self.tboard_writer.add_scalars('Loss (iteration)',
-                                               {'train': loss.item()},
-                                               self.current_iteration)
+                self.tboard_writer.add_scalar('Loss/train/iteration',
+                                              loss.item(),
+                                              self.current_iteration)
             self.current_iteration += 1
 
         train_loss = cum_train_loss / train_size
@@ -191,7 +191,7 @@ class ClassifierAgent(BaseAgent):
         t_1 = time.perf_counter()
         self.logger.info('\tEpoch time: %.2fs', (t_1 - t_0))
         self.logger.info('\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n',
-            train_loss, correct, train_size, train_accuracy)
+                         train_loss, correct, train_size, train_accuracy)
         # if no val_data_loader, then run ReduceLROnPlateau on train_loss instead
         if self.val_data_loader is None and isinstance(self.scheduler, ReduceLROnPlateau):
             # ReduceLROnPlateau scheduler takes metrics during its step call
@@ -201,15 +201,15 @@ class ClassifierAgent(BaseAgent):
             self.tboard_writer.add_images('preprocessed image batch',
                                           next(iter(self.train_data_loader))[0],
                                           self.current_epoch)
-            self.tboard_writer.add_scalars('Loss (epoch)',
-                                           {'train': train_loss},
-                                           self.current_epoch)
-            self.tboard_writer.add_scalars('Accuracy (epoch)',
-                                           {'train': train_accuracy},
-                                           self.current_epoch)
-            self.tboard_writer.add_scalars('Learning Rate (epoch)',
-                                           {'train': self.optimizer.param_groups[0]['lr']},
-                                           self.current_epoch)
+            self.tboard_writer.add_scalar('Loss/train/epoch',
+                                          train_loss,
+                                          self.current_epoch)
+            self.tboard_writer.add_scalar('Accuracy/train/epoch',
+                                          train_accuracy,
+                                          self.current_epoch)
+            self.tboard_writer.add_scalar('Learning Rate/train/epoch',
+                                          self.optimizer.param_groups[0]['lr'],
+                                          self.current_epoch)
 
     def validate(self) -> None:
         """
@@ -244,14 +244,14 @@ class ClassifierAgent(BaseAgent):
         self.logger.info('Validation set:')
         self.logger.info('\tVal time: %.2fs', (t_1 - t_0))
         self.logger.info('\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n',
-            val_loss, correct, val_size, val_accuracy)
+                         val_loss, correct, val_size, val_accuracy)
         if self.config["trainer"]["use_tensorboard"]:
-            self.tboard_writer.add_scalars('Loss (epoch)',
-                                           {'validation': val_loss},
-                                           self.current_epoch)
-            self.tboard_writer.add_scalars('Accuracy (epoch)',
-                                           {'validation': val_accuracy},
-                                           self.current_epoch)
+            self.tboard_writer.add_scalar('Loss/validation/epoch',
+                                          val_loss,
+                                          self.current_epoch)
+            self.tboard_writer.add_scalar('Accuracy/validation/epoch',
+                                          val_accuracy,
+                                          self.current_epoch)
 
     def test(self, weight_path: Optional[str] = None) -> None:
         """
@@ -278,11 +278,10 @@ class ClassifierAgent(BaseAgent):
         self.logger.info('\tTest time: %.2fs', (t_1 - t_0))
         self.logger.info('\tAverage loss: %.4f', test_loss)
         if self.config["trainer"]["use_tensorboard"]:
-            self.tboard_writer.add_scalars(
-                'Test Loss (epoch)',
-                {'Test': test_loss},
+            self.tboard_writer.add_scalar(
+                'Loss/test/epoch',
+                test_loss,
                 self.current_epoch)
-            
         num_classes = self.config["dataset"]["num_classes"]
         # add all test metrics
         for metric_name in self.config["metrics"]["test"]:
@@ -301,9 +300,9 @@ class ClassifierAgent(BaseAgent):
             metric_val = metric_func(**kwargs)
             self.logger.info('\t%s: %.4f', metric_name, metric_val)
             if self.config["trainer"]["use_tensorboard"]:
-                self.tboard_writer.add_scalars(
-                    f'Test {metric_name} (epoch)',
-                    {'Test': metric_val},
+                self.tboard_writer.add_scalar(
+                    f'{metric_name}/test/epoch',
+                    metric_val,
                     self.current_epoch)
 
     def validate_one_epoch(self, data_loader: DataLoader) -> Tuple[float, List[int], List[float], List[int]]:
