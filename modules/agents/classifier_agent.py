@@ -133,12 +133,17 @@ class ClassifierAgent(BaseAgent):
                 self.save_checkpoint(self.model, f"checkpoint_{epoch}.pth")
             self.current_epoch += 1
         t1 = time.perf_counter()
-        self.logger.info("Train time: %.2fs", (t1 - t0))
+        train_tm = t1 - t0
+
+        self.logger.info("Total train time: %.3fs", train_tm)
+        self.logger.info("Average epoch time: %.3fs", train_tm / self.config["trainer"]["epochs"])
+        self.logger.info('Finished training.\n')
 
     def train_one_epoch(self) -> None:
         """
         One epoch of training
         """
+        self.logger.info('Training set:')
         t_0 = time.perf_counter()
         self.model.train()
         cum_train_loss = 0
@@ -168,7 +173,8 @@ class ClassifierAgent(BaseAgent):
             if isinstance(self.scheduler, OneCycleLR):
                 self.scheduler.step()
             if batch_idx % self.config["trainer"]["batch_log_freq"] == 0:
-                self.logger.info('Train Epoch: %s [%6d/%.0f (%.1f%%)] Loss: %.6f',
+                self.logger.info(
+                    '\tTrain Epoch: %s [%6d/%.0f (%.1f%%)] Loss: %.6f',
                     self.current_epoch,
                     batch_idx * len(data),
                     train_data_len,
@@ -183,7 +189,6 @@ class ClassifierAgent(BaseAgent):
         train_loss = cum_train_loss / train_size
         train_accuracy = 100. * correct / train_size
         t_1 = time.perf_counter()
-        self.logger.info('\nTraining set:')
         self.logger.info('\tEpoch time: %.2fs', (t_1 - t_0))
         self.logger.info('\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n',
             train_loss, correct, train_size, train_accuracy)
