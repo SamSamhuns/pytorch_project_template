@@ -6,6 +6,7 @@ import json
 import glob
 import socket
 import functools
+import subprocess
 from collections import OrderedDict
 from collections.abc import MutableMapping
 from easydict import EasyDict as edict
@@ -51,6 +52,12 @@ class MissingConfigError(Exception):
     """Raised when configurations are missing
     """
 
+
+def get_git_revision_hash() -> str:
+    """Get the git hash of the current commit. Must be run from inside the git initialized repo."""
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+
+
 def is_port_in_use(port: int) -> bool:
     """
     Checks if a port is free for use
@@ -62,6 +69,10 @@ def is_port_in_use(port: int) -> bool:
 def identity(x):
     return x
 
+# #############################################################
+
+# ####################### dict utils ##########################
+
 
 def recursively_flatten_dict(dictionary, parent_key: str = '', sep: str = '.') -> MutableMapping:
     """
@@ -71,7 +82,8 @@ def recursively_flatten_dict(dictionary, parent_key: str = '', sep: str = '.') -
     for key, value in dictionary.items():
         new_key = parent_key + sep + key if parent_key else key
         if isinstance(value, MutableMapping):
-            items.extend(recursively_flatten_dict(value, new_key, sep=sep).items())
+            items.extend(recursively_flatten_dict(
+                value, new_key, sep=sep).items())
         else:
             items.append((new_key, value))
     return dict(items)
@@ -93,30 +105,6 @@ def get_cfg_object(cfg_json_path: str):
     cfg = _get_cfg_file(cfg_json_path)
     validate_base_config_dict(cfg)
     return cfg
-
-
-def read_json(fname: str):
-    with open(fname, 'r', encoding="utf-8") as handle:
-        return json.load(handle, object_hook=OrderedDict)
-
-
-def write_json(content: dict, fname: str) -> None:
-    with open(fname, 'w', encoding="utf-8") as handle:
-        json.dump(content, handle, indent=4, sort_keys=False)
-
-
-def find_latest_file_in_dir(dir_path: str, ext: str = "pth"):
-    """returns latest file with the ext from the dir_path directory
-    """
-    dir_path = str(dir_path)
-    dir_path_appended = dir_path + \
-        (f"/*.{ext}" if dir_path[-1] != '/' else f"*.{ext}")
-    list_of_files = glob.glob(dir_path_appended)
-    if len(list_of_files) == 0:
-        print(f"INFO: Directory '{dir_path}' is empty")
-        return None
-    latest_file = max(list_of_files, key=os.path.getctime)
-    return latest_file
 
 
 def validate_base_config_dict(cfg: dict) -> None:
@@ -143,6 +131,34 @@ def validate_base_config_dict(cfg: dict) -> None:
     _validate_keys(cfg["lr_scheduler"], _lr_scheduler)
     _validate_keys(cfg["trainer"], _trainer)
 
+
+# ####################### file utils ##########################
+
+
+def read_json(fname: str):
+    with open(fname, 'r', encoding="utf-8") as handle:
+        return json.load(handle, object_hook=OrderedDict)
+
+
+def write_json(content: dict, fname: str) -> None:
+    with open(fname, 'w', encoding="utf-8") as handle:
+        json.dump(content, handle, indent=4, sort_keys=False)
+
+
+def find_latest_file_in_dir(dir_path: str, ext: str = "pth"):
+    """returns latest file with the ext from the dir_path directory
+    """
+    dir_path = str(dir_path)
+    dir_path_appended = dir_path + \
+        (f"/*.{ext}" if dir_path[-1] != '/' else f"*.{ext}")
+    list_of_files = glob.glob(dir_path_appended)
+    if len(list_of_files) == 0:
+        print(f"INFO: Directory '{dir_path}' is empty")
+        return None
+    latest_file = max(list_of_files, key=os.path.getctime)
+    return latest_file
+
+###############################################################
 
 # ################## Internal functions #######################
 
@@ -175,5 +191,5 @@ def _get_cfg_file(cfg_json_path: str):
 
 
 if __name__ == "__main__":
-    cfg = get_cfg_object("configs/classifier_cpu_config.json")
-    print(cfg)
+    config = get_cfg_object("configs/classifier_cpu_config.json")
+    print(config)

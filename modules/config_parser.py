@@ -10,7 +10,8 @@ from functools import partial, reduce
 from typing import List, Dict, Union, Optional
 
 import numpy as np
-from modules.utils.util import read_json, write_json, validate_base_config_dict, MissingConfigError
+from modules.utils.util import (
+    read_json, write_json, validate_base_config_dict, get_git_revision_hash, MissingConfigError)
 
 
 class ConfigParser:
@@ -19,8 +20,8 @@ class ConfigParser:
     Handles hyperparameters for training, initializations of modules,
     checkpoint saving and logging module.
     Args:
-        config: Dict with configs & HPs to train. contents of `config/train_image_clsf.json` file for example.
-        run_id: Unique Identifier for train & test. Used to save ckpts & training log. Timestamp is used as default
+        config: Config dict. E.g. contents of `config/train_image_clsf.json`.
+        run_id: Unique Identifier for train & test. Timestamp is used as default
         resume: String, path to the checkpoint being loaded.
         modification: additional key-val args to be added to config
     """
@@ -57,6 +58,14 @@ class ConfigParser:
         run_id = ''
         self.save_dir.mkdir(parents=True, exist_ok=True)
         self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        # try to get git hash if inside git repo
+        try:
+            git_hash = get_git_revision_hash()
+        except Exception as excep:
+            git_hash = None
+            print(excep, "Couldn't get git hash of the current repo")
+        config["git_hash"] = git_hash
 
         # save updated config file to the checkpoint dir
         write_json(config, self.save_dir / 'config.json')
@@ -100,8 +109,8 @@ class ConfigParser:
         'name' can also be list of keys and subkeys following access order in list
         to get the final 'type' and 'args' keys.
 
-        `object = config.init_obj('name', module, a, b=1)` == `object = module.name(a, b=1)`
-        `object = config.init_obj(['name', 'subname'], module, a, b=1)` == `object = module.name.subname(a, b=1)`
+        `object = config.init_obj('name', module, a, b=1)` == `obj = module.name(a, b=1)`
+        `object = config.init_obj(['name', 'subname'], module, a, b=1)` == `obj = module.name.subname(a, b=1)`
         """
         if isinstance(name, str):
             name = [name]
@@ -142,14 +151,17 @@ class ConfigParser:
     # set read-only attributes
     @property
     def config(self) -> dict:
+        """Get config dict."""
         return self._config
 
     @property
     def save_dir(self) -> str:
+        """Get model save dir."""
         return self._save_dir
 
     @property
     def log_dir(self) -> str:
+        """Get model log dir."""
         return self._log_dir
 
 
