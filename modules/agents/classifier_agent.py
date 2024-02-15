@@ -86,8 +86,6 @@ class ClassifierAgent(BaseAgent):
         if self.config["torch_compile_model"]:
             self.logger.info("Using torch compile mode")
             self.model = torch.compile(self.model)
-        # use automatic mixed precision if set in config
-        self.use_amp = self.config["use_amp"]
 
         # if --resume cli argument is provided, give precedence to --resume ckpt path
         if self.config.resume:
@@ -159,7 +157,7 @@ class ClassifierAgent(BaseAgent):
             train_size += data.shape[0]
 
             # Enables autocasting for the forward pass (model + loss)
-            with autocast() if self.use_amp else nullcontext():
+            with autocast() if self.config["use_amp"] else nullcontext():
                 output = self.model(data)
                 loss = self.loss(output, target)
             cum_train_loss += loss.item()
