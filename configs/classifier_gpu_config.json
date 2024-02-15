@@ -1,5 +1,6 @@
 {
   "name": "image_classifier",
+  "git_hash": null,
   "seed": 42,
   "cudnn_deterministic": false,
   "cudnn_benchmark": true,
