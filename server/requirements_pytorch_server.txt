@@ -1,9 +1,9 @@
 easydict==1.11
 aiofiles==23.2.1
 imageio==2.32.0
-fastapi==0.104.1
+fastapi==0.109.1
 opencv-python==4.8.1.78
-python-multipart==0.0.6
+python-multipart==0.0.7
 requests==2.31.0
 torch==2.1.1
 torchvision==0.16.1

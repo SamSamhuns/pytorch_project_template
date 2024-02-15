@@ -1,9 +1,9 @@
 easydict==1.11
 aiofiles==23.2.1
-fastapi==0.104.1
+fastapi==0.109.1
 onnxruntime==1.16.2
 opencv-python==4.8.1.78
-python-multipart==0.0.6
+python-multipart==0.0.7
 requests==2.31.0
 uvicorn==0.24.0.post1
 webdataset==0.2.77
