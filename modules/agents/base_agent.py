@@ -14,7 +14,6 @@ import modules.datasets as module_datasets
 import modules.dataloaders as module_dataloaders
 import modules.augmentations as module_transforms
 from modules.loggers.base_logger import get_logger
-from modules.utils.statistics import print_cuda_statistics
 from modules.utils.util import is_port_in_use, recursively_flatten_dict, rgetattr, find_latest_file_in_dir, BColors
 
 
@@ -55,7 +54,6 @@ class BaseAgent:
             # for dataparallel, only gpu_device[0] can be specified
             self.device = torch.device("cuda", gpu_device[0])
             self.logger.info("Program will run on GPU device %s", self.device)
-            print_cuda_statistics()
         else:
             torch.manual_seed(self.manual_seed)
             self.device = torch.device("cpu")
