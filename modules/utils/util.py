@@ -54,8 +54,12 @@ class MissingConfigError(Exception):
 
 
 def get_git_revision_hash() -> str:
-    """Get the git hash of the current commit. Must be run from inside the git initialized repo."""
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    """Get the git hash of the current commit. Returns None if run from a non-git init repo"""
+    try:
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    except subprocess.CalledProcessError as excep:
+        print(excep, "Couldn't get git hash of the current repo. Returning None")
+    return None
 
 
 def is_port_in_use(port: int) -> bool:
