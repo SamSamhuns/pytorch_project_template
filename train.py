@@ -12,15 +12,23 @@ def get_config_from_args():
     parser = argparse.ArgumentParser(
         description='PyTorch Training. Currently only supports image classification')
     # primary cli args
-    parser.add_argument('--cfg', '--config', type=str, dest="config", default="configs/classifier_cpu_config.json",
-                        help='config file path (default: %(default)s)')
-    parser.add_argument('--id', '--run_id', type=str, dest="run_id", default="train_" + datetime.now().strftime(r'%Y%m%d_%H%M%S'),
-                        help='unique identifier for train process. Annotates train ckpts & logs. (default: %(default)s)')
-    parser.add_argument('-r', '--resume', type=str, dest="resume", default=None,
-                        help='path to resume ckpt. Overrides `resume_checkpoint` in config. (default: %(default)s)')
+    parser.add_argument(
+        '--cfg', '--config', type=str, dest="config", default="configs/classifier_cpu_config.json",
+        help='config file path (default: %(default)s)')
+    parser.add_argument(
+        '--id', '--run_id', type=str, dest="run_id", default="train_" + datetime.now().strftime(r'%Y%m%d_%H%M%S'),
+        help='unique identifier for training. Annotates train ckpts & logs. (default: %(default)s)')
+    parser.add_argument(
+        '-r', '--resume', type=str, dest="resume", default=None,
+        help='path to resume ckpt. Overrides `resume_checkpoint` in config. (default: %(default)s)')
+    parser.add_argument(
+        '-o', '--override', type=str, nargs='+', dest="override", default=None,
+        help='Override config params. Must match keys in json config. '
+        'e.g. -o seed:1 dataset:type:DTYPE (default: %(default)s)')
 
-    # custom cli options to modify configuration from default values given in json file.
-    # should be used to reset train params when resuming checkpoint, i.e. reducing LR
+    # custom cli options to modify cfg from values given in the json cfg file.
+    # works in the same way as the -o/--override argument above, which takes precendent
+    # to change LR {"flags": ['--lr'], "dest": "lr", "type": float, "target": "optimizer:args:lr"}
     override_options = [
         {"flags": ['--lr', '--learning_rate'],
          "dest": "learning_rate",
@@ -37,8 +45,8 @@ def get_config_from_args():
          "type": int, "target": "gpu_device"},
         {"flags": ['--mode'],
          "dest": "mode",
-         "help": "Config override arg: Running mode. Fixed to TRAIN (default: %(default)s)",
-         "default": "TRAIN", "choices": ["TRAIN"],
+         "help": "Running mode. (default: %(default)s)",
+         "default": "TRAIN", "choices": ["TRAIN", "TRAIN_TEST"],
          "type": str, "target": "mode"}
     ]
 
@@ -52,6 +60,8 @@ def main():
         config=config, logger_name="train")
 
     agent.train()
+    if config["mode"] == "TRAIN_TEST":
+        agent.test()
     agent.finalize_exit()
 
 
