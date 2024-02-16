@@ -59,13 +59,8 @@ class ConfigParser:
         self.save_dir.mkdir(parents=True, exist_ok=True)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
-        # try to get git hash if inside git repo
-        try:
-            git_hash = get_git_revision_hash()
-        except Exception as excep:
-            git_hash = None
-            print(excep, "Couldn't get git hash of the current repo")
-        config["git_hash"] = git_hash
+        # try to get git hash if inside git repo, otherwise use None
+        config["git_hash"] = get_git_revision_hash()
 
         # save updated config file to the checkpoint dir
         write_json(config, self.save_dir / 'config.json')
@@ -92,15 +87,28 @@ class ConfigParser:
         resume = args.resume
         run_id = args.run_id
         cfg_fname = Path(args.config)
-        config = read_json(cfg_fname)
+        config_dict = read_json(cfg_fname)
         if args.config and resume:
             # update new config for fine-tuning or testing
-            config.update(read_json(args.config))
-
-        # parse custom cli options into dictionary
+            config_dict.update(read_json(args.config))
+        # parse custom cli options into mod dictionary
         modification = {opt["target"]: getattr(
-            args, opt["dest"]) for opt in options} if options else None
-        return cls(config, run_id, resume, modification)
+            args, opt["dest"]) for opt in options} if options else {}
+
+        # parse override options into mod dictionary
+        if args.override:
+            for opt in args.override:
+                opt = opt.split(':')
+                key, val = ':'.join(opt[:-1]), opt[-1]
+                # try to cast val as int first, then float else use as-is
+                for cast in (int, float):
+                    try:
+                        val = cast(val)
+                        break  # Exit loop if conversion successful
+                    except ValueError:
+                        continue
+                modification[key] = val
+        return cls(config_dict, run_id, resume, modification)
 
     def init_obj(self, name, module, *args, **kwargs) -> object:
         """
@@ -155,13 +163,13 @@ class ConfigParser:
         return self._config
 
     @property
-    def save_dir(self) -> str:
-        """Get model save dir."""
+    def save_dir(self) -> Path:
+        """Get model save dir as posixpath."""
         return self._save_dir
 
     @property
-    def log_dir(self) -> str:
-        """Get model log dir."""
+    def log_dir(self) -> Path:
+        """Get model log dir as posixpath."""
         return self._log_dir
 
 
@@ -172,8 +180,20 @@ class ConfigParser:
 
 def _update_config(config: Dict, modification: Optional[Dict[str, str]] = None) -> Dict:
     """
-    Update config dict with param_path:value k:v pairs
-    i.e. param_path : value = "optimizer;args;learning_rate" : 0.001
+    Deep update config dict with modification dict with hierarchical key paths.
+    A key path is a string representing the hierarchical path to a specific configuration item, 
+    using colons (:) to separate levels in the hierarchy.
+
+    Args:
+        config: The original configuration dictionary to be updated.
+        modification: A dict with key paths as keys and the new values as values. 
+
+    Returns:
+        Dict: The updated configuration dictionary.
+
+    Example:
+        To update the learning rate in an optimizer config, the `modification` might look like:
+        {"optimizer:args:learning_rate": 0.001}
     """
     if modification is None:
         return config
@@ -186,7 +206,9 @@ def _update_config(config: Dict, modification: Optional[Dict[str, str]] = None) 
 
 def _set_by_path(tree: Dict, keys: List[str], value: str) -> None:
     """Set a value in a nested object in tree by sequence of keys."""
-    keys = keys.split(';')
+    keys = keys.split(':')
+    if len(keys) == 1 and keys[-1] not in tree:
+        raise KeyError(f"Key '{keys[-1]}' not found in config. Add key to JSON config first.")
     _get_by_path(tree, keys[:-1])[keys[-1]] = value
 
 
