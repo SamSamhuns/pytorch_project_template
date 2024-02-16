@@ -1,6 +1,7 @@
 {
   "name": "image_classifier",
   "git_hash": null,
+  "mode": "TRAIN",
   "seed": 42,
   "cudnn_deterministic": false,
   "cudnn_benchmark": false,
