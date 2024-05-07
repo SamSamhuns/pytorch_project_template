@@ -6,29 +6,22 @@
 
 This is a template for a PyTorch Project for training, testing, inference demo, and FastAPI serving along with Docker support.
 
-## Project Structure
-
-    ├── checkpoints
-    ├── configs
-    ├── modules
-    │   ├── agents
-    |   |── augmentations
-    │   ├── dataloaders
-    │   ├── datasets
-    │   ├── loggers
-    │   ├── losses
-    │   ├── models
-    │   ├── optimizers
-    │   ├── schedulers
-    │   └── utils
-    ├── server
-    |-- requirements
-    ├── requirements.txt
-    ├── copy_project.py
-    ├── inference.py
-    ├── server.py
-    ├── test.py
-    ├── train.py
+- [Pytorch Project Template, Computer Vision](#pytorch-project-template-computer-vision)
+  - [Setup](#setup)
+  - [Train](#train)
+  - [Custom Training](#custom-training)
+    - [Data Preparation](#data-preparation)
+      - [Example Training: Image Classification](#example-training-image-classification)
+    - [WebDataset for large scale training](#webdataset-for-large-scale-training)
+  - [Test](#test)
+  - [Tensorboard logging](#tensorboard-logging)
+  - [Inference](#inference)
+  - [Docker](#docker)
+    - [Training and testing](#training-and-testing)
+    - [For serving the model with FastAPI](#for-serving-the-model-with-fastapi)
+  - [Utility functions](#utility-functions)
+  - [Profiling PyTorch](#profiling-pytorch)
+  - [Acknowledgements](#acknowledgements)
 
 ## Setup
 
@@ -128,7 +121,7 @@ tensorboard --logdir=TF_LOG_DIR --port=6006
 
 Install docker in the system first:
 
-### For training and testing
+### Training and testing
 
 ```shell
 bash scripts/build_docker.sh  # builds the docker image
@@ -148,7 +141,7 @@ bash server/build_server_docker.sh -m pytorch/onnx
 bash server/run_server_docker.sh -h/--http 8080
 ```
 
-### Utility functions
+## Utility functions
 
 Clean cached builds, pycache, .DS_Store files, etc:
 
@@ -168,12 +161,12 @@ Count number of files in sub-directories in PATH
 bash scripts/count_files.sh PATH
 ```
 
-### Profiling PyTorch
+## Profiling PyTorch
 
 -   Line by line GPU memory usage profiling [pytorch_memlab](https://github.com/Stonesjtu/pytorch_memlab)
 -   Line by line time used profiliing [line_profiler](https://github.com/pyutils/line_profiler)
 
-### Acknowledgements
+## Acknowledgements
 
 -   <https://github.com/victoresque/pytorch-template>
 -   WebDataset <https://modelzoo.co/model/webdataset>
