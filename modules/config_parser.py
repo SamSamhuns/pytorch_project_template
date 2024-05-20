@@ -156,6 +156,10 @@ class ConfigParser:
     def __str__(self):
         return str(self._config)
 
+    def __iter__(self):
+        for k, v in self._config.items():
+            yield k, v
+
     # set read-only attributes
     @property
     def config(self) -> dict:
