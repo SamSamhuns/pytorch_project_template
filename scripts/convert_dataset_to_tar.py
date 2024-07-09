@@ -23,7 +23,7 @@ import imageio.v2 as imageio
 
 def generate_tar(src_data_dir: str,
                  tar_path: str,
-                 mapping_fname: str = 'dataset_mapping.txt') -> None:
+                 mapping_fname: str = "dataset_mapping.txt") -> None:
     """ generates a combined tar archive for loading into webdataset
     from class folder separated data from src_data_dir & a class mapping txt file
     """
@@ -47,7 +47,7 @@ def generate_tar(src_data_dir: str,
                     assert isinstance(class_id, int)
 
                     sink.write({
-                        "__key__": "sample%06d" % file_count,
+                        "__key__": f"sample{file_count:06d}",
                         "input.jpg": img,
                         "output.cls": class_id,
                     })
@@ -63,8 +63,7 @@ def main():
     parser.add_argument("--sd", "--source_data_path",
                         type=str, dest="source_data_path",
                         required=True,
-                        help="""Source dataset path with
-                        class imgs inside folders""")
+                        help="""Source dataset path with class imgs inside folders""")
     parser.add_argument("--td", "--target_tar_path",
                         type=str, dest="target_tar_path",
                         required=True,
@@ -72,9 +71,9 @@ def main():
                         data is stored for fast retrieval i.e. data/custom_data.tar""")
     parser.add_argument("--mp", "--mapping_file_path",
                         type=str, dest="mapping_file_path",
-                        required=True,
+                        default="data/dataset_mapping.txt",
                         help="""Mapping file txt path where
-                        class names and index ids will be present""")
+                        class names and index ids will be present (default: %(default)s)""")
     args = parser.parse_args()
     generate_tar(args.source_data_path,
                  args.target_tar_path,
