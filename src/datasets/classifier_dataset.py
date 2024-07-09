@@ -37,12 +37,12 @@ class ClassifierDataset:
         val_transform: torchvision.transforms for validation data
         test_transform: torchvision.transforms for test data
         data_mode: Mode for getting data
-            root: folder containing train & test data dirs
-            train_path: train dir under root
-            val_path: val dir under root
-            test_path: test dir under root
+        root: folder containing train & test data dirs
+        train_path: train dir under root
+        val_path: val dir under root
+        test_path: test dir under root
 
-        root
+        data_root
                 |--train_path
                 |--val_path
                 |--test_path
@@ -51,43 +51,43 @@ class ClassifierDataset:
         self.test_set = None
         if data_mode == "imgs":
             train_root = osp.join(root, train_path)
-            self.train_set = base_dataset.ImageFolderDataset(train_root,
-                                                                 transform=train_transform)
+            self.train_set = base_dataset.ImageFolderDataset(
+                train_root, transform=train_transform)
             if val_path is not None:
                 val_root = osp.join(root, val_path)
-                self.val_set = base_dataset.ImageFolderDataset(val_root,
-                                                                   transform=val_transform)
+                self.val_set = base_dataset.ImageFolderDataset(
+                    val_root, transform=val_transform)
             if test_path is not None:
                 test_root = osp.join(root, test_path)
-                self.test_set = base_dataset.ImageFolderDataset(test_root,
-                                                                    transform=test_transform)
+                self.test_set = base_dataset.ImageFolderDataset(
+                    test_root, transform=test_transform)
         elif data_mode == "webdataset":
             train_root = osp.join(root, train_path)
             train_len = _get_webdataset_len(train_root)
             self.train_set = (wds.WebDataset(train_root)
-                                  .shuffle(100)
-                                  .decode("pil")
-                                  .to_tuple("input.jpg", "output.cls")
-                                  .map_tuple(train_transform, identity)
-                                  .with_length(train_len))
+                              .shuffle(100)
+                              .decode("pil")
+                              .to_tuple("input.jpg", "output.cls")
+                              .map_tuple(train_transform, identity)
+                              .with_length(train_len))
             if val_path is not None:
                 val_root = osp.join(root, val_path)
                 val_len = _get_webdataset_len(val_root)
                 self.val_set = (wds.WebDataset(val_root)
-                                    .shuffle(100)
-                                    .decode("pil")
-                                    .to_tuple("input.jpg", "output.cls")
-                                    .map_tuple(val_transform, identity)
-                                    .with_length(val_len))
+                                .shuffle(100)
+                                .decode("pil")
+                                .to_tuple("input.jpg", "output.cls")
+                                .map_tuple(val_transform, identity)
+                                .with_length(val_len))
             if test_path is not None:
                 test_root = osp.join(root, test_path)
                 test_len = _get_webdataset_len(test_root)
                 self.test_set = (wds.WebDataset(test_root)
-                                     .shuffle(100)
-                                     .decode("pil")
-                                     .to_tuple("input.jpg", "output.cls")
-                                     .map_tuple(test_transform, identity)
-                                     .with_length(test_len))
+                                 .shuffle(100)
+                                 .decode("pil")
+                                 .to_tuple("input.jpg", "output.cls")
+                                 .map_tuple(test_transform, identity)
+                                 .with_length(test_len))
         elif data_mode == "numpy":
             raise NotImplementedError(
                 "This mode is not implemented YET")
