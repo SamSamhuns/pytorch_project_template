@@ -4,8 +4,8 @@ Testing script, run with: python test.py --cfg JSON_CONFIG_PATH -r TRAINED_PT_MO
 import argparse
 from datetime import datetime
 
-from modules.config_parser import ConfigParser
-from modules.agents import init_trainer
+from src.config_parser import ConfigParser
+from src.agents import init_trainer
 
 
 def get_config_from_args() -> ConfigParser:

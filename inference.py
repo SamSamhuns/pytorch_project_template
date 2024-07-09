@@ -7,20 +7,30 @@ Use the torch checkpoint file and the necessary transforms that are used for por
 import argparse
 from datetime import datetime
 
-from modules.agents import classifier_agent
-from modules.config_parser import ConfigParser
+from src.agents import classifier_agent
+from src.config_parser import ConfigParser
 
 
 def get_config_from_args():
     parser = argparse.ArgumentParser(
         description='PyTorch Inference. Currently only supports image classification')
     # primary cli args
-    parser.add_argument('--cfg', '--config', type=str, dest="config", default="configs/classifier_cpu_config.json",
-                        help='config file path (default: %(default)s)')
-    parser.add_argument('--id', '--run_id', type=str, dest="run_id", default="inference_" + datetime.now().strftime(r'%Y%m%d_%H%M%S'),
-                        help='unique identifier for inference process when saving results. (default: %(default)s)')
-    parser.add_argument('-r', '--resume', type=str, dest="resume", required=True,
-                        help='path to resume ckpt for running inference.')
+    parser.add_argument(
+        '--cfg', '--config', type=str, dest="config", default="configs/classifier_cpu_config.json",
+        help='config file path (default: %(default)s)')
+    parser.add_argument(
+        '--id', '--run_id', type=str, dest="run_id", default="inference_" + datetime.now().strftime(r'%Y%m%d_%H%M%S'),
+        help='unique identifier for inference process when saving results. (default: %(default)s)')
+    parser.add_argument(
+        '-r', '--resume', type=str, dest="resume", required=True,
+        help='path to resume ckpt for running inference.')
+    parser.add_argument(
+        '-o', '--override', type=str, nargs='+', dest="override", default=None,
+        help='Override config params. Must match keys in json config. '
+        'e.g. -o seed:1 dataset:type:DTYPE (default: %(default)s)')
+    parser.add_argument(
+        '-v', '--verbose', action='store_true', dest="verbose", default=False,
+        help='run training in verbose mode (default: %(default)s)')
 
     # additional custom cli options that ovveride or add new config params from json config file
     override_options = [
