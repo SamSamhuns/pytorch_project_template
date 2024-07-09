@@ -9,6 +9,7 @@
   "use_amp": false,
   "torch_compile_model": false,
   "trainer": {
+    "type": "ClassifierTrainer",
     "resume_checkpoint": null,
     "save_best_only": true,
     "batch_log_freq": 10,
@@ -57,7 +58,7 @@
       "validation_split": 0.0,
       "drop_last": false,
       "pin_memory": true,
-      "prefetch_factor": 2,
+      "prefetch_factor": null,
       "worker_init_fn": null
     }
   },

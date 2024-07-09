@@ -185,9 +185,10 @@ class BaseTrainer(_BaseTrainer):
         # define train, validate, and test data_loaders
         self.train_data_loader, self.val_data_loader, self.test_data_loader = None, None, None
         # in OSX systems ["dataloader"]["num_workers"] should be 0 which might increase train time
+        dldr_type = self.config["dataloader"]["type"]
         data_ldr_args = self.config["dataloader"]["args"].copy()
         self.train_data_loader = init_dataloader(
-            self.config["dataloader"]["type"], dataset=self.data_set.train_set, **data_ldr_args)
+            dldr_type, dataset=self.data_set.train_set, **data_ldr_args)
 
         # if val_path is not None then dataloader.args.validation_split is assumed to be 0.0
         # if no val dir is provided, take val split from training data
@@ -196,7 +197,7 @@ class BaseTrainer(_BaseTrainer):
         # if val dir is provided, use all data inside val dir for validation
         elif self.data_set.val_set is not None:
             self.val_data_loader = init_dataloader(
-                self.config["dataloader"]["type"], dataset=self.data_set.val_set, **data_ldr_args)
+                dldr_type, dataset=self.data_set.val_set, **data_ldr_args)
         # if an invalid val_path is provided
         elif val_path is not None and not self.data_set.val_set:
             msg = f"val_path: {val_path} in config is invalid."
@@ -205,20 +206,26 @@ class BaseTrainer(_BaseTrainer):
 
         if test_path is not None or self.data_set.test_set is not None:
             data_ldr_args["validation_split"] = 0.0
-            data_ldr_args["shuffle"] = False
+            if dldr_type != "WebDatasetDataLoader":
+                data_ldr_args["shuffle"] = False
             self.test_data_loader = init_dataloader(
-                self.config["dataloader"]["type"], dataset=self.data_set.test_set, **data_ldr_args)
+                dldr_type, dataset=self.data_set.test_set, **data_ldr_args)
 
         # log dataset data count, uniq labels and counts
         if config.verbose:
             ds = self.data_set.train_set
             train_set = ds.dataset if isinstance(ds, Subset) else ds
+            test_set = self.data_set.test_set
+            if dldr_type != "WebDatasetDataLoader":
+                train_set = train_set.data
+                test_set = self.data_set.test_set.data
+
             self.logger.info(
                 "TRAIN: Loaded %d data points from %s",
-                len(train_set.data), self.config["dataset"]["args"]["root"])
+                len(train_set), self.config["dataset"]["args"]["root"])
             self.logger.info(
                 "TEST: Loaded %d data points from %s",
-                len(self.data_set.test_set.data), self.config["dataset"]["args"]["root"])
+                len(test_set), self.config["dataset"]["args"]["root"])
 
             def _log_unique_label_counts(data_loader, label_type):
                 """Extracts targets, flattens them, and logs unique counts."""
