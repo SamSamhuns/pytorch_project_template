@@ -4,9 +4,9 @@ import os
 import torch
 from typing import Optional
 
-from modules.agents import classifier_agent
-from modules.config_parser import ConfigParser
-from modules.utils.util import read_json
+from src.agents import classifier_agent
+from src.config_parser import ConfigParser
+from src.utils.common import read_json
 
 
 def init_detectors(models_param_dict: dict, device: Optional[str] = "0"):
