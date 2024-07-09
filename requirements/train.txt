@@ -1,6 +1,9 @@
 easydict==1.13
 imageio==2.34.2
 matplotlib==3.9.1
+onnx==1.16.1
+onnxruntime==1.18.1
+onnxscript==0.1.0.dev20240709
 packaging==24.1
 requests==2.32.3
 scikit-learn==1.5.1
