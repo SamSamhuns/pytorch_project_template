@@ -1,5 +1,6 @@
 easydict==1.13
 imageio==2.34.2
+matplotlib==3.9.1
 packaging==24.1
 requests==2.32.3
 scikit-learn==1.5.1
