@@ -7,7 +7,7 @@ Use the torch checkpoint file and the necessary transforms that are used for por
 import argparse
 from datetime import datetime
 
-from src.agents import classifier_agent
+from src.trainers import classifier_agent
 from src.config_parser import ConfigParser
 
 

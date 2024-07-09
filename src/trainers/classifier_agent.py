@@ -18,7 +18,7 @@ from torch.cuda.amp import autocast
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 
-from src.agents import BaseTrainer
+from src.trainers import BaseTrainer
 from src.datasets.base_dataset import IMG_EXTENSIONS
 from src.config_parser import ConfigParser
 from src.losses import init_loss

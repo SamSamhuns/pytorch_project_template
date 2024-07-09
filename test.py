@@ -5,7 +5,7 @@ import argparse
 from datetime import datetime
 
 from src.config_parser import ConfigParser
-from src.agents import init_trainer
+from src.trainers import init_trainer
 
 
 def get_config_from_args() -> ConfigParser:

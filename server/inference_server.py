@@ -4,7 +4,7 @@ import os
 import torch
 from typing import Optional
 
-from src.agents import classifier_agent
+from src.trainers import classifier_agent
 from src.config_parser import ConfigParser
 from src.utils.common import read_json
 
