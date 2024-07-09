@@ -1,3 +1,4 @@
+"""Duplicate data"""
 import os
 import os.path as osp
 import glob
@@ -5,7 +6,6 @@ import shutil
 import argparse
 
 from tqdm import tqdm
-from src.utils.common import _fix_path_for_globbing
 
 
 # #################### Raw Data Organization ########################
@@ -25,31 +25,6 @@ from src.utils.common import _fix_path_for_globbing
 # #################### Data configurations here #####################
 VALID_FILE_EXTS = {'jpg', 'jpeg', 'png', 'ppm', 'bmp', 'pgm'}
 # ###################################################################
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-rd", "--raw_data_path",
-                        type=str, dest="raw_data_path",
-                        required=True,
-                        help="""Raw dataset path with
-                        class imgs inside folders""")
-    parser.add_argument("-td", "--target_data_path",
-                        type=str, dest="target_data_path",
-                        required=True,
-                        help="""Target dataset path where
-                        imgs will be saved in sub folders
-                        repr classes with number matching target_number""")
-    parser.add_argument("-n", "--target_number",
-                        type=int,
-                        required=False,
-                        default=1000,
-                        help="""Target size to reach for
-                        each class after duplication (default: %(default)s)""")
-    args = parser.parse_args()
-    split_train_test(args.raw_data_path,
-                     args.target_data_path,
-                     args.target_number)
 
 
 def safe_copy(file_path, out_dir, dst=None) -> None:
@@ -78,7 +53,10 @@ def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
     target_dir = DUPLICATED_IMG_DIR
     os.makedirs(target_dir, exist_ok=True)
 
-    dir_list = glob.glob(_fix_path_for_globbing(RAW_IMG_DIR))
+    # fix path for globbing
+    if not RAW_IMG_DIR.endswith(('/', '*')):
+        RAW_IMG_DIR += '/'
+    dir_list = glob.glob(RAW_IMG_DIR + '*')
 
     # for each class in raw data
     for i in tqdm(range(len(dir_list))):
@@ -106,6 +84,29 @@ def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
                     break
             if f_count == 0:  # no files in directory
                 break
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-rd", "--raw_data_path",
+                        type=str, dest="raw_data_path",
+                        required=True,
+                        help="""Raw dataset path with class imgs inside folders""")
+    parser.add_argument("-td", "--target_data_path",
+                        type=str, dest="target_data_path",
+                        required=True,
+                        help="""Target dataset path where imgs will be saved in sub folders
+                        repr classes with number matching target_number""")
+    parser.add_argument("-n", "--target_number",
+                        type=int,
+                        required=False,
+                        default=1000,
+                        help="""Target size to reach for
+                        each class after duplication (default: %(default)s)""")
+    args = parser.parse_args()
+    split_train_test(args.raw_data_path,
+                     args.target_data_path,
+                     args.target_number)
 
 
 if __name__ == "__main__":

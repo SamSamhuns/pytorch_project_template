@@ -1,8 +1,7 @@
-# convert dataset to tar format for fast loading with webdataset
+"""convert dataset to tar format for fast loading with webdataset"""
 import glob
 import argparse
 from tqdm import tqdm
-from src.utils.common import _fix_path_for_globbing
 
 
 # #################### Raw Data Organization ########################
@@ -24,7 +23,10 @@ def generate_tar(src_data_dir: str,
                  mapping_file_path: str = 'dataset_mapping.txt') -> None:
     """ generates a class id2name mapping txt file based on the 1st level directory structure
     """
-    dir_list = sorted(glob.glob(_fix_path_for_globbing(src_data_dir)))
+    # fix path for globbing
+    if not src_data_dir.endswith(('/', '*')):
+        src_data_dir += '/'
+    dir_list = sorted(glob.glob(src_data_dir + '*'))
     class_id = 0
 
     with open(mapping_file_path, "w", encoding="utf-8") as mptr:

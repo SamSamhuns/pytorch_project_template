@@ -11,7 +11,7 @@ import argparse
 from typing import List
 
 from tqdm import tqdm
-from src.utils.common import _fix_path_for_globbing
+
 
 # #################### Raw Data Organization #########################
 #   raw_data
@@ -55,7 +55,10 @@ def split_train_test(RAW_IMG_DIR: str, PROCESSED_IMG_DIR: str, VAL_SPLIT: float,
         test_dir = os.path.join(PROCESSED_IMG_DIR, "test")
         os.makedirs(test_dir, exist_ok=True)
 
-    dir_list = glob.glob(_fix_path_for_globbing(RAW_IMG_DIR))
+    # fix path for globbing
+    if not RAW_IMG_DIR.endswith(('/', '*')):
+        RAW_IMG_DIR += '/'
+    dir_list = glob.glob(RAW_IMG_DIR + '*')
 
     # for each class in raw data
     for i in tqdm(range(len(dir_list))):
