@@ -1,7 +1,7 @@
 from typing import Tuple
-import torch
-import torch.nn as nn
-from torchsummary import summary
+
+from torch import nn
+from torchinfo import summary
 
 
 class BaseModel(nn.Module):
@@ -51,24 +51,12 @@ class BaseModel(nn.Module):
         elif method == "glorot":
             self._glorot_init()
         else:
-            raise NotImplementedError(
-                f"{method} initialization not implemented")
-
-    def get_params(self):
-        """
-        Get total number of params in model 
-        """
-        total_params = sum(torch.numel(p) for p in self.parameters())
-        net_params = filter(lambda p: p.requires_grad, self.parameters())
-        trainable_params = sum(torch.numel(p) for p in net_params)
-        return {'Model': self.__class__,
-                'Total params': total_params,
-                'Trainable params': trainable_params,
-                'Non-trainable params': total_params - trainable_params}
+            raise NotImplementedError(f"{method} initialization not implemented")
 
     def print_summary(self, input_size: Tuple[int], device: str = "cpu"):
         """
         Generate Network summary.
+        input_size: tuple of input size [bsize, ...]
         device: str should be either 'cuda' or 'cpu'
         """
         assert device in {"cuda", "cpu"}

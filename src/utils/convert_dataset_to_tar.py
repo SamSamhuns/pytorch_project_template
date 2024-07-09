@@ -4,7 +4,7 @@ import argparse
 from tqdm import tqdm
 import webdataset as wds
 import imageio.v2 as imageio
-from modules.utils.common import _fix_path_for_globbing
+from src.utils.common import _fix_path_for_globbing
 
 
 # #################### Raw Data Organization ########################

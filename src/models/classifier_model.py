@@ -28,7 +28,7 @@ import torch
 from .base_model import BaseModel
 
 
-class Classifier(BaseModel):
+class ClassifierModel(BaseModel):
     """
     backbone: network to extract features
     num_classes: num classes to predict/ num of outputs of network, exclusive to feat_extract
@@ -36,13 +36,13 @@ class Classifier(BaseModel):
     pretrained: use weights pretrained from imagenet
     """
     def __init__(self,
-                 backbone=models.mobilenet_v2,
-                 num_classes=10,
-                 feat_extract=False,
-                 pretrained_weights="MobileNet_V2_Weights.IMAGENET1K_V1",
+                 backbone: str = "mobilenet_v2",
+                 num_classes: int = 10,
+                 feat_extract: bool = False,
+                 pretrained_weights: str = "MobileNet_V2_Weights.IMAGENET1K_V1",
                  **kwargs):
         super().__init__()
-        self.backbone = backbone(weights=pretrained_weights)
+        self.backbone = getattr(models, backbone)(weights=pretrained_weights)
         if feat_extract and (num_classes > 0 or num_classes is not None):
             raise RuntimeError(
                 "feat_extract mode is not compatible when num_classes greater than 0")

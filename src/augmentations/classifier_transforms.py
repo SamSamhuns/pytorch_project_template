@@ -1,7 +1,7 @@
 from torchvision import transforms
 
 
-class ClassifierPreprocess:
+class ImagenetClassifierPreprocess:
     common_transform = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),

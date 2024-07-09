@@ -3,7 +3,7 @@ An example for the model class
 """
 import torch.nn as nn
 from .base_model import BaseModel
-from modules.utils.weights_initializer import weights_init
+from src.utils.weights_initializer import weights_init
 
 
 class Example(BaseModel):

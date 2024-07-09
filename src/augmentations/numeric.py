@@ -1,7 +1,7 @@
 from typing import Any, List, Union
 
 import numpy as np
-from modules.utils.common import stable_sort
+from src.utils.common import stable_sort
 
 
 class NumerizeLabels:

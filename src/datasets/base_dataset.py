@@ -133,8 +133,8 @@ class BaseDataset(data.Dataset):
                  transform=None,
                  target_transform=None):
         classes, class_to_idx = _find_classes(root)
-        samples = _make_dataset(root, class_to_idx, extensions)
-        if len(samples) == 0:
+        data = _make_dataset(root, class_to_idx, extensions)
+        if len(data) == 0:
             raise(RuntimeError(f"Found 0 files in subfolders of: {root}"
                                f"\nSupported extensions are: {','.join(extensions)}"))
 
@@ -144,7 +144,7 @@ class BaseDataset(data.Dataset):
 
         self.classes = classes
         self.class_to_idx = class_to_idx
-        self.samples = samples
+        self.data = data
 
         self.transform = transform
         self.target_transform = target_transform
@@ -161,7 +161,7 @@ class BaseDataset(data.Dataset):
             None when there is an error loading a datum
         """
         try:
-            path, target = self.samples[index]
+            path, target = self.data[index]
             sample = self.loader(path)
             if self.transform is not None:
                 sample = self.transform(sample)
@@ -174,7 +174,7 @@ class BaseDataset(data.Dataset):
             return None
 
     def __len__(self):
-        return len(self.samples)
+        return len(self.data)
 
     def __repr__(self):
         fmt_str = 'Dataset ' + self.__class__.__name__ + '\n'
@@ -231,7 +231,7 @@ class ImageFolderDataset(BaseDataset):
             file_extensions,
             transform=transform,
             target_transform=target_transform)
-        self.imgs = self.samples
+        self.imgs = self.data
 
 
 if __name__ == "__main__":

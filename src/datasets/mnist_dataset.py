@@ -10,29 +10,29 @@ class MnistDataset:
     def __init__(self,
                  train_transform=None,
                  test_transform=None,
-                 data_root='data',
+                 root='data',
                  data_mode="download",
                  **kwargs):
         """
         train_transform: torchvision.transforms for train data
         test_transform: torchvision.transforms for test data
-        data_root: folder containing train & test data dirs
+        root: folder containing train & test data dirs
         data_mode: Mode for getting data
         """
+        self.val_set = None
+        self.test_set = None
         if data_mode == "download":
-            self.train_set = datasets.MNIST(data_root,
-                                                train=True,
-                                                download=True,
-                                                transform=train_transform)
-            self.test_set = datasets.MNIST(data_root,
-                                               train=False,
-                                               transform=test_transform)
+            self.train_set = datasets.MNIST(root,
+                                            train=True,
+                                            download=True,
+                                            transform=train_transform)
+            self.test_set = datasets.MNIST(root,
+                                           train=False,
+                                           transform=test_transform)
         elif data_mode == "imgs":
             raise NotImplementedError("This mode is not implemented YET")
-
         elif data_mode == "numpy":
             raise NotImplementedError("This mode is not implemented YET")
-
         else:
             raise Exception(
                 "Please specify in the json a specified mode in data_mode")
@@ -45,7 +45,7 @@ class MnistDataset:
         :param out_dir: output save directory
         :return: img_epoch: which will contain the image of this epoch
         """
-        img_epoch = '{}samples_epoch_{:d}.png'.format(out_dir, epoch)
+        img_epoch = f"{out_dir}samples_epoch_{epoch:d}.png"
         v_utils.save_image(batch,
                            img_epoch,
                            nrow=4,
@@ -62,14 +62,14 @@ class MnistDataset:
         """
         gen_image_plots = []
         for epoch in range(epochs + 1):
-            img_epoch = '{}samples_epoch_{:d}.png'.format(out_dir, epoch)
+            img_epoch = f"{out_dir}samples_epoch_{epoch:d}.png"
             try:
                 gen_image_plots.append(imageio.imread(img_epoch))
             except OSError as e:
                 print(e)
 
         imageio.mimsave(
-            out_dir + 'animation_epochs_{:d}.gif'.format(epochs), gen_image_plots, fps=2)
+            out_dir + f"animation_epochs_{epochs:d}.gif", gen_image_plots, fps=2)
 
     def finalize(self):
         pass

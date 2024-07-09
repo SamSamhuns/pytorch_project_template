@@ -3,7 +3,7 @@ from typing import Union
 import numpy as np
 from sklearn.manifold import TSNE
 
-from modules.utils.visualization.common import plot_scatter_2d, plot_scatter_3d
+from src.utils.visualization.common import plot_scatter_2d, plot_scatter_3d
 
 
 def plot_tsne_2d(
