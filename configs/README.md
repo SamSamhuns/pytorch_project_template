@@ -10,7 +10,7 @@ An example Configuration file is provided at `classifier_cpu_config.json`
     'cudnn_benchmark'     # set to true for faster training with gpu, as it usues faster funcs on subsequent runs
     'gpu_device'          # cuda device list for single/multi gpu training
     'use_amp'             # automatic mixed precision training for faster train
-    'arch'
+    'model'
     'dataset'
     'dataloader'
     'optimizer'
@@ -18,4 +18,3 @@ An example Configuration file is provided at `classifier_cpu_config.json`
     'metrics'
     'lr_scheduler'
     'trainer'
-    'logger'

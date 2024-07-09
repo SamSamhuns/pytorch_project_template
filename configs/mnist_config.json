@@ -1,5 +1,5 @@
 {
-  "name": "image_classifier",
+  "name": "mnist_image_classifier",
   "git_hash": null,
   "mode": "TRAIN",
   "seed": 42,
@@ -9,6 +9,7 @@
   "use_amp": false,
   "torch_compile_model": false,
   "trainer": {
+    "type": "ClassifierTrainer",
     "resume_checkpoint": null,
     "save_best_only": true,
     "batch_log_freq": 10,
@@ -18,16 +19,13 @@
     "verbosity": 2,
     "save_dir": "checkpoints",
     "use_tensorboard": true,
-    "tensorboard_port": 6006,
-    "tensorboard_log_dir": "tf_logs"
+    "tensorboard_port": null
   },
-  "arch": {
-    "type": "Mnist",
+  "model": {
+    "type": "MnistModel",
     "args": {
-      "feat_extract": false,
-      "pretrained": true
+      "num_classes": 10
     },
-    "backbone": null,
     "input_width": 28,
     "input_height": 28,
     "input_channel": 1
@@ -35,17 +33,17 @@
   "dataset": {
     "type": "MnistDataset",
     "args": {
-      "data_root": "data",
+      "root": "data",
       "train_path": "train",
       "val_path": null,
       "test_path": "test"
     },
     "num_classes": 10,
     "preprocess": {
-      "train_transform": "MnistPreprocess.train",
-      "val_transform": "MnistPreprocess.val",
-      "test_transform": "MnistPreprocess.test",
-      "inference_transform": "MnistPreprocess.inference"
+      "train_transform": "MnistPreprocess",
+      "val_transform": "MnistPreprocess",
+      "test_transform": "MnistPreprocess",
+      "inference_transform": "MnistPreprocess"
     }
   },
   "dataloader": {
@@ -90,13 +88,5 @@
       "factor": 0.1,
       "patience": 8
     }
-  },
-  "logger": {
-    "file_fmt": "%(asctime)s %(levelname)-8s: %(message)s",
-    "console_fmt": "%(message)s",
-    "logger_level": 10,
-    "file_level": 10,
-    "console_level": 10,
-    "<avai logger levels>": "DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50"
   }
 }

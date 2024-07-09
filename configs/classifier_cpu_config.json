@@ -9,7 +9,7 @@
   "use_amp": false,
   "torch_compile_model": false,
   "trainer": {
-    "type": "ClassifierAgent",
+    "type": "ClassifierTrainer",
     "resume_checkpoint": null,
     "save_best_only": true,
     "batch_log_freq": 5,
@@ -19,16 +19,16 @@
     "verbosity": 2,
     "save_dir": "checkpoints",
     "use_tensorboard": true,
-    "tensorboard_port": 6006,
-    "tensorboard_log_dir": "tf_logs"
+    "tensorboard_port": null
   },
-  "arch": {
-    "type": "Classifier",
+  "model": {
+    "type": "ClassifierModel",
     "args": {
+      "backbone": "mobilenet_v2",
+      "num_classes": 525,
       "feat_extract": false,
       "pretrained_weights": "MobileNet_V2_Weights.IMAGENET1K_V1"
     },
-    "backbone": "mobilenet_v2",
     "input_width": 224,
     "input_height": 224,
     "input_channel": 3
@@ -36,17 +36,17 @@
   "dataset": {
     "type": "ClassifierDataset",
     "args": {
-      "data_root": "data/birds_dataset",
+      "root": "data/birds_dataset",
       "train_path": "train",
       "val_path": "val",
       "test_path": "test"
     },
     "num_classes": 525,
     "preprocess": {
-      "train_transform": "ClassifierPreprocess.train",
-      "val_transform": "ClassifierPreprocess.val",
-      "test_transform": "ClassifierPreprocess.test",
-      "inference_transform": "ClassifierPreprocess.inference"
+      "train_transform": "ImagenetClassifierPreprocess",
+      "val_transform": "ImagenetClassifierPreprocess",
+      "test_transform": "ImagenetClassifierPreprocess",
+      "inference_transform": "ImagenetClassifierPreprocess"
     }
   },
   "dataloader": {
@@ -91,13 +91,5 @@
       "factor": 0.1,
       "patience": 8
     }
-  },
-  "logger": {
-    "file_fmt": "%(asctime)s %(levelname)-8s: %(message)s",
-    "console_fmt": "%(message)s",
-    "logger_level": 10,
-    "file_level": 10,
-    "console_level": 10,
-    "<avai logger levels>": "DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50"
   }
 }
