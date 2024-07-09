@@ -24,7 +24,7 @@ echo "Starting Model Server in Docker Container in $mode mode"
 if [ "$mode" == "pytorch" ]
 then
    # copy files for pytorch inference with fastapi
-   cp -r modules server/
+   cp -r src server/
    cp -r configs server/
    cp -r checkpoints server/
 elif [ "$mode" == "onnx" ]
