@@ -135,8 +135,9 @@ class BaseDataset(data.Dataset):
         classes, class_to_idx = _find_classes(root)
         data = _make_dataset(root, class_to_idx, extensions)
         if len(data) == 0:
-            raise(RuntimeError(f"Found 0 files in subfolders of: {root}"
-                               f"\nSupported extensions are: {','.join(extensions)}"))
+            raise (RuntimeError(
+                f"Found 0 files in subfolders of: {root}"
+                f"\nSupported extensions are: {','.join(extensions)}"))
 
         self.root = root
         self.loader = loader
@@ -237,17 +238,18 @@ class ImageFolderDataset(BaseDataset):
 if __name__ == "__main__":
     from torchvision import transforms
 
-    train_data = ImageFolderDataset("data/birds_dataset/valid",
-                                    IMG_EXTENSIONS,
-                                    transform=transforms.Compose([
-                                        transforms.CenterCrop(299),
-                                        transforms.ColorJitter(brightness=1.5,
-                                                               contrast=0.8,
-                                                               saturation=0.8,
-                                                               hue=0.4),
-                                        transforms.RandomHorizontalFlip(p=0.5),
-                                        transforms.ToTensor(),
-                                    ]))
+    train_data = ImageFolderDataset(
+        "data/birds_dataset/valid",
+        IMG_EXTENSIONS,
+        transform=transforms.Compose([
+            transforms.CenterCrop(299),
+            transforms.ColorJitter(brightness=1.5,
+                                   contrast=0.8,
+                                   saturation=0.8,
+                                   hue=0.4),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.ToTensor(),
+        ]))
     print("Printing ImageFolderDataset data class", train_data)
     print("Printing len of data class (Number of images in data)", len(train_data))
     print("Printing the shape of the first datum and its label from the data",
