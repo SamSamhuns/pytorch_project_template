@@ -1,3 +1,6 @@
+"""
+Base customized dataloader
+"""
 import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
@@ -47,7 +50,7 @@ class CustomDataLoader(DataLoader):
             'num_workers': num_workers,
             'timeout': timeout,
             'drop_last': drop_last,
-            'pin_memory': pin_memory,
+            'pin_memory': pin_memory,  # setting to True will use some gpu mem
             'prefetch_factor': prefetch_factor,
             'worker_init_fn': worker_init_fn,
             'persistent_workers': persistent_workers
@@ -86,39 +89,3 @@ class CustomDataLoader(DataLoader):
             return None
         else:
             return DataLoader(sampler=self.valid_sampler, **self.init_kwargs)
-
-
-if __name__ == "__main__":
-    # for image datasets with input data organized within separate folders
-    # based on their parent labels use torchvision.datasets.ImageFolder
-    import torchvision.datasets as datasets
-    import torchvision.transforms as transforms
-
-    img_dataset = datasets.ImageFolder(root="data/birds_dataset/val",
-                                   transform=transforms.ToTensor())
-    print(img_dataset)
-    print(f"len of img_dataset(Number of datapoints): {len(img_dataset)}")
-    data_loader = CustomDataLoader(img_dataset,
-                                 batch_size=32,
-                                 shuffle=True,
-                                 validation_split=0.1,
-                                 num_workers=2)
-
-    # train dataloader
-    train_len = 0
-    for (X_batch, y_batch) in data_loader:
-        X, y = X_batch, y_batch
-        train_len += X.shape[0]
-    print("train dataloader")
-    print(f"\t shape of last batch(X,y): {X.shape, y.shape}")
-    print(f"\t num of datapoints: {train_len}")
-
-    # validation dataloader
-    if data_loader.get_validation_split() is not None:
-        val_len = 0
-        for (X_batch, y_batch) in data_loader.get_validation_split():
-            X, y = X_batch, y_batch
-            val_len += X.shape[0]
-        print("val dataloader")
-        print(f"\t shape of last batch(X,y): {X.shape, y.shape}")
-        print(f"\t num of datapoints: {val_len}")
