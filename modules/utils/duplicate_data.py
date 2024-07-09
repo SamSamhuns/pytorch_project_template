@@ -5,7 +5,8 @@ import shutil
 import argparse
 
 from tqdm import tqdm
-from util import _fix_path_for_globbing
+from modules.utils.common import _fix_path_for_globbing
+
 
 # #################### Raw Data Organization ########################
 #   raw_data

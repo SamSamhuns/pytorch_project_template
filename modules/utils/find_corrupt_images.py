@@ -4,7 +4,7 @@ import argparse
 
 import imageio
 from tqdm import tqdm
-from util import _fix_path_for_globbing
+from modules.utils.common import _fix_path_for_globbing
 
 
 def validate_imgs(source_path, corrupt_flist_txt, remove) -> None:
