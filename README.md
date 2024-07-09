@@ -14,7 +14,7 @@ This is a template for a PyTorch Project for training, testing, inference demo, 
       - [Example Training: Image Classification](#example-training-image-classification)
     - [WebDataset for large scale training](#webdataset-for-large-scale-training)
   - [Test](#test)
-  - [Tensorboard logging](#tensorboard-logging)
+  - [TensorBoard logging](#tensorboard-logging)
   - [Inference](#inference)
   - [Docker](#docker)
     - [Training and testing](#training-and-testing)
@@ -105,7 +105,7 @@ Test based on CONFIG_FILE. By default testing is done for mnist classification.
 python test.py --cfg CONFIG_FILE
 ```
 
-## Tensorboard logging
+## TensorBoard logging
 
 All tensorboard logs are saved in the `tensorboard_log_dir` setting in the config file. Logs include train/val epoch accuracy/loss, graph, and preprocessed images per epoch.
 
@@ -149,12 +149,6 @@ Clean cached builds, pycache, .DS_Store files, etc:
 bash scripts/cleanup.sh
 ```
 
-Copy project structure:
-
-```shell
-python copy_project.py ../NewProject
-```
-
 Count number of files in sub-directories in PATH
 
 ```shell
@@ -164,7 +158,7 @@ bash scripts/count_files.sh PATH
 ## Profiling PyTorch
 
 -   Line by line GPU memory usage profiling [pytorch_memlab](https://github.com/Stonesjtu/pytorch_memlab)
--   Line by line time used profiliing [line_profiler](https://github.com/pyutils/line_profiler)
+-   Line by line time used profiling [line_profiler](https://github.com/pyutils/line_profiler)
 
 ## Acknowledgements
 
