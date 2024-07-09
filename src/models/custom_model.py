@@ -6,7 +6,7 @@ from .base_model import BaseModel
 from src.utils.weights_initializer import weights_init
 
 
-class Example(BaseModel):
+class CustomModel(BaseModel):
     """
     Example NN model
     """
@@ -16,7 +16,7 @@ class Example(BaseModel):
 
         # inputs are destroyed without allocating additional output
         self.relu = nn.ReLU(inplace=True)
-        self.conv = nn.Conv2d(in_channels=self.config.INPUT_CHANNELs,
+        self.conv = nn.Conv2d(in_channels=self.config.INPUT_CHANNELS,
                               out_channels=self.config.num_filters,
                               kernel_size=3,
                               stride=1,
