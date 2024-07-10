@@ -1,5 +1,5 @@
-from .base_agent import BaseTrainer
-from .classifier_agent import ClassifierTrainer
+from .base_trainer import BaseTrainer
+from .classifier_trainer import ClassifierTrainer
 
 
 IMPLEMENTED_TRAINERS = {

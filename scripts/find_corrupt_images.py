@@ -22,7 +22,7 @@ def validate_imgs(source_path, corrupt_flist_txt, remove) -> None:
             for img_name in img_list:
                 # print(img_name)
                 try:
-                    img = imageio.imread(img_name, pilmode="RGB")
+                    img = imageio.imread(img_name, mode="RGB")
                     img = img[..., :3]
                 except Exception as excep:
                     print(f"{excep}. imageio could not read file {img_name}")

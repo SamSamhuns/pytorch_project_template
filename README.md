@@ -60,13 +60,13 @@ Set training data inside `data` directory in the following format:
 
 ```shell
 # generate an id to name classmap
-python src/utils/generate_classmap_from_dataset.py --sd data/SOURCE_DATASET --mp data/ID_2_CLASSNAME_MAP_TXT_FILE
+python scripts/generate_classmap_from_dataset.py --sd data/SOURCE_DATASET --mp data/ID_2_CLASSNAME_MAP_TXT_FILE
 
 # create train val test split, also creates an index to classname mapping txt file
-python src/utils/train_val_test_split.py --rd data/SOURCE_DATASET --td data/SOURCE_DATASET_SPLIT --vs VAL_SPLIT_FRAC -ts TEST_SPLIT_FRAC
+python scripts/train_val_test_split.py --rd data/SOURCE_DATASET --td data/SOURCE_DATASET_SPLIT --vs VAL_SPLIT_FRAC -ts TEST_SPLIT_FRAC
 
 # OPTIONAL duplicate train data if necessary
-python src/utils/duplicate_data.py --rd data/SOURCE_DATASET_SPLIT/train --td data/SOURCE_DATASET_SPLIT/train -n TARGET_NUMBER
+python scripts/duplicate_data.py --rd data/SOURCE_DATASET_SPLIT/train --td data/SOURCE_DATASET_SPLIT/train -n TARGET_NUMBER
 
 # create a custom config file based on configs/classifier_cpu_config.json and modify train parameters
 cp configs/classifier_cpu_config.json configs/custom_classifier_cpu_config.json
@@ -86,9 +86,9 @@ python train.py --cfg custom_classifier_cpu_config.json
 Convert existing dataset to a `tar` archive format used by WebDataset. The data directory must match the structure above.
 
 ```shell
-# ID_2_CLASSNAME_MAP_TXT_FILE is generated using the src/utils/train_val_test_split.py file
+# ID_2_CLASSNAME_MAP_TXT_FILE is generated using the scripts/train_val_test_split.py file
 # convert train/val/test splits into tar archives
-python src/utils/convert_dataset_to_tar.py --sd data/SOURCE_DATA_SPLIT --td data/TARGET_TAR_SPLIT.tar --mp ID_2_CLASSNAME_MAP_TXT_FILE
+python scripts/convert_dataset_to_tar.py --sd data/SOURCE_DATA_SPLIT --td data/TARGET_TAR_SPLIT.tar --mp ID_2_CLASSNAME_MAP_TXT_FILE
 ```
 
 An example configuration for training with the WebDataset format is provided in `configs/classifier_webdataset_cpu_config.json`.

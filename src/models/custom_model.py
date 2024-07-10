@@ -10,18 +10,16 @@ class CustomModel(BaseModel):
     """
     Example NN model
     """
-    def __init__(self, config, **kwargs):
+    def __init__(self, in_c: int, out_c: int, **kwargs):
         super().__init__()
-        self.config = config
 
-        # inputs are destroyed without allocating additional output
-        self.relu = nn.ReLU(inplace=True)
-        self.conv = nn.Conv2d(in_channels=self.config.INPUT_CHANNELS,
-                              out_channels=self.config.num_filters,
+        self.conv = nn.Conv2d(in_channels=in_c,
+                              out_channels=out_c,
                               kernel_size=3,
                               stride=1,
                               padding=1,
                               bias=False)
+        self.relu = nn.ReLU(inplace=True)
 
         # initialize weights
         self.apply(weights_init)

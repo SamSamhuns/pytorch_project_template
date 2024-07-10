@@ -43,7 +43,8 @@ class ClassifierModel(BaseModel):
                  **kwargs):
         super().__init__()
         self.backbone = getattr(models, backbone)(weights=pretrained_weights)
-        if feat_extract and (num_classes > 0 or num_classes is not None):
+
+        if feat_extract and (num_classes > 0 and num_classes is not None):
             raise RuntimeError(
                 "feat_extract mode is not compatible when num_classes greater than 0")
 

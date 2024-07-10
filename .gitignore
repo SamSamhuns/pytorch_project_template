@@ -156,8 +156,8 @@ checkpoints*
 # server model files which are copied from the project root path
 server/configs
 server/checkpoints
-server/modules
+server/src
 
 # data and cache files
-data
+/data
 .data_cache

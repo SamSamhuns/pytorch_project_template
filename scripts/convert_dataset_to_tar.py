@@ -41,10 +41,9 @@ def generate_tar(src_data_dir: str,
             img_list = glob.glob(dir_name + "/*")
             for img_name in img_list:
                 try:
-                    img = imageio.imread(img_name, pilmode="RGB")
+                    img = imageio.imread(img_name, mode="RGB")
                     img = img[..., :3]  # drop alpha chanbel if it exists
                     assert img.ndim == 3 and img.shape[2] == 3
-                    assert isinstance(class_id, int)
 
                     sink.write({
                         "__key__": f"sample{file_count:06d}",
