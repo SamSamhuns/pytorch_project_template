@@ -3,7 +3,7 @@ Image Classifier Data loader
 """
 import os.path as osp
 
-import imageio
+import imageio.v2 as imageio
 import webdataset as wds
 import torchvision.utils as v_utils
 
@@ -103,7 +103,7 @@ class ClassifierDataset:
         :param out_dir: output save directory
         :return: img_epoch: which will contain the image of this epoch
         """
-        img_epoch = '{}samples_epoch_{:d}.png'.format(out_dir, epoch)
+        img_epoch = f"{out_dir}samples_epoch_{epoch:d}.png"
         v_utils.save_image(batch,
                            img_epoch,
                            nrow=4,
@@ -120,14 +120,14 @@ class ClassifierDataset:
         """
         gen_image_plots = []
         for epoch in range(epochs + 1):
-            img_epoch = '{}samples_epoch_{:d}.png'.format(out_dir, epoch)
+            img_epoch = f'{out_dir}samples_epoch_{epoch:d}.png'
             try:
                 gen_image_plots.append(imageio.imread(img_epoch))
             except OSError as e:
                 print(e)
 
         imageio.mimsave(
-            out_dir + 'animation_epochs_{:d}.gif'.format(epochs), gen_image_plots, fps=2)
+            out_dir + f'animation_epochs_{epochs:d}.gif', gen_image_plots, fps=2)
 
     def finalize(self):
         pass

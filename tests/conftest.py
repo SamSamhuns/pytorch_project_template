@@ -3,11 +3,14 @@ Test configurations
 """
 import os
 import os.path as osp
+import glob
 import logging
 import argparse
 from typing import Callable, Tuple
 
+import imageio.v2 as imageio
 import onnxruntime as ort
+import webdataset as wds
 from PIL import Image
 import numpy as np
 import pytest
@@ -288,6 +291,53 @@ def mock_img_data_dir(root_directory, create_and_save_dummy_imgs) -> str:
     create_and_save_dummy_imgs(
         root_directory, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
     return root_directory
+
+
+def generate_tar(src_data_dir: str,
+                 tar_path: str,
+                 mapping_fname: str = "dataset_mapping.txt") -> None:
+    """ generates a combined tar archive for loading into webdataset
+    from class folder separated data from src_data_dir & a class mapping txt file
+    """
+    # fix path for globbing
+    if not src_data_dir.endswith(('/', '*')):
+        src_data_dir += '/'
+    dir_list = glob.glob(src_data_dir + '*')
+    class_id = 0
+    file_count = 1
+
+    with open(mapping_fname, 'w', encoding="utf-8") as map_file, wds.TarWriter(tar_path) as sink:
+        for dir_name in dir_list:
+            split_string = dir_name.split('/')
+            map_file.write(str(class_id) + "\t" + split_string[-1] + "\n")
+            img_list = glob.glob(dir_name + "/*")
+            for img_name in img_list:
+                try:
+                    img = imageio.imread(img_name, mode="RGB")
+                    img = img[..., :3]  # drop alpha chanbel if it exists
+                    assert img.ndim == 3 and img.shape[2] == 3
+
+                    sink.write({
+                        "__key__": f"sample{file_count:06d}",
+                        "input.jpg": img,
+                        "output.cls": class_id,
+                    })
+                    file_count += 1
+                except Exception as excep:
+                    print(
+                        f"{excep}. imageio could not read file {img_name}. Skipping...")
+            class_id += 1
+
+
+@pytest.fixture()
+def mock_webdataset_path(root_directory, create_and_save_dummy_imgs) -> str:
+    """Setup a directory with mocked image data"""
+    create_and_save_dummy_imgs(
+        root_directory, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
+    tar_path = f"{root_directory}/mock_imgs.tar"
+    generate_tar(root_directory, tar_path=tar_path,
+                 mapping_fname=f"{root_directory}/dataset_mapping.txt")
+    return tar_path
 
 
 #########################
