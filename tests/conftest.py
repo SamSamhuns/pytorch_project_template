@@ -7,6 +7,7 @@ import glob
 import logging
 import argparse
 from typing import Callable, Tuple
+from unittest.mock import MagicMock
 
 import imageio.v2 as imageio
 import onnxruntime as ort
@@ -17,8 +18,9 @@ import pytest
 import torch
 from torch import nn
 from torch.utils.data import Dataset
-from unittest.mock import MagicMock
 
+from src.utils.common import identity
+from src.datasets.classifier_dataset import _get_webdataset_len
 
 PYTEST_TEMP_ROOT = "/tmp/pytest"
 os.makedirs(PYTEST_TEMP_ROOT, exist_ok=True)
@@ -158,24 +160,17 @@ def mock_dataset() -> Dataset:
     return MockDataset(100)
 
 
-class MockWebDataset(Dataset):
-    """Mock a simple webdataset"""
-
-    def __init__(self, size=10):
-        self.size = size
-        self.data = torch.randn(size, 3, 24, 24)
-
-    def __getitem__(self, index):
-        return self.data[index]
-
-    def __len__(self):
-        return self.size
-
-
 @pytest.fixture
-def dummy_webdataset():
+def dummy_webdataset(mock_webdataset_path):
     """Return a mock webdataset"""
-    return MockWebDataset()
+    tar_path = mock_webdataset_path
+    data_len = _get_webdataset_len(tar_path)
+    return (wds.WebDataset(tar_path)
+            .shuffle(100)
+            .decode("pil")
+            .to_tuple("input.jpg", "output.cls")
+            .map_tuple(None, identity)
+            .with_length(data_len))
 
 
 ####################################
