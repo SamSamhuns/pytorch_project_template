@@ -7,7 +7,7 @@ Use the torch checkpoint file and the necessary transforms that are used for por
 import argparse
 from datetime import datetime
 
-from src.trainers import classifier_agent
+from src.trainers import init_trainer
 from src.config_parser import ConfigParser
 
 
@@ -55,10 +55,10 @@ def get_config_from_args():
 def main():
     config = get_config_from_args()
     config["trainer"]["use_tensorboard"] = False
-    agent = classifier_agent.ClassifierAgent(config, "inference")
+    trainer = init_trainer(
+        config["trainer"]["type"], config=config, logger_name="inference")
 
-    agent.inference(config["source_path"])
-    agent.finalize_exit()
+    trainer.inference(config["source_path"])
 
 
 if __name__ == "__main__":

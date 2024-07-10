@@ -4,7 +4,7 @@ import os
 import torch
 from typing import Optional
 
-from src.trainers import classifier_agent
+from src.trainers import init_trainer
 from src.config_parser import ConfigParser
 from src.utils.common import read_json
 
@@ -39,7 +39,7 @@ def init_single_detector(f_config: str, f_checkpoint: str, device: Optional[str]
 
     dev = None if ("cpu" in device or device is None) else list(map(int, device.split(',')))
     config = ConfigParser(config=read_json(f_config), resume=f_checkpoint, modification={"gpu_device": dev, "mode": "INFERENCE"})
-    agent = classifier_agent.ClassifierAgent(config, "inference")
+    agent = init_trainer("ClassifierTrainer", config=config, logger_name="inference")
 
     if inf_type == "pytorch":
         print("Initializing pytorch inference mode")
