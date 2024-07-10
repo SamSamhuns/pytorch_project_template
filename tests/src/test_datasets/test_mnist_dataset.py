@@ -5,11 +5,6 @@ from torchvision.transforms import ToTensor
 from src.datasets import MnistDataset
 
 
-@pytest.fixture
-def mnist_dir():
-    return "data"
-
-
 def test_init_download_mode(mnist_dir):
     dataset = MnistDataset(train_transform=ToTensor(), test_transform=ToTensor(), root=mnist_dir, data_mode="download")
     assert dataset.train_set is not None
@@ -29,11 +24,6 @@ def test_init_numpy_mode(mnist_dir):
 def test_init_invalid_mode(mnist_dir):
     with pytest.raises(Exception):
         MnistDataset(root=mnist_dir, data_mode="invalid")
-
-
-@pytest.fixture
-def sample_batch():
-    return torch.rand(10, 1, 28, 28)  # 10 images, 1 channel, 28x28 pixels
 
 
 @patch('imageio.imread')

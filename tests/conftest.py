@@ -182,7 +182,7 @@ class Simple2DConvModel(nn.Module):
     Inputs must be of shape [bsize, 3, H, W] where H and W are the height and width of the input images.
     """
 
-    def __init__(self, height=10, width=10):
+    def __init__(self, height=100, width=100):
         super().__init__()
         # Assuming input channels are 3, the output channels are 16, kernel size is (3, 3) and stride is 1
         self.conv1 = nn.Conv2d(3, 16, (3, 3), stride=1)
@@ -213,7 +213,7 @@ def simple_2d_conv_model():
 @pytest.fixture
 def sample_tensor():
     """Sample tensor for Simple1DConvModel"""
-    return torch.randn(32, 3, 10, 10)
+    return torch.randn(32, 3, 100, 100)
 
 
 @pytest.fixture
@@ -271,7 +271,7 @@ def _create_and_save_dummy_imgs(dir_path: str, n_cls: int = 5, n_imgs_p_cls: int
 
         for i in range(n_imgs_p_cls):
             img = Image.new('RGB', size, color=colorlist[ci])
-            img.save(osp.join(cls_dir, f'{cls}_{i}.jpg'))
+            img.save(osp.join(cls_dir, f'{cls}_{i:03d}.jpg'))
 
 
 @pytest.fixture
@@ -281,7 +281,7 @@ def create_and_save_dummy_imgs() -> Callable:
 
 
 @pytest.fixture()
-def mock_img_data_dir(root_directory, create_and_save_dummy_imgs) -> str:
+def dump_mock_img_data_dir(root_directory, create_and_save_dummy_imgs) -> str:
     """Setup a directory with mocked image data"""
     create_and_save_dummy_imgs(
         root_directory, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
