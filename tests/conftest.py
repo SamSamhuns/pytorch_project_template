@@ -283,9 +283,10 @@ def create_and_save_dummy_imgs() -> Callable:
 @pytest.fixture()
 def dump_mock_img_data_dir(root_directory, create_and_save_dummy_imgs) -> str:
     """Setup a directory with mocked image data"""
+    img_dir = osp.join(root_directory, "imgs")
     create_and_save_dummy_imgs(
-        root_directory, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
-    return root_directory
+        img_dir, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
+    return img_dir
 
 
 def generate_tar(src_data_dir: str,
