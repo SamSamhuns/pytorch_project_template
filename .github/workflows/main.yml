@@ -1,4 +1,4 @@
-name: Time Series Clsf Test
+name: PyTorch Clsf Test
 
 on:
   push:
