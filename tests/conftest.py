@@ -179,48 +179,59 @@ def dummy_webdataset():
 ###### setup for utils statistics & export_utils test ######
 
 
-class Simple1DConvModel(nn.Module):
+class Simple2DConvModel(nn.Module):
     """
-    Inputs must be of shape [bsize, 3, 8]
+    Inputs must be of shape [bsize, 3, H, W] where H and W are the height and width of the input images.
     """
-    def __init__(self):
+
+    def __init__(self, height=10, width=10):
         super().__init__()
-        self.conv1 = nn.Conv1d(3, 16, 3, 1)
-        self.fc1 = nn.Linear(96, 10)
+        # Assuming input channels are 3, the output channels are 16, kernel size is (3, 3) and stride is 1
+        self.conv1 = nn.Conv2d(3, 16, (3, 3), stride=1)
+        # Calculate the output dimensions after the convolution
+        # (dimension - kernel_size + 2*padding) / stride + 1
+        # Assuming padding is 0 (default) and stride is 1:
+        output_height = height - 3 + 1
+        output_width = width - 3 + 1
+
+        # Number of features for the linear layer
+        num_features = 16 * output_height * output_width
+
+        self.fc1 = nn.Linear(num_features, 10)
 
     def forward(self, x):
         x = self.conv1(x)
-        x = x.view(x.size(0), -1)
+        x = x.view(x.size(0), -1)  # Flatten the features into a vector
         x = self.fc1(x)
         return x
 
 
 @pytest.fixture
-def simple_1d_conv_model():
+def simple_2d_conv_model():
     """Get simple model"""
-    return Simple1DConvModel()
+    return Simple2DConvModel()
 
 
 @pytest.fixture
 def sample_tensor():
     """Sample tensor for Simple1DConvModel"""
-    return torch.randn(32, 3, 8)
+    return torch.randn(32, 3, 10, 10)
 
 
 @pytest.fixture
-def setup_model_and_logger(simple_1d_conv_model):
+def setup_model_and_logger(simple_2d_conv_model):
     """Get simple model and logger"""
     logger = MagicMock()
-    return simple_1d_conv_model, logger
+    return simple_2d_conv_model, logger
 
 
 @pytest.fixture
-def onnx_session(simple_1d_conv_model, sample_tensor):
+def onnx_session(simple_2d_conv_model, sample_tensor):
     """Export pt model and return an ONNX Runtime session"""
     # Export the model to ONNX format temporarily
     export_path = PYTEST_TEMP_ROOT + "/temp_model.onnx"
     torch.onnx.export(
-        simple_1d_conv_model, sample_tensor, export_path,
+        simple_2d_conv_model, sample_tensor, export_path,
         export_params=True, opset_version=17,
         input_names=['input'], output_names=['output']
     )

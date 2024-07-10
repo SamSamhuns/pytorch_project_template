@@ -11,9 +11,9 @@ from src.utils.export_utils import (
     ONNXTSExportStrategy, ONNXDynamoExportStrategy, TSTraceExportStrategy, TSScriptExportStrategy)
 
 
-def test_torch_inference(simple_1d_conv_model, sample_tensor):
+def test_torch_inference(simple_2d_conv_model, sample_tensor):
     """Perform inference"""
-    output = torch_inference(simple_1d_conv_model, sample_tensor)
+    output = torch_inference(simple_2d_conv_model, sample_tensor)
     # Check output type and shape
     assert isinstance(output, np.ndarray), "Output should be a numpy array"
     assert output.shape == (32, 10), "Output shape is incorrect"
@@ -28,10 +28,10 @@ def test_onnx_inference(onnx_session, sample_tensor):
     assert output[0].shape == (32, 10), "Output shape is incorrect"
 
 
-def test_inference_compatibility(simple_1d_conv_model, onnx_session, sample_tensor):
+def test_inference_compatibility(simple_2d_conv_model, onnx_session, sample_tensor):
     """Test pytorch and onnx inference compatibility"""
     # Get outputs from both PyTorch and ONNX models
-    torch_output = torch_inference(simple_1d_conv_model, sample_tensor)
+    torch_output = torch_inference(simple_2d_conv_model, sample_tensor)
     onnx_output = onnx_inference(onnx_session, sample_tensor)[0]
     # Compare outputs
     np.testing.assert_allclose(
