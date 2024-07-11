@@ -4,6 +4,7 @@ import torch
 import pytest
 
 from src.datasets import ClassifierDataset
+from tests.conftest import PYTEST_TEMP_ROOT
 
 
 def test_initialization_imgs(mock_classifierdataset):
@@ -29,10 +30,10 @@ def test_non_implemented_mode(basic_params):
         _ = ClassifierDataset(data_mode="numpy", **basic_params)
 
 
-def test_plot_samples_per_epoch(mock_classifierdataset, tmpdir):
+def test_plot_samples_per_epoch(mock_classifierdataset):
     """Test if plotting function saves images correctly."""
     fake_batch = torch.rand(16, 3, 224, 224)  # Fake data batch
-    out_dir = str(tmpdir) + "/"
+    out_dir = PYTEST_TEMP_ROOT + "/"
     img_path = f"{out_dir}samples_epoch_{0:d}.png"
     mock_classifierdataset.plot_samples_per_epoch(
         fake_batch, 0, out_dir)

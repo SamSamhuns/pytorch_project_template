@@ -4,7 +4,7 @@ import torch
 from PIL import Image
 import pytest
 
-from tests.conftest import NUM_CLS, NUM_IMGS_P_CLS
+from tests.conftest import NUM_CLS, NUM_IMGS_P_CLS, PYTEST_TEMP_ROOT
 from src.datasets import ImageFolderDataset
 from src.datasets.base_dataset import (
     is_file_ext_valid, _find_classes, _make_dataset, get_pil_img, write_class_mapping_to_file)
@@ -82,10 +82,10 @@ def test_nonexistent_directory():
         ImageFolderDataset('/path/does/not/exist')
 
 
-def test_empty_directory(tmp_path):
+def test_empty_directory():
     """Test initialization with an empty directory"""
-    empty_dir = tmp_path / "empty"
-    empty_dir.mkdir()
+    empty_dir = os.path.join(PYTEST_TEMP_ROOT, "empty")
+    os.makedirs(empty_dir, exist_ok=True)
     with pytest.raises(RuntimeError):
         ImageFolderDataset(str(empty_dir))
 
@@ -98,11 +98,11 @@ def test_repr(image_dataset):
     assert f'Number of classes: {NUM_CLS}' in repr_string
 
 
-def test_write_class_mapping_to_file(image_dataset, tmp_path):
+def test_write_class_mapping_to_file(image_dataset):
     """Test writing class mapping to file"""
-    mapping_path = tmp_path / "class_mapping.txt"
+    mapping_path = os.path.join(PYTEST_TEMP_ROOT, "class_mapping.txt")
     write_class_mapping_to_file(image_dataset.class_to_idx, mapping_path)
-    assert mapping_path.exists()
+    assert os.path.exists(mapping_path)
     with open(mapping_path, 'r', encoding="utf-8") as f:
         lines = f.readlines()
         assert len(lines) == NUM_CLS

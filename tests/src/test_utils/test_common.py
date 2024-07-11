@@ -197,12 +197,14 @@ def test_read_json():
     assert isinstance(data, OrderedDict)
 
 
-def test_write_json(tmpdir):
-    d = tmpdir.mkdir("sub")
-    file_path = d.join("test.json")
+def test_write_json():
+    d = os.path.join(PYTEST_TEMP_ROOT, "json")
+    os.makedirs(d, exist_ok=True)
+    file_path = os.path.join(d, "test.json")
+
     content = {'key': 'value'}
 
-    write_json(content, str(file_path))
+    write_json(content, file_path)
 
     with open(file_path, 'r', encoding="utf-8") as f:
         data = json.load(f)
