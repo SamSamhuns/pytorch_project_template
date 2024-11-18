@@ -13,7 +13,7 @@ import numpy as np
 import tqdm
 import torch
 import torch.nn.functional as F
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 
@@ -22,7 +22,7 @@ from src.datasets.base_dataset import IMG_EXTENSIONS
 from src.config_parser import ConfigParser
 from src.losses import init_loss
 from src.models import init_model
-from src.metrics import calc_metric
+from src.metrics import calc_metric, plot_metric
 from src.optimizers import init_optimizer
 from src.schedulers import init_scheduler
 from src.augmentations import init_transform
@@ -137,7 +137,7 @@ class ClassifierTrainer(BaseTrainer):
             train_size += data.shape[0]
 
             # Enables autocasting for the forward pass (model + loss)
-            with autocast() if self.config["use_amp"] else nullcontext():
+            with autocast("cuda") if self.config["use_amp"] else nullcontext():
                 output = self.model(data).squeeze(-1)
                 loss = self.loss(output, target)
             cum_train_loss += loss.item()
@@ -275,9 +275,9 @@ class ClassifierTrainer(BaseTrainer):
         """
         One epoch of model validation
         """
-        t_0 = time.perf_counter()
+        val_start_tm = time.perf_counter()
 
-        cumu_val_loss, y_true, _, y_pred = self.eval_one_epoch(
+        cumu_val_loss, y_true, y_score, y_pred = self.eval_one_epoch(
             self.val_data_loader)
 
         if self.data_set.val_set:
@@ -300,22 +300,46 @@ class ClassifierTrainer(BaseTrainer):
             # ReduceLROnPlateau scheduler takes metrics during its step call
             self.scheduler.step(metrics=val_loss)
 
-        t_1 = time.perf_counter()
+        # add all val metrics
+        metric_name_val_dict = {}
+        for metric_name in self.config["metrics"]["val"]:
+            if (metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"}
+                    and np.unique(y_true).size > 2):
+                continue  # dont plot roc_curve / calculate roc_auc_score for mult class clsf
+            if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
+                if self.config.verbose:
+                    self.logger.info("\tPlotting val %s", metric_name)
+                plot_metric(metric_name, y_true=y_true,  y_score=y_score, y_pred=y_pred,
+                            savepath=str(self.config.log_dir / f"val_e{self.current_epoch}_{metric_name}.png"))
+                continue
+            metric_val = calc_metric(
+                metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
+            if metric_name not in {"confusion_matrix", "classification_report"}:
+                if self.config["trainer"]["use_tensorboard"]:
+                    self.tboard_writer.add_scalar(
+                        f"{metric_name}/val/epoch", metric_val, self.current_epoch)
+            metric_name_val_dict[metric_name] = metric_val
+
+        val_end_tm = time.perf_counter()
         if self.config.verbose:
             self.logger.info("Validation set:")
-            self.logger.info("\tVal time: %.2fs", (t_1 - t_0))
-            self.logger.info("\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n",
-                             val_loss, correct, val_size, val_accuracy)
+            self.logger.info("\tval time: %.3fs", (val_end_tm - val_end_tm))
+            self.logger.info("\tavg loss: %.4f", val_loss)
+            for metric_name, metric_val in metric_name_val_dict.items():
+                if metric_name in {"confusion_matrix", "classification_report"}:
+                    self.logger.info("\t%s: \n%s", metric_name, metric_val)
+                else:
+                    self.logger.info("\t%s: %.4f", metric_name, metric_val)
         else:
-            self.logger.info(
-                "\tValidation at Epoch %d, time: %.2fs, Loss: %.4f, Accuracy: %.2f%%",
-                self.current_epoch, (t_1 - t_0), val_loss, val_accuracy)
+            log_message = f"\tValidation at Epoch {self.current_epoch} | val time: {val_end_tm - val_start_tm:.3f}s | avg loss: {val_loss:.4f}"
+            for metric_name, metric_val in metric_name_val_dict.items():
+                # confusion_matrix and classification_report are not reported in non-verbose mode
+                if metric_name not in {"confusion_matrix", "classification_report"}:
+                    log_message += f" | {metric_name}: {metric_val:.4f}"
+            self.logger.info(log_message)
         if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_scalar("Loss/validation/epoch",
                                           val_loss,
-                                          self.current_epoch)
-            self.tboard_writer.add_scalar("Accuracy/validation/epoch",
-                                          val_accuracy,
                                           self.current_epoch)
 
     def test(self, weight_path: Optional[str] = None) -> None:
@@ -348,8 +372,14 @@ class ClassifierTrainer(BaseTrainer):
                 "Loss/test/epoch", test_loss, self.current_epoch)
         # add all test metrics
         for metric_name in self.config["metrics"]["test"]:
-            if metric_name == "roc_auc_score" and np.unique(y_true).size > 2:
-                continue  # dont calculate roc_auc_score for mult class clsf
+            if (metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"}
+                and np.unique(y_true).size > 2):
+                continue  # dont plot roc_curve / calculate roc_auc_score for mult class clsf
+            if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
+                self.logger.info("\tPlotting %s", metric_name)
+                plot_metric(metric_name, y_true=y_true,  y_score=y_score, y_pred=y_pred,
+                            savepath=str(self.config.log_dir / f"{metric_name}.png"))
+                continue
             metric_val = calc_metric(
                 metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
             if metric_name in {"confusion_matrix", "classification_report"}:
