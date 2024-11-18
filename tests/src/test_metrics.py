@@ -1,7 +1,7 @@
 import pytest
 import torch
 from src.metrics import accuracy_topk_torch, tpr, tnr, ppv, npv, fpr, fnr, fdr, comprehensive_clsf_metrics
-from src.metrics.base_metrics import calc_metrics
+from src.metrics.base_metrics import calc_clsf_metrics
 
 
 def test_accuracy_topk():
@@ -23,7 +23,7 @@ def test_binary_classification_metrics():
     y_true = [0, 1, 1, 0]
 
     # Test individual basic metrics
-    tp, tn, fp, fn = calc_metrics(y_pred, y_true)
+    tp, tn, fp, fn = calc_clsf_metrics(y_pred, y_true)
     assert tp == 1 and tn == 1 and fp == 1 and fn == 1, "Expected each metric to be 1"
 
     # Test advanced metrics

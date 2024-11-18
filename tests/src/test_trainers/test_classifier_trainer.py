@@ -91,7 +91,7 @@ def test_validate_method(mock_clsf_config: ConfigParser, mocker):
             call.args for call in logger_instance.info.call_args_list]
         assert any("Validation" in str(call)
                    for call in info_calls), "Validation log entry missing"
-        assert any("Loss:" in str(call)
+        assert any("loss" in str(call)
                    for call in info_calls), "No logging for validation loss"
     else:
         pytest.skip("No validation data loader configured for this test.")
