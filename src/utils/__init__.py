@@ -13,5 +13,5 @@ from .common import (
     read_json,
     write_json,
     find_latest_file_in_dir)
-from .statistics import get_model_params, print_cuda_statistics
+from .custom_statistics import get_model_params, print_cuda_statistics
 from .export_utils import onnx_inference_check, ts_inference_check

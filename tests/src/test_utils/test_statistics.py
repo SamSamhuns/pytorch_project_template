@@ -1,8 +1,8 @@
 """
-Tests for src.utils.statistics
+Tests for src.utils. custom_statistics
 """
 import torch
-from src.utils.statistics import get_model_params
+from src.utils.custom_statistics import get_model_params
 
 
 def test_get_model_params(simple_2d_conv_model):

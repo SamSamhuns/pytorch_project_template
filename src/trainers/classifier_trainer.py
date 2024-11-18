@@ -28,7 +28,7 @@ from src.optimizers import init_optimizer
 from src.schedulers import init_scheduler
 from src.dataloaders import init_dataloader
 from src.augmentations import init_transform
-from src.utils.statistics import get_model_params
+from src.utils.custom_statistics import get_model_params
 from src.utils.common import BColors
 
 
