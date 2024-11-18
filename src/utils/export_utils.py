@@ -163,8 +163,30 @@ class TSScriptExportStrategy(ExportStrategy):
     """TorchScript scripting export logic"""
 
     def export(self, model, path, sample_in=None):
-        scrpted_model = torch.jit.script(model)
-        scrpted_model.save(path)
+        scripted_model = torch.jit.script(model)
+        scripted_model.save(path)
 
     def test_inference(self, model: Module, path: str, sample_in: torch.Tensor):
         return ts_inference_check(model, path, sample_in, self.logger)
+    
+
+class QuantizedModelWrapper(torch.nn.Module):
+    """Wrapper for quantizing model with quant and dequant ops at the start and end"""
+
+    def __init__(self, model_q):
+        super().__init__()
+        # QuantStub converts tensors from floating point to quantized, for inputs.
+        self.quant = torch.ao.quantization.QuantStub()
+        # DeQuantStub converts tensors from quantized to floating point, for outputs.
+        self.dequant = torch.ao.quantization.DeQuantStub()
+        self.model_q = model_q
+
+    def forward(self, x):
+        # manually specify where tensors will be converted from floating
+        # point to quantized in the quantized model
+        x = self.quant(x)
+        x = self.model_q(x)
+        # manually specify where tensors will be converted from quantized
+        # to floating point in the quantized model
+        x = self.dequant(x)
+        return x
