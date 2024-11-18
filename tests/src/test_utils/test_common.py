@@ -20,11 +20,11 @@ from src.utils.common import (
 
 def test_BColors():
     """Test BColors"""
-    attrbs = ["HEADER", "OKBLUE", "OKCYAN", "OKGREEN", "WARNING",
+    attrbs = ["HEADER", "OKBLUE", "OKCYAN", "OKGREEN", "WARN",
               "FAIL", "ENDC", "BOLD", "UNDERLINE"]
     for attrb in attrbs:
         assert hasattr(BColors, attrb)
-    print(f"{BColors.WARNING}Warning: Information.{BColors.ENDC}")
+    print(f"{BColors.WARN}Warning: Information.{BColors.ENDC}")
 
 
 def test_try_bool():

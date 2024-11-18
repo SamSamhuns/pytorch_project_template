@@ -43,7 +43,7 @@ class _BaseTrainer(ABC):
         gpu_dev = self.config["gpu_device"]
         gpu_dev = [gpu_dev] if isinstance(gpu_dev, int) else gpu_dev
         if is_cuda and not gpu_dev:
-            msg = f"{BColors.WARNING}WARNING: CUDA available but not used{BColors.ENDC}"
+            msg = f"{BColors.WARN}WARNING: CUDA available but not used{BColors.ENDC}"
             self.logger.info(msg)
         # set cuda devices if cuda available & gpu_dev set or use cpu
         self.cuda = is_cuda and (gpu_dev not in (None, []))

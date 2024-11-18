@@ -45,7 +45,7 @@ class ClassifierTrainer(BaseTrainer):
         # warning when using wrong loss for binary classification
         if "c_out" in model_args and model_args["c_out"] == 2:
             if self.config["loss"]["type"] in {"NLLLoss", "CrossEntropyLoss"}:
-                msg = f"{BColors.WARNING}WARNING: For useful confs. for two class outputs, " + \
+                msg = f"{BColors.WARN}WARNING: For useful confs. for two class outputs, " + \
                       f"BCE losses are preferable over {self.config['loss']['type']}{BColors.ENDC}"
                 self.logger.warning("%s", msg)
         # define models
