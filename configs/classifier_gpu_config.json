@@ -8,6 +8,7 @@
   "gpu_device": [0],
   "use_amp": true,
   "torch_compile_model": false,
+  "quant_backend": null,
   "trainer": {
     "type": "ClassifierTrainer",
     "resume_checkpoint": null,
@@ -26,7 +27,7 @@
     "args": {
       "backbone": "mobilenet_v2",
       "feat_extract": false,
-      "num_classes": 525,
+      "num_classes": 20,
       "pretrained_weights": "MobileNet_V2_Weights.IMAGENET1K_V1"
     },
     "input_width": 224,
@@ -38,10 +39,10 @@
     "args": {
       "root": "data/birds_dataset",
       "train_path": "train",
-      "val_path": "val",
+      "val_path": "valid",
       "test_path": "test"
     },
-    "num_classes": 525,
+    "num_classes": 20,
     "preprocess": {
       "train_transform": "ImagenetClassifierPreprocess",
       "val_transform": "ImagenetClassifierPreprocess",
@@ -75,14 +76,16 @@
   },
   "metrics": {
     "val": [
-      "accuracy_score"
+      "accuracy_score",
+      "f1_score"
     ],
     "test": [
       "accuracy_score",
       "f1_score",
       "precision_score",
       "recall_score",
-      "roc_auc_score"
+      "confusion_matrix",
+      "classification_report"
     ]
   },
   "lr_scheduler": {

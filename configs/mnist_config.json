@@ -8,6 +8,7 @@
   "gpu_device": [0],
   "use_amp": false,
   "torch_compile_model": false,
+  "quant_backend": null,
   "trainer": {
     "type": "ClassifierTrainer",
     "resume_checkpoint": null,
@@ -72,14 +73,16 @@
   },
   "metrics": {
     "val": [
-      "accuracy_score"
+      "accuracy_score",
+      "f1_score"
     ],
     "test": [
       "accuracy_score",
       "f1_score",
       "precision_score",
       "recall_score",
-      "roc_auc_score"
+      "confusion_matrix",
+      "classification_report"
     ]
   },
   "lr_scheduler": {

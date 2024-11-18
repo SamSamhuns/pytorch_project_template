@@ -8,6 +8,7 @@
   "gpu_device": null,
   "use_amp": false,
   "torch_compile_model": false,
+  "quant_backend": null,
   "trainer": {
     "type": "ClassifierTrainer",
     "resume_checkpoint": null,
@@ -25,7 +26,7 @@
     "type": "ClassifierModel",
     "args": {
       "backbone": "mobilenet_v2",
-      "num_classes": 525,
+      "num_classes": 20,
       "feat_extract": false,
       "pretrained_weights": "MobileNet_V2_Weights.IMAGENET1K_V1"
     },
@@ -38,10 +39,10 @@
     "args": {
       "root": "data/birds_dataset",
       "train_path": "train",
-      "val_path": "val",
+      "val_path": "valid",
       "test_path": "test"
     },
-    "num_classes": 525,
+    "num_classes": 20,
     "preprocess": {
       "train_transform": "ImagenetClassifierPreprocess",
       "val_transform": "ImagenetClassifierPreprocess",
