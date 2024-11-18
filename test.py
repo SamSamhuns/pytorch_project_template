@@ -41,7 +41,7 @@ def get_config_from_args() -> ConfigParser:
         {"flags": ["--mode"],
          "dest": "mode",
          "help": "Fixed arg: Running mode. Fixed to TEST (default: %(default)s)",
-         "default": "TEST", "choices": ["TEST"],
+         "default": "TEST_PYTORCH", "choices": ["TEST_PYTORCH", "TEST_TORCHSCRIPT"],
          "type": str, "target": "mode"}
     ]
     return ConfigParser.from_args(parser, override_options)
