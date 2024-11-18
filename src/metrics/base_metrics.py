@@ -3,7 +3,8 @@ Base Metrics
 """
 import torch
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from numpy.typing import ArrayLike
+from sklearn.metrics import confusion_matrix, roc_curve
 
 
 def accuracy_topk_torch(y_pred: torch.tensor, y_true: torch.tensor, topk=(1,)):
@@ -26,7 +27,20 @@ def accuracy_topk_torch(y_pred: torch.tensor, y_true: torch.tensor, topk=(1,)):
     return res
 
 
-def calc_metrics(y_pred, y_true, pos_class=1, neg_class=0):
+def optimal_thres_from_roc_curve(y_true: ArrayLike, y_score: ArrayLike):
+    """
+    Calculate and return the optimal threshold for binary classification based on the roc curve
+    """
+    fpr, tpr, thresholds = roc_curve(y_true, y_score)
+    # Find the optimal threshold (closest to the (0,1) point)
+    # Calculate the squared Euclidean distance
+    distances = (fpr ** 2 + (1 - tpr) ** 2)
+    optimal_idx = np.argmin(distances)  # Get the index of the minimum distance
+    optimal_thres = thresholds[optimal_idx]  # Get the corresponding threshold
+    return optimal_thres
+
+
+def calc_clsf_metrics(y_pred: ArrayLike, y_true: ArrayLike, pos_class=1, neg_class=0):
     """
     Calculate and return clsf tp, tn, fp, and fn metrics 
     given binary classification labels.
@@ -38,63 +52,63 @@ def calc_metrics(y_pred, y_true, pos_class=1, neg_class=0):
     return tp, tn, fp, fn
 
 
-def tpr(y_pred, y_true, pos_class=1, neg_class=0):
+def tpr(y_pred: ArrayLike, y_true: ArrayLike, pos_class=1, neg_class=0):
     """tpv, sensitivity, recall or true_positive_rate"""
-    tp, _, _, fn = calc_metrics(y_pred, y_true, pos_class, neg_class)
+    tp, _, _, fn = calc_clsf_metrics(y_pred, y_true, pos_class, neg_class)
     if tp + fn == 0:
         return 0
     return tp / (tp + fn)
 
 
-def tnr(y_pred, y_true, pos_class=1, neg_class=0):
+def tnr(y_pred: ArrayLike, y_true: ArrayLike, pos_class=1, neg_class=0):
     """tnv, specificity or true_negative_rate"""
-    _, tn, fp, _ = calc_metrics(y_pred, y_true, pos_class, neg_class)
+    _, tn, fp, _ = calc_clsf_metrics(y_pred, y_true, pos_class, neg_class)
     if tn + fp == 0:
         return 0
     return tn / (tn + fp)
 
 
-def ppv(y_pred, y_true, pos_class=1, neg_class=0):
+def ppv(y_pred: ArrayLike, y_true: ArrayLike, pos_class=1, neg_class=0):
     """ppv, precision or positive_predictive_value"""
-    tp, _, fp, _ = calc_metrics(y_pred, y_true, pos_class, neg_class)
+    tp, _, fp, _ = calc_clsf_metrics(y_pred, y_true, pos_class, neg_class)
     if tp + fp == 0:
         return 0
     return tp / (tp + fp)
 
 
-def npv(y_pred, y_true, pos_class=1, neg_class=0):
+def npv(y_pred: ArrayLike, y_true: ArrayLike, pos_class=1, neg_class=0):
     """npv, or negative predictive value"""
-    _, tn, _, fn = calc_metrics(y_pred, y_true, pos_class, neg_class)
+    _, tn, _, fn = calc_clsf_metrics(y_pred, y_true, pos_class, neg_class)
     if tn + fn == 0:
         return 0
     return tn / (tn + fn)
 
 
-def fpr(y_pred, y_true, pos_class=1, neg_class=0):
+def fpr(y_pred: ArrayLike, y_true: ArrayLike, pos_class=1, neg_class=0):
     """fpr, or false positive rate"""
-    _, tn, fp, _ = calc_metrics(y_pred, y_true, pos_class, neg_class)
+    _, tn, fp, _ = calc_clsf_metrics(y_pred, y_true, pos_class, neg_class)
     if fp + tn == 0:
         return 0
     return fp / (fp + tn)
 
 
-def fnr(y_pred, y_true, pos_class=1, neg_class=0):
+def fnr(y_pred: ArrayLike, y_true: ArrayLike, pos_class=1, neg_class=0):
     """fnr, or false negative rate"""
-    tp, _, _, fn = calc_metrics(y_pred, y_true, pos_class, neg_class)
+    tp, _, _, fn = calc_clsf_metrics(y_pred, y_true, pos_class, neg_class)
     if fn + tp == 0:
         return 0
     return fn / (fn + tp)
 
 
-def fdr(y_pred, y_true, pos_class=1, neg_class=0):
+def fdr(y_pred: ArrayLike, y_true: ArrayLike, pos_class=1, neg_class=0):
     """fdr, or false discovery rate"""
-    tp, _, fp, _ = calc_metrics(y_pred, y_true, pos_class, neg_class)
+    tp, _, fp, _ = calc_clsf_metrics(y_pred, y_true, pos_class, neg_class)
     if fp + tp == 0:
         return 0
     return fp / (fp + tp)
 
 
-def comprehensive_clsf_metrics(y_pred, y_true):
+def comprehensive_clsf_metrics(y_pred: ArrayLike, y_true: ArrayLike):
     """
     Calculate and return a comprehensive set of classification metrics.
 
