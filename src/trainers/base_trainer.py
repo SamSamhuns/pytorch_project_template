@@ -13,6 +13,7 @@ import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import Subset
+from torchvision.transforms.transforms import Normalize
 from tensorboard import program
 
 from src.loggers import get_logger
@@ -25,7 +26,7 @@ from src.utils.export_utils import (
     TSScriptExportStrategy, TSTraceExportStrategy,
     QuantizedModelWrapper)
 from src.utils.common import (
-    recursively_flatten_dict, is_port_in_use,
+    recursively_flatten_dict, is_port_in_use, write_json,
     find_latest_file_in_dir, BColors)
 
 
@@ -178,6 +179,16 @@ class BaseTrainer(_BaseTrainer):
                 self.config["dataset"]["preprocess"]["test_transform"]).test,
             **self.config["dataset"]["args"]
         )
+
+        # update train+test transforms in config and save to json file
+        train_tfs = self.data_set.train_set.transforms
+        test_tfs = self.data_set.test_set.transforms
+        self.config["dataset"]["args"]["train_tfs"] = [str(tfs) for tfs in train_tfs.transforms]
+        self.config["dataset"]["args"]["test_tfs"] = [str(tfs) for tfs in test_tfs.transforms]
+        normalize = [tfs for tfs in train_tfs.transforms if isinstance(tfs, Normalize)]
+        self.config["dataset"]["args"]["mean"] = normalize[0].mean
+        self.config["dataset"]["args"]["std"] = normalize[0].std
+        write_json(dict(self.config), self.config.save_dir / 'config.json')
 
         # log numerized remapped labels if present
         if config.verbose and hasattr(self.data_set, "labels2idx"):
