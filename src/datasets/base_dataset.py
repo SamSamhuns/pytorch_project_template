@@ -115,10 +115,10 @@ class BaseDataset(data.Dataset):
         root (string): Root directory path.
         loader (callable): A function to load a sample given its path.
         extensions (list[string]): A list of allowed extensions.
-        transform (callable, optional): A function/transform that takes in
+        transforms (callable, optional): Function/transforms that takes in
             a sample and returns a transformed version.
             E.g, ``transforms.RandomCrop`` for images.
-        target_transform (callable, optional): A function/transform that takes
+        target_transforms (callable, optional): Function/transforms that takes
             in the target and transforms it.
      Attributes:
         classes (list): List of the class names.
@@ -130,8 +130,8 @@ class BaseDataset(data.Dataset):
                  root,
                  loader,
                  extensions,
-                 transform=None,
-                 target_transform=None):
+                 transforms=None,
+                 target_transforms=None):
         classes, class_to_idx = _find_classes(root)
         data = _make_dataset(root, class_to_idx, extensions)
         if len(data) == 0:
@@ -147,8 +147,8 @@ class BaseDataset(data.Dataset):
         self.class_to_idx = class_to_idx
         self.data = data
 
-        self.transform = transform
-        self.target_transform = target_transform
+        self.transforms = transforms
+        self.target_transforms = target_transforms
 
     def __getitem__(self, index):
         """
@@ -161,13 +161,16 @@ class BaseDataset(data.Dataset):
 
             None when there is an error loading a datum
         """
+        if index < 0 or index >= len(self.data):
+            raise IndexError(f"Index {index} is out of range for dataset of size {
+                            len(self.data)}.")
         try:
             path, target = self.data[index]
             sample = self.loader(path)
-            if self.transform is not None:
-                sample = self.transform(sample)
-            if self.target_transform is not None:
-                target = self.target_transform(target)
+            if self.transforms is not None:
+                sample = self.transforms(sample)
+            if self.target_transforms is not None:
+                target = self.target_transforms(target)
 
             return sample, target
         except Exception as excep:
@@ -184,10 +187,10 @@ class BaseDataset(data.Dataset):
         fmt_str += f'    Number of classes: {len(self.classes)}\n'
         tmp = '    Transforms (if any): '
         fmt_str += '{0}{1}\n'.format(
-            tmp, self.transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
+            tmp, self.transforms.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
         tmp = '    Target Transforms (if any): '
         fmt_str += '{0}{1}'.format(
-            tmp, self.target_transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
+            tmp, self.target_transforms.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
         return fmt_str
 
 
@@ -206,11 +209,11 @@ class ImageFolderDataset(BaseDataset):
                       |_ y3.ext
     Args:
         root (string): Root directory path.
-        transform (callable, optional):
-            A function/transform that  takes in an PIL image
+        transforms (callable, optional):
+            Function/transforms that  takes in an PIL image
             and returns a transformed version. E.g, ``transforms.RandomCrop``
-        target_transform (callable, optional):
-            A function/transform that takes in the target and transforms it.
+        target_transforms (callable, optional):
+            A function/transforms that takes in the target and transforms it.
         loader (callable, optional):
             A function to load an image given its path.
 
@@ -223,15 +226,15 @@ class ImageFolderDataset(BaseDataset):
     def __init__(self,
                  root,
                  file_extensions=IMG_EXTENSIONS,
-                 transform=None,
-                 target_transform=None,
+                 transforms=None,
+                 target_transforms=None,
                  loader=default_loader):
         super().__init__(
             root,
             loader,
             file_extensions,
-            transform=transform,
-            target_transform=target_transform)
+            transforms=transforms,
+            target_transforms=target_transforms)
         self.imgs = self.data
 
 
@@ -241,7 +244,7 @@ if __name__ == "__main__":
     train_data = ImageFolderDataset(
         "data/birds_dataset/valid",
         IMG_EXTENSIONS,
-        transform=transforms.Compose([
+        transforms=transforms.Compose([
             transforms.CenterCrop(299),
             transforms.ColorJitter(brightness=1.5,
                                    contrast=0.8,
