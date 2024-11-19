@@ -6,9 +6,11 @@ import os.path as osp
 import imageio.v2 as imageio
 import webdataset as wds
 import torchvision.utils as v_utils
+from torchvision.transforms.transforms import Normalize, Compose
 
 from src.datasets import base_dataset
 from src.utils.common import identity
+from src.utils.custom_statistics import get_img_dset_mean_std
 
 
 def _get_webdataset_len(data_path) -> int:
@@ -52,15 +54,15 @@ class ClassifierDataset:
         if data_mode == "imgs":
             train_root = osp.join(root, train_path)
             self.train_set = base_dataset.ImageFolderDataset(
-                train_root, transform=train_transform)
+                train_root, transforms=train_transform)
             if val_path is not None:
                 val_root = osp.join(root, val_path)
                 self.val_set = base_dataset.ImageFolderDataset(
-                    val_root, transform=val_transform)
+                    val_root, transforms=val_transform)
             if test_path is not None:
                 test_root = osp.join(root, test_path)
                 self.test_set = base_dataset.ImageFolderDataset(
-                    test_root, transform=test_transform)
+                    test_root, transforms=test_transform)
         elif data_mode == "webdataset":
             train_root = osp.join(root, train_path)
             train_len = _get_webdataset_len(train_root)
@@ -94,6 +96,17 @@ class ClassifierDataset:
         else:
             raise NotImplementedError(
                 f"{data_mode} data_mode is not supported. Available modes are: imgs, webdataset")
+
+        # if Normalize transforms absent in train_tfs, calc from the train data & assign to train,test,val
+        if not any(tfs for tfs in self.train_set.transforms.transforms if isinstance(tfs, Normalize)):
+            mean, std = get_img_dset_mean_std(self.train_set, method="online")
+            norm = Normalize(mean.tolist(), std.tolist())
+
+            self.train_set.transforms = Compose([*self.train_set.transforms.transforms, norm])
+            if self.val_set is not None:
+                self.val_set.transforms = Compose([*self.val_set.transforms.transforms, norm])
+            if self.test_set is not None:
+                self.test_set.transforms = Compose([*self.test_set.transforms.transforms, norm])
 
     def plot_samples_per_epoch(self, batch, epoch, out_dir):
         """
