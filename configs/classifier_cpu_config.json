@@ -30,9 +30,11 @@
       "feat_extract": false,
       "pretrained_weights": "MobileNet_V2_Weights.IMAGENET1K_V1"
     },
-    "input_width": 224,
-    "input_height": 224,
-    "input_channel": 3
+    "info": {
+      "input_width": 224,
+      "input_height": 224,
+      "input_channel": 3
+    }
   },
   "dataset": {
     "type": "ClassifierDataset",

@@ -27,9 +27,11 @@
     "args": {
       "num_classes": 10
     },
-    "input_width": 28,
-    "input_height": 28,
-    "input_channel": 1
+    "info": {
+      "input_width": 28,
+      "input_height": 28,
+      "input_channel": 1
+    }
   },
   "dataset": {
     "type": "MnistDataset",
