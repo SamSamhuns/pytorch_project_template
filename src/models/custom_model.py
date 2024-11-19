@@ -19,19 +19,19 @@ class CustomModel(BaseModel):
             nn.Conv2d(in_channels=in_c, out_channels=32,
                       kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(32),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),  # Downsample by 2x
 
             nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3,
                       stride=1, padding=1, bias=False),
             nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),  # Downsample by 2x
 
             nn.Conv2d(in_channels=64, out_channels=128,
                       kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),  # Downsample by 2x
         )
 
