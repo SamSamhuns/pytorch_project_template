@@ -65,9 +65,11 @@ def mock_clsf_config(
                 "num_classes": NUM_CLS,
                 "pretrained_weights": "MobileNet_V2_Weights.IMAGENET1K_V1"
             },
-            "input_width": 100,
-            "input_height": 100,
-            "input_channel": 3
+            "info": {
+                "input_width": 100,
+                "input_height": 100,
+                "input_channel": 3
+            }
         },
         "dataset": {
             "type": "ClassifierDataset",
