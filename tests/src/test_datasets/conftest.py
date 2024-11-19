@@ -11,10 +11,10 @@ from src.datasets import ClassifierDataset
 @pytest.fixture()
 def image_dataset(dump_mock_img_data_dir):
     """Initialize the dataset"""
-    transform = transforms.Compose([
+    transforms_ = transforms.Compose([
         transforms.ToTensor(),
     ])
-    return ImageFolderDataset(str(dump_mock_img_data_dir), transform=transform)
+    return ImageFolderDataset(str(dump_mock_img_data_dir), transforms=transforms_)
 
 
 @pytest.fixture
@@ -24,9 +24,9 @@ def basic_params(root_directory, create_and_save_dummy_imgs):
     create_and_save_dummy_imgs(dir_path=osp.join(root_directory, "val"))
     create_and_save_dummy_imgs(dir_path=osp.join(root_directory, "test"))
     return {
-        "train_transform": lambda x: x,  # Dummy transform
-        "val_transform": lambda x: x,
-        "test_transform": lambda x: x,
+        "train_transform": transforms.Compose([transforms.ToTensor()]),  # Dummy transform
+        "val_transform": transforms.Compose([transforms.ToTensor()]),
+        "test_transform": transforms.Compose([transforms.ToTensor()]),
         "root": root_directory,
         "train_path": "train",
         "val_path": "val",

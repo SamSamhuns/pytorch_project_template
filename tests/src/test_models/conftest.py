@@ -25,7 +25,7 @@ def base_model():
 @pytest.fixture
 def custom_model():
     """Instance of CustomModel with the provided configuration."""
-    return CustomModel(3, 10)
+    return CustomModel(3, 10, 64)
 
 
 @pytest.fixture
