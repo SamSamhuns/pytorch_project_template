@@ -36,7 +36,7 @@ def get_config_from_args() -> ConfigParser:
     override_options = [
         {"flags": ["--dev", "--gpu_device"],
          "dest": "gpu_device",
-         "help": "gpu_device list eg. 0, 0 1, 0 1 2. Pass no arg for cpu (default: %(default)s)",
+         "help": "gpu_device list eg. 0, 0 1, 0 1 2. Pass --dev with no arg for cpu (default: %(default)s)",
          "nargs": "*",
          "type": int, "target": "gpu_device"},
         {"flags": ["--mode"],
