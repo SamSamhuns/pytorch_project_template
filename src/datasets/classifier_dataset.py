@@ -5,6 +5,7 @@ import os.path as osp
 
 import imageio.v2 as imageio
 import webdataset as wds
+from torch.utils import data
 import torchvision.utils as v_utils
 from torchvision.transforms.transforms import Normalize, Compose
 
@@ -21,6 +22,22 @@ def _get_webdataset_len(data_path) -> int:
     for _ in wdataset:
         length += 1
     return length
+
+
+def _ensure_normalize(transform: Compose, dataset: data.Dataset):
+    """
+    Ensure that the transform includes Normalize. If not, calculate mean/std and add it.
+    """
+    transforms_list = transform.transforms
+
+    # Check for Normalize
+    if not any(isinstance(t, Normalize) for t in transforms_list):
+        print("Normalization tfms not found. Calculating mean and std for the dataset.")
+        mean, std = get_img_dset_mean_std(dataset, method="online")
+        norm = Normalize(mean.tolist(), std.tolist())
+        transforms_list.append(norm)
+
+    return Compose(transforms_list)
 
 
 class ClassifierDataset:
@@ -53,16 +70,18 @@ class ClassifierDataset:
         self.test_set = None
         if data_mode == "imgs":
             train_root = osp.join(root, train_path)
-            self.train_set = base_dataset.ImageFolderDataset(
+            _temp_train_set = base_dataset.ImageFolderDataset(
                 train_root, transforms=train_transform)
+            self.train_set = base_dataset.ImageFolderDataset(
+                train_root, transforms=_ensure_normalize(train_transform, _temp_train_set))
             if val_path is not None:
                 val_root = osp.join(root, val_path)
                 self.val_set = base_dataset.ImageFolderDataset(
-                    val_root, transforms=val_transform)
+                    val_root, transforms=_ensure_normalize(val_transform, _temp_train_set))
             if test_path is not None:
                 test_root = osp.join(root, test_path)
                 self.test_set = base_dataset.ImageFolderDataset(
-                    test_root, transforms=test_transform)
+                    test_root, transforms=_ensure_normalize(test_transform, _temp_train_set))
         elif data_mode == "webdataset":
             train_root = osp.join(root, train_path)
             train_len = _get_webdataset_len(train_root)
@@ -96,17 +115,6 @@ class ClassifierDataset:
         else:
             raise NotImplementedError(
                 f"{data_mode} data_mode is not supported. Available modes are: imgs, webdataset")
-
-        # if Normalize transforms absent in train_tfs, calc from the train data & assign to train,test,val
-        if not any(tfs for tfs in self.train_set.transforms.transforms if isinstance(tfs, Normalize)):
-            mean, std = get_img_dset_mean_std(self.train_set, method="online")
-            norm = Normalize(mean.tolist(), std.tolist())
-
-            self.train_set.transforms = Compose([*self.train_set.transforms.transforms, norm])
-            if self.val_set is not None:
-                self.val_set.transforms = Compose([*self.val_set.transforms.transforms, norm])
-            if self.test_set is not None:
-                self.test_set.transforms = Compose([*self.test_set.transforms.transforms, norm])
 
     def plot_samples_per_epoch(self, batch, epoch, out_dir):
         """
