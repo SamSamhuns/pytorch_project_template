@@ -451,6 +451,7 @@ class ClassifierTrainer(BaseTrainer):
     def calc_feature_importance(self, weight_path: Optional[str] = None, imp_metric: str = "f1_score") -> None:
         """
         Calculate feature importance using permutation feature importance
+        WARNING: This is a slow process and not recommended for datasets with a lot of features i.e. images.
         args:
             weight_path: Path to pth weight file that will be loaded for test
                          Default is set to None which uses latest ckpt weight file

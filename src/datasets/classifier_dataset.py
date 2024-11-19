@@ -92,8 +92,8 @@ class ClassifierDataset:
             raise NotImplementedError(
                 "This mode is not implemented YET")
         else:
-            raise Exception(
-                "Please specify in the json a specified mode in data_mode")
+            raise NotImplementedError(
+                f"{data_mode} data_mode is not supported. Available modes are: imgs, webdataset")
 
     def plot_samples_per_epoch(self, batch, epoch, out_dir):
         """
