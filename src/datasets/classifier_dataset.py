@@ -14,7 +14,7 @@ from src.utils.custom_statistics import get_img_dset_mean_std
 
 
 def _get_webdataset_len(data_path) -> int:
-    wdataset = (wds.WebDataset(data_path)
+    wdataset = (wds.WebDataset(data_path, shardshuffle=False)
                 .decode("pil")
                 .to_tuple("input.jpg", "output.cls"))
     length = 0
@@ -27,8 +27,8 @@ def _get_webdataset(dset_path: str, tfms: Compose, dset_len: int, decode: str = 
     """
     Get a webdataset
     """
-    return (wds.WebDataset(dset_path)
-            .shuffle(100)
+    return (wds.WebDataset(dset_path, shardshuffle=True)
+            .shuffle(1000)
             .decode(decode)
             .to_tuple("input.jpg", "output.cls")
             .map_tuple(tfms, identity)
@@ -99,12 +99,7 @@ class ClassifierDataset:
                 val_transform = add_tfms(val_transform, normalize)
                 test_transform = add_tfms(test_transform, normalize)
 
-            self.train_set = (wds.WebDataset(train_root)
-                              .shuffle(100)
-                              .decode("pil")
-                              .to_tuple("input.jpg", "output.cls")
-                              .map_tuple(train_transform, identity)
-                              .with_length(train_len))
+            self.train_set = _get_webdataset(train_root, train_transform, train_len)
             if val_path is not None:
                 val_root = osp.join(root, val_path)
                 val_len = _get_webdataset_len(val_root)
