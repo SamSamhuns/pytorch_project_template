@@ -2,10 +2,10 @@
 Image Classifier Data loader
 """
 import os.path as osp
+from typing import Callable
 
 import imageio.v2 as imageio
 import webdataset as wds
-from torch.utils import data
 import torchvision.utils as v_utils
 from torchvision.transforms.transforms import Normalize, Compose
 
@@ -24,19 +24,10 @@ def _get_webdataset_len(data_path) -> int:
     return length
 
 
-def _ensure_normalize(transform: Compose, dataset: data.Dataset):
-    """
-    Ensure that the transform includes Normalize. If not, calculate mean/std and add it.
-    """
+def add_tfms(transform: Compose, tfms: Callable):
+    """Add transforms to existing transforms"""
     transforms_list = transform.transforms
-
-    # Check for Normalize
-    if not any(isinstance(t, Normalize) for t in transforms_list):
-        print("Normalization tfms not found. Calculating mean and std for the dataset.")
-        mean, std = get_img_dset_mean_std(dataset, method="online")
-        norm = Normalize(mean.tolist(), std.tolist())
-        transforms_list.append(norm)
-
+    transforms_list.append(tfms)
     return Compose(transforms_list)
 
 
@@ -70,18 +61,26 @@ class ClassifierDataset:
         self.test_set = None
         if data_mode == "imgs":
             train_root = osp.join(root, train_path)
-            _temp_train_set = base_dataset.ImageFolderDataset(
-                train_root, transforms=train_transform)
+            if not any(isinstance(t, Normalize) for t in train_transform.transforms):
+                _temp_train_set = base_dataset.ImageFolderDataset(
+                    train_root, transforms=train_transform)
+                print("Normalization tfms not found. Calculating mean and std for the dataset.")
+                mean, std = get_img_dset_mean_std(_temp_train_set, method="online")
+                normalize = Normalize(mean.tolist(), std.tolist())
+                train_transform = add_tfms(train_transform, normalize)
+                val_transform = add_tfms(val_transform, normalize)
+                test_transform = add_tfms(test_transform, normalize)
+
             self.train_set = base_dataset.ImageFolderDataset(
-                train_root, transforms=_ensure_normalize(train_transform, _temp_train_set))
+                train_root, transforms=train_transform)
             if val_path is not None:
                 val_root = osp.join(root, val_path)
                 self.val_set = base_dataset.ImageFolderDataset(
-                    val_root, transforms=_ensure_normalize(val_transform, _temp_train_set))
+                    val_root, transforms=val_transform)
             if test_path is not None:
                 test_root = osp.join(root, test_path)
                 self.test_set = base_dataset.ImageFolderDataset(
-                    test_root, transforms=_ensure_normalize(test_transform, _temp_train_set))
+                    test_root, transforms=test_transform)
         elif data_mode == "webdataset":
             train_root = osp.join(root, train_path)
             train_len = _get_webdataset_len(train_root)
