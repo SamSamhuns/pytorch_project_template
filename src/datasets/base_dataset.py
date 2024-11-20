@@ -162,8 +162,7 @@ class BaseDataset(data.Dataset):
             None when there is an error loading a datum
         """
         if index < 0 or index >= len(self.data):
-            raise IndexError(f"Index {index} is out of range for dataset of size {
-                            len(self.data)}.")
+            raise IndexError(f"Index {index} is out of range for dataset of size {len(self.data)}.")
         try:
             path, target = self.data[index]
             sample = self.loader(path)
