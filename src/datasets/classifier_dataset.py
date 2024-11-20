@@ -2,7 +2,6 @@
 Image Classifier Data loader
 """
 import os.path as osp
-from typing import Callable
 
 import imageio.v2 as imageio
 import webdataset as wds
@@ -10,7 +9,7 @@ import torchvision.utils as v_utils
 from torchvision.transforms.transforms import Normalize, Compose
 
 from src.datasets import base_dataset
-from src.utils.common import identity
+from src.utils.common import identity, add_tfms
 from src.utils.custom_statistics import get_img_dset_mean_std
 
 
@@ -24,11 +23,16 @@ def _get_webdataset_len(data_path) -> int:
     return length
 
 
-def add_tfms(transform: Compose, tfms: Callable):
-    """Add transforms to existing transforms"""
-    transforms_list = transform.transforms
-    transforms_list.append(tfms)
-    return Compose(transforms_list)
+def _get_webdataset(dset_path: str, tfms: Compose, dset_len: int, decode: str = "pil"):
+    """
+    Get a webdataset
+    """
+    return (wds.WebDataset(dset_path)
+            .shuffle(100)
+            .decode(decode)
+            .to_tuple("input.jpg", "output.cls")
+            .map_tuple(tfms, identity)
+            .with_length(dset_len))
 
 
 class ClassifierDataset:
@@ -61,6 +65,7 @@ class ClassifierDataset:
         self.test_set = None
         if data_mode == "imgs":
             train_root = osp.join(root, train_path)
+            # add normalization transforms if not present
             if not any(isinstance(t, Normalize) for t in train_transform.transforms):
                 _temp_train_set = base_dataset.ImageFolderDataset(
                     train_root, transforms=train_transform)
@@ -84,6 +89,16 @@ class ClassifierDataset:
         elif data_mode == "webdataset":
             train_root = osp.join(root, train_path)
             train_len = _get_webdataset_len(train_root)
+            # add normalization transforms if not present
+            if not any(isinstance(t, Normalize) for t in train_transform.transforms):
+                _temp_train_set = _get_webdataset(train_root, train_transform, train_len)
+                print("Normalization tfms not found. Calculating mean and std for the dataset.")
+                mean, std = get_img_dset_mean_std(_temp_train_set, method="online")
+                normalize = Normalize(mean.tolist(), std.tolist())
+                train_transform = add_tfms(train_transform, normalize)
+                val_transform = add_tfms(val_transform, normalize)
+                test_transform = add_tfms(test_transform, normalize)
+
             self.train_set = (wds.WebDataset(train_root)
                               .shuffle(100)
                               .decode("pil")
@@ -93,27 +108,20 @@ class ClassifierDataset:
             if val_path is not None:
                 val_root = osp.join(root, val_path)
                 val_len = _get_webdataset_len(val_root)
-                self.val_set = (wds.WebDataset(val_root)
-                                .shuffle(100)
-                                .decode("pil")
-                                .to_tuple("input.jpg", "output.cls")
-                                .map_tuple(val_transform, identity)
-                                .with_length(val_len))
+                self.val_set = _get_webdataset(val_root, val_transform, val_len)
             if test_path is not None:
                 test_root = osp.join(root, test_path)
                 test_len = _get_webdataset_len(test_root)
-                self.test_set = (wds.WebDataset(test_root)
-                                 .shuffle(100)
-                                 .decode("pil")
-                                 .to_tuple("input.jpg", "output.cls")
-                                 .map_tuple(test_transform, identity)
-                                 .with_length(test_len))
+                self.test_set = _get_webdataset(test_root, test_transform, test_len)
         elif data_mode == "numpy":
             raise NotImplementedError(
                 "This mode is not implemented YET")
         else:
             raise NotImplementedError(
                 f"{data_mode} data_mode is not supported. Available modes are: imgs, webdataset")
+        self.train_transform = train_transform
+        self.val_transform = val_transform
+        self.test_transform = test_transform
 
     def plot_samples_per_epoch(self, batch, epoch, out_dir):
         """
