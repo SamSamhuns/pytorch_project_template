@@ -5,7 +5,7 @@
   "seed": 42,
   "cudnn_deterministic": true,
   "cudnn_benchmark": false,
-  "gpu_device": null,
+  "gpu_device": [0],
   "use_amp": false,
   "torch_compile_model": false,
   "quant_backend": null,
@@ -45,12 +45,12 @@
       "val_path": "birds_valid.tar",
       "test_path": "birds_test.tar"
     },
-    "num_classes": 265,
+    "num_classes": 20,
     "preprocess": {
       "train_transform": "ImagenetClassifierPreprocess",
       "val_transform": "ImagenetClassifierPreprocess",
       "test_transform": "ImagenetClassifierPreprocess",
-      "inference_transform": "ImagenetClassifierPreprocesse"
+      "inference_transform": "ImagenetClassifierPreprocess"
     }
   },
   "dataloader": {
