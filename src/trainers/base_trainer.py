@@ -181,8 +181,8 @@ class BaseTrainer(_BaseTrainer):
         )
 
         # update train+test transforms in config and save to json file
-        train_tfs = self.data_set.train_set.transforms
-        test_tfs = self.data_set.test_set.transforms
+        train_tfs = self.data_set.train_transform
+        test_tfs = self.data_set.test_transform
         self.config["dataset"]["args"]["train_tfs"] = [str(tfs) for tfs in train_tfs.transforms]
         self.config["dataset"]["args"]["test_tfs"] = [str(tfs) for tfs in test_tfs.transforms]
         normalize = [tfs for tfs in train_tfs.transforms if isinstance(tfs, Normalize)]
