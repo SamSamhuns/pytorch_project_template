@@ -30,7 +30,7 @@ def generate_tar(src_data_dir: str,
     # fix path for globbing
     if not src_data_dir.endswith(('/', '*')):
         src_data_dir += '/'
-    dir_list = glob.glob(src_data_dir + '*')
+    dir_list = sorted(glob.glob(src_data_dir + '*'))
     class_id = 0
     file_count = 1
 
