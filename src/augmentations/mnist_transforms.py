@@ -2,10 +2,10 @@ from torchvision import transforms
 
 
 class MnistPreprocess:
-    train = transforms.Compose([transforms.ToTensor(),
-                                transforms.Normalize((0.1307,), (0.3081,))])
-    val = train
-    test = train
+    common = [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    train = transforms.Compose(common.copy())
+    val = transforms.Compose(common.copy())
+    test = transforms.Compose(common.copy())
     inference = transforms.Compose([transforms.ToTensor(),
                                     transforms.Resize((28, 28)),
                                     transforms.Normalize((0.1307,), (0.3081,))])

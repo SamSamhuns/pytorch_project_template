@@ -85,9 +85,9 @@ class TestMnistPreprocess:
     def test_initialization(self, preprocess):
         assert isinstance(preprocess, MnistPreprocess)
 
-    def test_transform_equality(self, preprocess):
-        assert preprocess.train is preprocess.val
-        assert preprocess.train is preprocess.test
+    def test_transform_non_equality(self, preprocess):
+        assert not(preprocess.train is preprocess.val)
+        assert not(preprocess.train is preprocess.test)
 
     def test_inference_transform_difference(self, preprocess):
         assert preprocess.inference != preprocess.train
