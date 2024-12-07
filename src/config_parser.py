@@ -2,6 +2,7 @@
 CLI config parsing module
 """
 import random
+import warnings
 from pathlib import Path
 from datetime import datetime
 from operator import getitem
@@ -9,7 +10,7 @@ from functools import reduce
 from typing import List, Dict, Union, Optional
 
 import numpy as np
-from .utils.common import try_bool, try_null, read_json, write_json, get_git_revision_hash
+from .utils.common import BColors, try_bool, try_null, read_json, write_json, get_git_revision_hash
 
 
 class ConfigParser:
@@ -179,8 +180,12 @@ def _set_by_path(tree: Dict, keys: List[str], value: str) -> None:
         KeyError: If the final key does not exist in the dictionary at the end of the path.
     """
     keys = keys.split(':')
+    # currently does not raise KeyError if key does not exist in config
     if len(keys) == 1 and keys[-1] not in tree:
-        raise KeyError(f"Key '{keys[-1]}' not found in config. Add key to JSON config first.")
+        with warnings.catch_warnings():
+            warnings.simplefilter('always')  # enable all warnings
+            msg = f"{BColors.WARN}Key '{keys[-1]}' missing in config. Consider adding key to JSON config first.{BColors.ENDC}"
+            warnings.warn(msg)
     _get_by_path(tree, keys[:-1])[keys[-1]] = value
 
 
