@@ -2,7 +2,6 @@
 FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel
 
 # Define build arguments with defaults
-ARG MODE=dev
 ARG UNAME=user1
 ARG UID=1000
 ARG CUDA="12.4"
@@ -39,8 +38,8 @@ RUN python3 -m venv $VIRTUAL_ENV
 RUN pip install pip==24.0
 
 # Copy and install Python dependencies
-COPY ./server/requirements_${MODE}_server.txt "$WORKDIR/"
-RUN pip install -r "$WORKDIR/requirements_${MODE}_server.txt"
+COPY ./server/requirements_server.txt "$WORKDIR/"
+RUN pip install -r "$WORKDIR/requirements_server.txt"
 
 # Copy application code to the working directory
 COPY . "$WORKDIR"
