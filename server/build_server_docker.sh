@@ -1,22 +1,50 @@
 #!/bin/bash
 
-# check if 2 cmd args have been entered
-if [ "$#" -ne 2 ]
-  then
-    echo "Mode must be specified for creating Dockerfile"
-		echo "eg. \$ bash build_docker.sh -m pytorch/onnx"
-		exit
+# Exit on error and treat unset variables as an error
+set -euo pipefail
+
+# Function to display usage
+usage() {
+    echo "Usage: $0 -m <mode>"
+    echo "Example: $0 -m pytorch/onnx"
+    exit 1
+}
+
+# Ensure exactly two arguments are provided
+if [ "$#" -ne 2 ]; then
+    echo "Error: Incorrect number of arguments provided."
+    usage
 fi
 
-# check if -m/--mode flag has been entered
+# Parse arguments
+mode=""
 while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        -m|--mode) mode="$2"; shift ;;
-        *) echo "Unknown parameter: $1";
-	exit 1 ;;
+    case "$1" in
+        -m|--mode)
+            if [[ -n "${2:-}" ]]; then
+                mode="$2"
+                shift
+            else
+                echo "Error: Missing value for the -m/--mode argument."
+                usage
+            fi
+            ;;
+        *)
+            echo "Error: Unknown parameter: $1"
+            usage
+            ;;
     esac
     shift
 done
 
-echo "Building Docker Container with $mode inference mode"
-docker build -t pytorch_model_server -f server/Dockerfile --build-arg MODE="$mode" --build-arg UID=$(id -u) .
+# Ensure mode is not empty
+if [[ -z "$mode" ]]; then
+    echo "Error: Mode argument cannot be empty."
+    usage
+fi
+
+# Build the Docker container
+echo "Building Docker container with $mode inference mode..."
+docker build -t pytorch_model_server -f server/Dockerfile \
+    --build-arg MODE="$mode" \
+    --build-arg UID="$(id -u)" .
