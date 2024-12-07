@@ -13,7 +13,7 @@ def get_config_from_args() -> ConfigParser:
     parser = argparse.ArgumentParser(
         description="PyTorch Test. Supports time series classification & anomaly detection")
     parser.add_argument(
-        "--cfg", "--config", type=str, dest="config", default="configs/ucr_clsf_config.json",
+        "--cfg", "--config", type=str, dest="config", required=True,
         help="config file path (default: %(default)s)")
     parser.add_argument(
         "--id", "--run_id", type=str, dest="run_id", default="test_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),

@@ -16,7 +16,7 @@ def get_config_from_args():
         description="PyTorch Inference. Currently only supports image classification")
     # primary cli args
     parser.add_argument(
-        "--cfg", "--config", type=str, dest="config", default="configs/classifier_cpu_config.json",
+        "--cfg", "--config", type=str, dest="config", required=True,
         help="config file path (default: %(default)s)")
     parser.add_argument(
         "--id", "--run_id", type=str, dest="run_id", default="inference_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
@@ -35,7 +35,7 @@ def get_config_from_args():
     # additional custom cli options that ovveride or add new config params from json config file
     override_options = [
         {"flags": ["-s", "--source_path"],
-         "dest": "source_path",
+         "dest": "source_path", "required": True,
          "help": "path to source image file or directory for running inference. (default: %(default)s)",
          "type": str, "target": "source_path"},
         {"flags": ["--dev", "--gpu_device"],
