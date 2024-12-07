@@ -1,9 +1,9 @@
 import sys
 sys.path.append("./")
 import os
-import torch
 from typing import Optional
 
+import torch
 from src.trainers import init_trainer
 from src.config_parser import ConfigParser
 from src.utils.common import read_json

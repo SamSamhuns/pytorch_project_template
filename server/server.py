@@ -1,17 +1,17 @@
-from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
-from fastapi.responses import FileResponse
 import urllib.request as urllib2
-from pydantic import BaseModel
 from enum import Enum
 import traceback
-import requests
-import uvicorn
 import json
 import uuid
 import sys
 import os
 import re
 
+from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+import requests
+import uvicorn
 from inference_server import init_detectors, run_detector
 
 
@@ -25,8 +25,8 @@ app = FastAPI(title="Custom Model Inference")
 model1 = "mnist_model_1"
 model2 = "mnist_model_11"
 # pair{weight_path:config_file}
-models_param_dict = {model1: ["checkpoints_server/checkpoint_1.pth", "checkpoints_server/checkpoint_1.json"],
-                     model2: ["checkpoints_server/checkpoint_11.pth", "checkpoints_server/checkpoint_11.json"]}
+models_param_dict = {model1: ["checkpoints_server/models/best.pth", "checkpoints_server/models/config.json"],
+                     model2: ["checkpoints_server/models/best.pth", "checkpoints_server/models/config.json"]}
 # init all models
 loaded_models_dict = init_detectors(models_param_dict, device="cpu")
 
@@ -154,7 +154,7 @@ async def inference_model_file(input_model: model_name,
         input_data = InputModel(
             model_name=input_model.value,
             image_file=image_file_path,
-            back_url=None,
+            back_url="",
             threshold=threshold)
         task = InferenceProcessTask(run_detector,
                                     input_data=input_data)
