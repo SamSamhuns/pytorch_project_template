@@ -8,7 +8,7 @@ import argparse
 from datetime import datetime
 
 from src.trainers import init_trainer
-from src.config_parser import ConfigParser
+from src.config_parser import CustomDictConfig
 
 
 def get_config_from_args():
@@ -17,39 +17,41 @@ def get_config_from_args():
     # primary cli args
     parser.add_argument(
         "--cfg", "--config", type=str, dest="config", required=True,
-        help="config file path (default: %(default)s)")
+        help="Config file path (default: %(default)s)")
     parser.add_argument(
-        "--id", "--run_id", type=str, dest="run_id", default="inference_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
-        help="unique identifier for inference process when saving results. (default: %(default)s)")
+        "-r", "--resume_checkpoint", type=str, dest="resume_checkpoint", required=True,
+        help="Path to resume checkpoint. Overrides `trainer:resume_checkpoint` in config. (default: %(default)s)")
     parser.add_argument(
-        "-r", "--resume", type=str, dest="resume", required=True,
-        help="path to resume ckpt for running inference.")
+        "--id", "--run_id", type=str, dest="run_id", default="test_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
+        help="Unique identifier for testing. Annotates checkpoints & logs. (default: %(default)s)")
     parser.add_argument(
         "-o", "--override", type=str, nargs="+", dest="override", default=None,
-        help="Override config params. Must match keys in json config. "
-        "e.g. -o seed:1 dataset:type:DTYPE (default: %(default)s)")
+        help="Override YAML config params. e.g. -o seed:1 dataset:args:name:NewDataset (default: %(default)s)")
     parser.add_argument(
         "-v", "--verbose", action="store_true", dest="verbose", default=False,
-        help="run training in verbose mode (default: %(default)s)")
+        help="Run testing in verbose mode (default: %(default)s)")
 
-    # additional custom cli options that ovveride or add new config params from json config file
-    override_options = [
-        {"flags": ["-s", "--source_path"],
-         "dest": "source_path", "required": True,
-         "help": "path to source image file or directory for running inference. (default: %(default)s)",
-         "type": str, "target": "source_path"},
-        {"flags": ["--dev", "--gpu_device"],
-         "dest": "gpu_device",
-         "help": "gpu_device list eg. 0, 0 1, 0 1 2. Pass --dev with no arg for cpu (default: %(default)s)",
-         "nargs": "*",
-         "type": int, "target": "gpu_device"},
-        {"flags": ["--mode"],
-         "dest": "mode", "default": "INFERENCE", "choices": ["INFERENCE"],
-         "help": "Running mode. Cannot be changed & fixed to INFERENCE (default: %(default)s)",
-         "type": str, "target": "mode"}
-    ]
-    config = ConfigParser.from_args(parser, override_options)
-    return config
+    # additional arguments
+    parser.add_argument(
+        "--dev", "--gpu_device", type=int, dest="gpu_device", default=[0], nargs="*",
+        help="gpu_device list eg. 0, 0 1, 0 1 2. Pass --dev with no arg for cpu (default: %(default)s)")
+    parser.add_argument(
+        "--mode", type=str, dest="mode", default="INFERENCE", choices=["INFERENCE"],
+        help="Running mode. (default: %(default)s)")
+    parser.add_argument(
+        "-s", "--source_path", type=str, dest="source_path", required=True,
+        help="path to source image file or directory for running inference. (default: %(default)s)",)
+    args = parser.parse_args()
+
+    # To override key-value params from YAML file,
+    # match the YAML kv structure for any additional args above
+    # keys-val pairs can have nested structure separated by colons
+    yaml_modification = {
+        "trainer:resume_checkpoint": args.resume_checkpoint,
+        "gpu_device": args.gpu_device,
+        "mode": args.mode,
+    }
+    return CustomDictConfig.from_args(args, yaml_modification)
 
 
 def main():
