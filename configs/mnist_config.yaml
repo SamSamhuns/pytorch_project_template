@@ -1,0 +1,79 @@
+name: mnist_image_classifier
+save_dir: checkpoints
+git_hash: null
+mode: TRAIN
+seed: 42
+cudnn_deterministic: true
+cudnn_benchmark: false
+gpu_device:
+- 0
+use_amp: false
+torch_compile_model: false
+quant_backend: null
+trainer:
+  type: ClassifierTrainer
+  resume_checkpoint: null
+  save_best_only: true
+  batch_log_freq: 10
+  weight_save_freq: 5
+  valid_freq: 2
+  epochs: 12
+  verbosity: 2
+  use_tensorboard: true
+  tensorboard_port: null
+model:
+  type: MnistModel
+  args:
+    num_classes: 10
+  info:
+    input_width: 28
+    input_height: 28
+    input_channel: 1
+dataset:
+  type: MnistDataset
+  args:
+    root: data
+    train_path: train
+    val_path: null
+    test_path: test
+  num_classes: 10
+  preprocess:
+    train_transform: MnistPreprocess
+    val_transform: MnistPreprocess
+    test_transform: MnistPreprocess
+    inference_transform: MnistPreprocess
+dataloader:
+  type: CustomDataLoader
+  args:
+    batch_size: 32
+    num_workers: 4
+    shuffle: true
+    validation_split: 0.1
+    drop_last: false
+    pin_memory: true
+    prefetch_factor: 2
+    worker_init_fn: null
+optimizer:
+  type: SGD
+  args:
+    lr: 0.01
+    momentum: 0.5
+loss:
+  type: NLLLoss
+  args: {}
+metrics:
+  val:
+  - accuracy_score
+  - f1_score
+  test:
+  - accuracy_score
+  - f1_score
+  - precision_score
+  - recall_score
+  - confusion_matrix
+  - classification_report
+lr_scheduler:
+  type: ReduceLROnPlateau
+  args:
+    factor: 0.1
+    patience: 8
