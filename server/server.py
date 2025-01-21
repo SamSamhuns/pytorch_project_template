@@ -25,8 +25,8 @@ app = FastAPI(title="Custom Model Inference")
 model1 = "mnist_model_1"
 model2 = "mnist_model_11"
 # pair{weight_path:config_file}
-models_param_dict = {model1: ["checkpoints_server/models/best.pth", "checkpoints_server/models/config.json"],
-                     model2: ["checkpoints_server/models/best.pth", "checkpoints_server/models/config.json"]}
+models_param_dict = {model1: ["checkpoints_server/models/best.pth", "checkpoints_server/models/config.yaml"],
+                     model2: ["checkpoints_server/models/best.pth", "checkpoints_server/models/config.yaml"]}
 # init all models
 loaded_models_dict = init_detectors(models_param_dict, device="cpu")
 

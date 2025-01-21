@@ -3,9 +3,10 @@ Base Trainer
 Implements logging torch device setup, save & load checkpoint,
 tensorboard logging, dataset and dataloader inits
 """
+import os
+import os.path as osp
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-import os.path as osp
 import tqdm
 
 import numpy as np
@@ -15,9 +16,10 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import Subset
 from torchvision.transforms.transforms import Normalize
 from tensorboard import program
+from omegaconf import OmegaConf
 
 from src.loggers import get_logger
-from src.config_parser import ConfigParser
+from src.config_parser import CustomDictConfig
 from src.datasets import init_dataset
 from src.dataloaders import init_dataloader
 from src.augmentations import init_transform
@@ -26,7 +28,7 @@ from src.utils.export_utils import (
     TSScriptExportStrategy, TSTraceExportStrategy,
     QuantizedModelWrapper)
 from src.utils.common import (
-    recursively_flatten_dict, is_port_in_use, write_json,
+    recursively_flatten_config, is_port_in_use,
     find_latest_file_in_dir, BColors)
 
 
@@ -35,7 +37,7 @@ class _BaseTrainer(ABC):
     base functions which will be overloaded
     """
 
-    def __init__(self, config: ConfigParser, logger_name: str = "logger") -> None:
+    def __init__(self, config: CustomDictConfig, logger_name: str = "logger") -> None:
         self.config = config
         # General logger
         self.logger = get_logger(
@@ -110,7 +112,7 @@ class _BaseTrainer(ABC):
             ckpt_save_name: checkpoint file name which is saved inside self.config.save_dir
         """
         # create checkpoint directory if it doesnt exist
-        self.config.save_dir.mkdir(parents=True, exist_ok=True)
+        os.makedirs(self.config.save_dir, exist_ok=True)
         save_path = osp.join(str(self.config.save_dir), ckpt_save_name)
         torch.save(model.state_dict(), save_path)
 
@@ -146,7 +148,7 @@ class BaseTrainer(_BaseTrainer):
     Inherits from _BaseTrainer class with dataset, dataloader, and tboard logging initialized
     """
 
-    def __init__(self, config: ConfigParser, logger_name: str = "logger") -> None:
+    def __init__(self, config: CustomDictConfig, logger_name: str = "logger") -> None:
         super().__init__(config, logger_name)
         self.model = None  # placeholder model attrb. Must be init later
         # do not load datasets for INFERENCE mode
@@ -180,7 +182,7 @@ class BaseTrainer(_BaseTrainer):
             **self.config["dataset"]["args"]
         )
 
-        # update train+test transforms in config and save to json file
+        # update train+test transforms in config and save to YAML file
         train_tfs = self.data_set.train_transform
         test_tfs = self.data_set.test_transform
         self.config["dataset"]["args"]["train_tfs"] = [str(tfs) for tfs in train_tfs.transforms]
@@ -188,7 +190,12 @@ class BaseTrainer(_BaseTrainer):
         normalize = [tfs for tfs in train_tfs.transforms if isinstance(tfs, Normalize)]
         self.config["dataset"]["args"]["mean"] = normalize[0].mean
         self.config["dataset"]["args"]["std"] = normalize[0].std
-        write_json(dict(self.config), self.config.save_dir / 'config.json')
+        _config = dict(self.config)
+        # only save the top level dir for the save dir
+        _config["save_dir"] = _config["save_dir"].split("/")[0]
+        _config.pop("log_dir")
+        _config.pop("tboard_log_dir", None)
+        OmegaConf.save(_config, osp.join(config["save_dir"], "config.yaml"))
 
         # log numerized remapped labels if present
         if config.verbose and hasattr(self.data_set, "labels2idx"):
@@ -268,7 +275,7 @@ class BaseTrainer(_BaseTrainer):
                 log_dir=tb_logdir, filename_suffix=_suffix)
             self.tboard_writer = tboard_writer
 
-            flat_cfg = recursively_flatten_dict(self.config._config)
+            flat_cfg = recursively_flatten_config(self.config)
             for cfg_key, cfg_val in flat_cfg.items():
                 self.tboard_writer.add_text(cfg_key, str(cfg_val))
 
@@ -316,7 +323,7 @@ class BaseTrainer(_BaseTrainer):
         sample_in = torch.randn((4, in_c, in_h, in_w)).to(self.device)
 
         model_name = "model_gpu" if self.device.type == "cuda" else "model_cpu"
-        export_path = str(self.config.save_dir / model_name)
+        export_path = osp.join(self.config.save_dir, model_name)
         export_path += f"_quant_{quantize_mode_backend}" if quantize_mode_backend else ""
         export_path = export_path + exporter_dict[mode][0]
         exporter = exporter_dict[mode][1](self.logger)

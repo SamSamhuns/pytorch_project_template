@@ -36,7 +36,7 @@ Use `python venv` or a `conda env` to install requirements:
 Example training for mnist digit classification:
 
 ```shell
-python train.py --cfg configs/mnist_config.json
+python train.py --cfg configs/mnist_config.yaml
 ```
 
 ## Custom Training
@@ -68,8 +68,8 @@ python scripts/train_val_test_split.py --rd data/SOURCE_DATASET --td data/SOURCE
 # OPTIONAL duplicate train data if necessary
 python scripts/duplicate_data.py --rd data/SOURCE_DATASET_SPLIT/train --td data/SOURCE_DATASET_SPLIT/train -n TARGET_NUMBER
 
-# create a custom config file based on configs/classifier_cpu_config.json and modify train parameters
-cp configs/classifier_cpu_config.json configs/custom_classifier_cpu_config.json
+# create a custom config file based on configs/classifier_cpu_config.yaml and modify train parameters
+cp configs/classifier_cpu_config.yaml configs/custom_classifier_cpu_config.yaml
 ```
 
 #### Example Training: Image Classification
@@ -78,7 +78,7 @@ Sample data used in the custom image classification training downloaded from <ht
 
 ```shell
 # train on custom data with custom config
-python train.py --cfg custom_classifier_cpu_config.json
+python train.py --cfg custom_classifier_cpu_config.yaml
 ```
 
 ### WebDataset for large scale training
@@ -91,11 +91,11 @@ Convert existing dataset to a `tar` archive format used by WebDataset. The data 
 python scripts/convert_dataset_to_tar.py --sd data/SOURCE_DATA_SPLIT --td data/TARGET_TAR_SPLIT.tar --mp ID_2_CLASSNAME_MAP_TXT_FILE
 ```
 
-An example configuration for training with the WebDataset format is provided in `configs/classifier_webdataset_cpu_config.json`.
+An example configuration for training with the WebDataset format is provided in `configs/classifier_webdataset_cpu_config.yaml`.
 
 ```shell
 # example training with webdataset tar data format
-python train.py --cfg configs/classifier_webdataset_cpu_config.json
+python train.py --cfg configs/classifier_webdataset_cpu_config.yaml
 ```
 
 ## Test

@@ -35,7 +35,7 @@ class MnistDataset:
             raise NotImplementedError("This mode is not implemented YET")
         else:
             raise Exception(
-                "Please specify in the json a specified mode in data_mode")
+                "Please specify in the YAML a specified mode in data_mode")
 
     def plot_samples_per_epoch(self, batch, epoch, out_dir):
         """

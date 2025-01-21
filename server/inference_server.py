@@ -4,9 +4,9 @@ import os
 from typing import Optional
 
 import torch
+from omegaconf import OmegaConf
 from src.trainers import init_trainer
-from src.config_parser import ConfigParser
-from src.utils.common import read_json
+from src.config_parser import CustomDictConfig
 
 
 def init_detectors(models_param_dict: dict, device: Optional[str] = "0"):
@@ -28,7 +28,7 @@ def init_detectors(models_param_dict: dict, device: Optional[str] = "0"):
 def init_single_detector(f_config: str, f_checkpoint: str, device: Optional[str]="0", inf_type: str = "pytorch"):
     """
     Args:
-        f_config: str = path to json config file
+        f_config: str = path to YAML config file
         f_checkpoint: str = path to checkpoint .pth file
         device: str = device where inf is run, "cpu", "0", "0,1", "0,1,2"
         inf_type: str = pytorch/onnx
@@ -38,7 +38,7 @@ def init_single_detector(f_config: str, f_checkpoint: str, device: Optional[str]
         raise RuntimeError(f"{f_checkpoint} and/or {f_config} does not exist!")
 
     dev = None if ("cpu" in device or device is None) else list(map(int, device.split(',')))
-    config = ConfigParser(config=read_json(f_config), resume=f_checkpoint, modification={"gpu_device": dev, "mode": "INFERENCE"})
+    config = CustomDictConfig(config=OmegaConf.load(f_config), resume=f_checkpoint, modification={"gpu_device": dev, "mode": "INFERENCE"})
     agent = init_trainer("ClassifierTrainer", config=config, logger_name="inference")
 
     if inf_type == "pytorch":

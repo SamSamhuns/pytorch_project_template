@@ -2,6 +2,7 @@
 Time Series Classification trainer
 Dataset should be in the format [batch_size, num_channels, seq_len]
 """
+import os
 import time
 import glob
 import copy
@@ -20,7 +21,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 
 from src.trainers import BaseTrainer
 from src.datasets.base_dataset import IMG_EXTENSIONS
-from src.config_parser import ConfigParser
+from src.config_parser import CustomDictConfig
 from src.losses import init_loss
 from src.models import init_model
 from src.metrics import calc_metric, plot_metric
@@ -37,7 +38,7 @@ class ClassifierTrainer(BaseTrainer):
     Main ClassifierTrainer with the train, test, validate, inference, load_checkpoint and save_checkpoint funcs
     """
 
-    def __init__(self, config: ConfigParser, logger_name: str):
+    def __init__(self, config: CustomDictConfig, logger_name: str):
         super().__init__(config, logger_name)
 
         # ###### define model args for UCR Dataset ######
@@ -104,11 +105,8 @@ class ClassifierTrainer(BaseTrainer):
             self.model = torch.compile(self.model)
 
         resume_ckpt: str = None
-        # if --resume cli argument is provided, give precedence to --resume ckpt path
-        if self.config.resume:
-            resume_ckpt = self.config.resume
-        # else use "resume_checkpoint" if provided in json config if --resume cli argument is absent
-        elif self.config["trainer"]["resume_checkpoint"] is not None:
+        # resume from checkpoint if resume_checkpoint is not None
+        if self.config["trainer"]["resume_checkpoint"] is not None:
             resume_ckpt = self.config["trainer"]["resume_checkpoint"]
 
         # resume from ckpt if resume_ckpt is not None
@@ -319,7 +317,7 @@ class ClassifierTrainer(BaseTrainer):
                 if self.config.verbose:
                     self.logger.info("\tPlotting val %s", metric_name)
                 plot_metric(metric_name, y_true=y_true,  y_score=y_score, y_pred=y_pred,
-                            savepath=str(self.config.log_dir / f"val_e{self.current_epoch}_{metric_name}.png"))
+                            savepath=os.path.join(self.config.log_dir, f"val_e{self.current_epoch}_{metric_name}.png"))
                 continue
             metric_val = calc_metric(
                 metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
@@ -387,7 +385,7 @@ class ClassifierTrainer(BaseTrainer):
             if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
                 self.logger.info("\tPlotting %s", metric_name)
                 plot_metric(metric_name, y_true=y_true,  y_score=y_score, y_pred=y_pred,
-                            savepath=str(self.config.log_dir / f"{metric_name}.png"))
+                            savepath=os.path.join(self.config.log_dir, f"{metric_name}.png"))
                 continue
             metric_val = calc_metric(
                 metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
