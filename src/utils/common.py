@@ -5,15 +5,14 @@ from contextlib import redirect_stdout
 import io
 import os
 import glob
-import json
 import socket
-import functools
 import subprocess
 from typing import Set, List, Any, Callable, Union, Optional
 from collections import OrderedDict
 from collections.abc import MutableMapping
 import numpy as np
 from torchvision.transforms.transforms import Compose
+from omegaconf import DictConfig, OmegaConf
 
 
 class BColors:
@@ -59,26 +58,28 @@ class MissingConfigError(Exception):
     """Raised when configurations are missing
     """
 
+
 ############################ conversion utils ############################
 
-def try_bool(x: Any) -> Optional[bool]:
+
+def try_bool(val: Any) -> Optional[bool]:
     """
     Check if x is boolabe (eq. to true/false) & converts to bool else raise ValueError
     """
-    if x == 'true':
-        return True
-    if x == 'false':
-        return False
-    raise ValueError(f"{x} is not a boolean string. Must be 'true' or 'false'.")
+    if val.lower() in ("true", "false"):
+        return val.lower() == "true"
+    raise ValueError(
+        f"{val} is not a boolean string. Must be 'true' or 'false' converted in lowecase.")
 
 
-def try_null(x: Any) -> Optional[None]:
+def try_null(val: Any) -> Optional[None]:
     """
-    Check if x is nullable (eq. to 'null') & converts to None else raise ValueError
+    Check if x is nullable (eq. to "null") & converts to None else raise ValueError
     """
-    if x == "null":
+    if val.lower() in {"null", "none"}:
         return None
-    raise ValueError(f"{x} is not a nullable string. Must be 'null'.")
+    raise ValueError(
+        f"{val} is not a nullable string. Must be 'null' or 'none'  converted in lowecase.")
 
 
 def can_be_conv_to_float(var: Any) -> bool:
@@ -161,8 +162,6 @@ def sigmoid(x):
     return np.exp(-np.logaddexp(0, -x))
 
 
-####################################################################
-
 ############################ dict utils ############################
 
 
@@ -211,54 +210,28 @@ def reorder_trainer_cfg(cfg_dict: dict) -> dict:
     return sorted_cfg_dict
 
 
-def recursively_flatten_dict(dictionary: dict, parent_key: str = '', sep: str = '.') -> MutableMapping:
+def recursively_flatten_config(config: DictConfig, parent_key: str = '', sep: str = '.') -> MutableMapping:
     """
-    Recursively flattens a potentially nested dict with nested keys and 
-    return a flat dict with the keys seperated by sep
+    Recursively flattens a potentially nested OmegaConf DictConfig and returns 
+    a flat dictionary with the keys separated by sep.
+    
+    :param config: The DictConfig object to flatten.
+    :param parent_key: The base key to prepend (used for recursion).
+    :param sep: The separator for flattened keys.
+    :return: A flattened dictionary.
     """
     items = []
-    for key, value in dictionary.items():
-        new_key = parent_key + sep + key if parent_key else key
-        if isinstance(value, MutableMapping):
-            items.extend(recursively_flatten_dict(
+    for key, value in config.items():
+        new_key = f"{parent_key}{sep}{key}" if parent_key else key
+        if isinstance(value, DictConfig) and OmegaConf.is_dict(value):
+            items.extend(recursively_flatten_config(
                 value, new_key, sep=sep).items())
         else:
             items.append((new_key, value))
     return dict(items)
 
 
-def rgetattr(obj, attr, *args):
-    """
-    recursively get attrs. i.e. rgetattr(module, "sub1.sub2.sub3")
-    """
-    def _getattr(obj, attr):
-        return getattr(obj, attr, *args)
-    return functools.reduce(_getattr, [obj] + attr.split('.'))
-
-####################################################################
-
 ############################ file utils ############################
-
-
-def _fix_path_for_globbing(directory: str):
-    """ Add * at the end of paths for proper globbing
-    """
-    if directory[-1] == '/':         # data/
-        directory += '*'
-    elif directory[-1] != '*':       # data
-        directory += '/*'
-    # else data/*
-    return directory
-
-
-def read_json(fname: str) -> dict:
-    with open(fname, 'r', encoding="utf-8") as handle:
-        return json.load(handle, object_hook=OrderedDict)
-
-
-def write_json(content: dict, fname: str) -> None:
-    with open(fname, 'w', encoding="utf-8") as handle:
-        json.dump(content, handle, indent=4, sort_keys=False)
 
 
 def find_latest_file_in_dir(dir_path: str, ext: str = "pth"):
@@ -274,7 +247,6 @@ def find_latest_file_in_dir(dir_path: str, ext: str = "pth"):
     latest_file = max(list_of_files, key=os.path.getctime)
     return latest_file
 
-####################################################################
 
 ########################## data utils ##############################
 
