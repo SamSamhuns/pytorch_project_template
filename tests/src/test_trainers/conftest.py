@@ -1,8 +1,9 @@
 from typing import Callable
 import pytest
 import torch
+from omegaconf import OmegaConf
 
-from src.config_parser import ConfigParser
+from src.config_parser import CustomDictConfig
 from src.trainers import (BaseTrainer, ClassifierTrainer)
 from tests.conftest import PYTEST_TEMP_ROOT, NUM_CLS, NUM_IMGS_P_CLS
 
@@ -29,7 +30,7 @@ class PatchedBaseTrainer(BaseTrainer):
 
 @pytest.fixture(scope="function", params=[None, pytest.param([0], marks=pytest.mark.skipif(not CUDA_AVAI, reason="CUDA unavailable"))])
 def mock_clsf_config(
-        request, root_directory, create_and_save_dummy_imgs: Callable) -> ConfigParser:
+        request, root_directory, create_and_save_dummy_imgs: Callable) -> CustomDictConfig:
     """Configure and create a training environment for a
     CNN classifier using a custom image dataset"""
     create_and_save_dummy_imgs(
@@ -37,6 +38,7 @@ def mock_clsf_config(
     gpu_device = request.param
     cfg_dict = {
         "name": "pytest_base_trainer",
+        "save_dir": f"{PYTEST_TEMP_ROOT}/base_trainer",
         "git_hash": None,
         "mode": "PYTEST",
         "seed": 42,
@@ -53,7 +55,6 @@ def mock_clsf_config(
             "weight_save_freq": 2,
             "valid_freq": 2,
             "epochs": 4,
-            "save_dir": f"{PYTEST_TEMP_ROOT}/base_trainer",
             "use_tensorboard": False,
             "tensorboard_port": 6006
         },
@@ -121,7 +122,8 @@ def mock_clsf_config(
             ]
         }
     }
-    return ConfigParser(cfg_dict)
+    cfg = OmegaConf.create(cfg_dict)
+    return CustomDictConfig(cfg)
 
 
 @pytest.fixture
@@ -132,7 +134,7 @@ def mock_logger(mocker):
 @pytest.fixture()
 def base_trainer_and_logger(
         dump_mock_img_data_dir,
-        mock_clsf_config: ConfigParser,
+        mock_clsf_config: CustomDictConfig,
         mocker):
     """Get a abstract method patched BaseTrainer
     and the associated logger"""
@@ -146,7 +148,7 @@ def base_trainer_and_logger(
 @pytest.fixture()
 def clsf_trainer_and_logger(
         dump_mock_img_data_dir,
-        mock_clsf_config: ConfigParser,
+        mock_clsf_config: CustomDictConfig,
         mocker):
     """Get a abstract method patched TimeSeriesClassifierTrainer
     and the associated logger"""

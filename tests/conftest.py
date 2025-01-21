@@ -39,7 +39,7 @@ def sample_pilimage():
 
 ##########################################
 ###### setup for config parser test ######
-SAMPLE_CFG_PATH = f"{PYTEST_TEMP_ROOT}/sample_config.json"
+SAMPLE_CFG_PATH = f"{PYTEST_TEMP_ROOT}/sample_config.yaml"
 
 
 @pytest.fixture

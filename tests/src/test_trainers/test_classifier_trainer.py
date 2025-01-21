@@ -1,7 +1,7 @@
 import warnings
 import pytest
 import torch
-from src.config_parser import ConfigParser
+from src.config_parser import CustomDictConfig
 from src.trainers import ClassifierTrainer
 
 
@@ -50,7 +50,7 @@ def test_train_one_epoch_method(clsf_trainer_and_logger):
                for call in info_calls), "No logging for Loss"
 
 
-def test_eval_one_epoch_method(mock_clsf_config: ConfigParser):
+def test_eval_one_epoch_method(mock_clsf_config: CustomDictConfig):
     """Test eval_one_epoch"""
     mock_clsf_config["dataloader"]["args"]["validation_split"] = 0.1
     mock_clsf_config["dataset"]["args"]["val_path"] = None
@@ -78,7 +78,7 @@ def test_train_method(clsf_trainer_and_logger):
     assert logger_instance.info.call_count > 0, "No logging occurred during training."
 
 
-def test_validate_method(mock_clsf_config: ConfigParser, mocker):
+def test_validate_method(mock_clsf_config: CustomDictConfig, mocker):
     mocked_logger = mocker.patch('logging.getLogger')
     mock_clsf_config["dataset"]["args"]["val_path"] = None
     mock_clsf_config["dataloader"]["args"]["validation_split"] = 0.1

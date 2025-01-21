@@ -1,21 +1,18 @@
 """
 Tests for src.utils.common
 """
-import os
 import pytest
-import json
 import errno
 import socket
 import subprocess
-from collections import OrderedDict
-
+from omegaconf import OmegaConf
 
 from tests.conftest import PYTEST_TEMP_ROOT
 from src.utils.common import (
     BColors, round_to_nearest_divisor, can_be_conv_to_float, try_bool, try_null,
     capture_output, is_port_in_use, get_git_revision_hash, stable_sort,
     inherit_missing_dict_params, reorder_trainer_cfg,
-    recursively_flatten_dict, rgetattr, read_json, write_json)
+    recursively_flatten_config)
 
 
 def test_BColors():
@@ -30,22 +27,24 @@ def test_BColors():
 def test_try_bool():
     assert try_bool("true") is True
     assert try_bool("false") is False
-    with pytest.raises(ValueError):
-        try_bool("TRUE")
-    with pytest.raises(ValueError):
-        try_bool("FALSE")
+    assert try_bool("TRUE") is True
+    assert try_bool("FALSE") is False
     with pytest.raises(ValueError):
         try_bool("yes")
     with pytest.raises(ValueError):
         try_bool("no")
+    with pytest.raises(ValueError):
+        try_bool("yes1")
 
 
 def test_try_null():
     assert try_null("null") is None
+    assert try_null("Null") is None
+    assert try_null("NULL") is None
+    assert try_null("None") is None
+    assert try_null("none") is None
     with pytest.raises(ValueError):
-        try_null("NULL")
-    with pytest.raises(ValueError):
-        try_null("none")
+        try_null("none1")
 
 
 def test_can_be_conv_to_float():
@@ -140,7 +139,7 @@ def test_reorder_trainer_cfg():
     assert "unexpected_key" in actual_keys_order
 
 
-def test_recursively_flatten_dict():
+def test_recursively_flatten_config():
     nested_dict = {
         "level1": {
             "level2": {
@@ -150,62 +149,19 @@ def test_recursively_flatten_dict():
         },
         "level1_value": "value1"
     }
-    flat_dict = recursively_flatten_dict(nested_dict)
+    nested_cfg = OmegaConf.create(nested_dict)
+    flat_dict = recursively_flatten_config(nested_cfg)
     expected_dict = {
         "level1.level2.level3": "value3",
         "level1.level2_value": "value2",
         "level1_value": "value1"
     }
     assert flat_dict == expected_dict
-
-    flat_dict = recursively_flatten_dict(nested_dict, sep="=+=")
+    nested_dict = OmegaConf.create(nested_dict)
+    flat_dict = recursively_flatten_config(nested_dict, sep="=+=")
     expected_dict = {
         "level1=+=level2=+=level3": "value3",
         "level1=+=level2_value": "value2",
         "level1_value": "value1"
     }
     assert flat_dict == expected_dict
-
-
-class TestObject:
-    class NestedObject:
-        class DeepNestedObject:
-            value = "deep_value"
-
-        deep_nested = DeepNestedObject()
-
-    nested = NestedObject()
-
-
-def test_rgetattr():
-    obj = TestObject()
-    assert rgetattr(obj, "nested.deep_nested.value") == "deep_value"
-    # Test with default value
-    assert rgetattr(obj, "nested.no_attr", "default_value") == "default_value"
-
-
-def test_read_json():
-    d = f"{PYTEST_TEMP_ROOT}/json"
-    os.makedirs(d, exist_ok=True)
-    path = d + "/hello.json"
-    data = {"a": 1, "b": 2}
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f)
-
-    data = read_json(path)
-    assert data == {"a": 1, "b": 2}
-    assert isinstance(data, OrderedDict)
-
-
-def test_write_json():
-    d = os.path.join(PYTEST_TEMP_ROOT, "json")
-    os.makedirs(d, exist_ok=True)
-    file_path = os.path.join(d, "test.json")
-
-    content = {'key': 'value'}
-
-    write_json(content, file_path)
-
-    with open(file_path, 'r', encoding="utf-8") as f:
-        data = json.load(f)
-    assert data == content

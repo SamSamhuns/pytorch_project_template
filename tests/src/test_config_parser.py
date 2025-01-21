@@ -1,67 +1,142 @@
 import os
-import json
-from pathlib import Path
-from collections import OrderedDict
-
-import pytest
-from tests.conftest import PYTEST_TEMP_ROOT
-from src.config_parser import ConfigParser, _update_config, _set_by_path, _get_by_path
-from tests.conftest import SAMPLE_CFG_PATH
+import tempfile
+from omegaconf import OmegaConf
+from unittest.mock import patch
+from src.config_parser import CustomDictConfig, apply_modifications, parse_and_cast_kv_overrides
 
 
-def test_config_parser_init(sample_config):
-    config_parser = ConfigParser(config=sample_config)
-    assert config_parser.config['seed'] == 42
-    assert isinstance(config_parser.save_dir, Path)
+def test_apply_modifications():
+    config = OmegaConf.create({"level1": {"level2": {"key": "value"}}})
+    modifications = {"level1:level2:key": "new_value",
+                     "level1:level3": "added_value"}
+    apply_modifications(config, modifications)
+
+    assert config.level1.level2.key == "new_value"
+    assert config.level1.level3 == "added_value"
 
 
-def test_config_update_with_modifications(sample_config, modifications):
-    updated_config = _update_config(sample_config, modifications)
-    assert updated_config['trainer']['save_dir'] == f"{PYTEST_TEMP_ROOT}/modified"
-    assert updated_config['seed'] == 123
+def test_parse_and_cast_kv_overrides():
+    overrides = ["key1:123", "key2:45.6", "key3:true", "key4:null"]
+    modifications = {}
+
+    parse_and_cast_kv_overrides(overrides, modifications)
+
+    assert modifications["key1"] == 123
+    assert modifications["key2"] == 45.6
+    assert modifications["key3"] is True
+    assert modifications["key4"] is None
 
 
-def test_set_by_path(sample_config):
-    _set_by_path(sample_config, "trainer:save_dir", "/new/save/dir")
-    assert sample_config['trainer']['save_dir'] == "/new/save/dir"
+def test_CustomDictConfig_initialization():
+    config_dict = {
+        "save_dir": "/tmp",
+        "name": "test_run",
+        "seed": 42,
+        "trainer": {"use_tensorboard": True}
+    }
+    config = OmegaConf.create(config_dict)
 
-    with pytest.raises(KeyError):
-        _set_by_path(sample_config, "nonexistent:key", "value")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config.save_dir = tmpdir
+        parser = CustomDictConfig(config)
 
-
-def test_get_by_path(sample_config):
-    save_dir = _get_by_path(sample_config, ["trainer", "save_dir"])
-    assert save_dir == PYTEST_TEMP_ROOT
-
-    with pytest.raises(KeyError):
-        _get_by_path(sample_config, ["trainer", "nonexistent"])
-
-
-@pytest.mark.parametrize("modification_input, expected_output", [
-    ({"optimizer:args:lr": 0.1}, {"optimizer:args": {"lr": 0.1}}),
-    ({"seed": 100}, {"seed": 100})
-])
-def test_deep_update_config(sample_config, modification_input, expected_output):
-    updated_config = _update_config(sample_config, modification_input)
-    for key, value in expected_output.items():
-        keys = key.split(':')
-        assert _get_by_path(updated_config, keys) == value
+        assert parser.save_dir == os.path.join(
+            tmpdir, "test_run", parser.run_id, "models")
+        assert os.path.exists(parser.save_dir)
+        assert os.path.exists(parser.log_dir)
+        assert os.path.isfile(os.path.join(
+            parser.save_dir, "config.yaml"))
 
 
-def test_from_args(monkeypatch, mock_parser, sample_config, override_args):
-    """Test ConfigParser init with override args"""
-    os.makedirs(PYTEST_TEMP_ROOT, exist_ok=True)
-    with open(SAMPLE_CFG_PATH, 'w', encoding="utf-8") as f:
-        json.dump(sample_config, f)
+def test_CustomDictConfig_from_args():
+    config_dict = {
+        "save_dir": "/tmp",
+        "name": "test_run",
+        "seed": 42,
+        "trainer": {"use_tensorboard": True}
+    }
+    with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as temp_config:
+        OmegaConf.save(OmegaConf.create(config_dict), temp_config.name)
+        temp_config_path = temp_config.name
 
-    # modify sample config to match the override args
-    sample_config["mode"] = "TRAIN_TEST"
-    sample_config["trainer"] = OrderedDict(sample_config["trainer"])
-    sample_config = OrderedDict(sample_config)
+    class MockArgs:
+        config = temp_config_path
+        run_id = None
+        verbose = True
+        override = ["name:new_name"]
 
-    monkeypatch.setattr('sys.argv', ['train.py', '--cfg', SAMPLE_CFG_PATH])
-    config_parser = ConfigParser.from_args(mock_parser, override_args)
+    args = MockArgs()
+    parser = CustomDictConfig.from_args(args)
 
-    assert "git_hash" in config_parser.config
-    del config_parser.config["git_hash"]
-    assert config_parser.config == sample_config
+    assert parser.name == "new_name"
+    assert parser.verbose is True
+
+    os.remove(temp_config_path)
+
+
+def test_CustomDictConfig_get_set_item():
+    config_dict = {
+        "save_dir": "/tmp",
+        "name": "test_run",
+        "seed": 42,
+        "trainer": {"use_tensorboard": True}
+    }
+    config = OmegaConf.create(config_dict)
+    parser = CustomDictConfig(config)
+
+    parser["name"] = "updated_name"
+    assert parser["name"] == "updated_name"
+
+    parser["new_key"] = "new_value"
+    assert parser["new_key"] == "new_value"
+
+
+def test_CustomDictConfig_str():
+    config_dict = {
+        "save_dir": "/tmp",
+        "name": "test_run",
+        "seed": 42,
+        "trainer": {"use_tensorboard": True}
+    }
+    config = OmegaConf.create(config_dict)
+    parser = CustomDictConfig(config)
+
+    config_str = str(parser)
+    assert "save_dir" in config_str
+    assert "name" in config_str
+
+
+def test_CustomDictConfig_iter():
+    config_dict = {
+        "run_id": "bar",
+        "key1": "value1",
+        "key2": "value2",
+        "save_dir": "/tmp",
+        "name": "rand",
+        "seed": 42,
+        "trainer": {"use_tensorboard": True}
+    }
+    config = OmegaConf.create(config_dict)
+    parser = CustomDictConfig(config, run_id="bar")
+    config_dict.pop("save_dir")
+
+    items = {k: v for k, v in parser.items()
+             if k not in {"git_hash", "save_dir", "log_dir", "verbose", "tboard_log_dir"}}
+
+    assert items == config_dict
+
+
+@patch("src.config_parser.get_git_revision_hash", return_value="fake_hash")
+def test_git_hash_in_config(mock_get_git_revision_hash):
+    config_dict = {
+        "save_dir": "/tmp",
+        "name": "test_run",
+        "seed": 42,
+        "trainer": {"use_tensorboard": True}
+    }
+    config = OmegaConf.create(config_dict)
+    parser = CustomDictConfig(config)
+
+    assert parser.git_hash == "fake_hash"
+
+    mock_get_git_revision_hash.assert_called_once()
