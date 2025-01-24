@@ -5,6 +5,7 @@ mode: TRAIN
 seed: 42
 cudnn_deterministic: false
 cudnn_benchmark: true
+device: cpu
 gpu_device:
 - 0
 use_amp: true

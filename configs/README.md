@@ -14,7 +14,8 @@ mode: TRAIN  # Mode: TRAIN or TEST
 seed: 42  # Random seed for reproducibility
 cudnn_deterministic: false  # Set to true for reproducible results (slower GPU performance if true)
 cudnn_benchmark: true  # Enable to use faster GPU functions during training
-gpu_device:  # List of GPU devices to use (set to null for CPU)
+device: cuda  # Device to run the model on (cuda or cpu)
+gpu_device:  # List of GPU devices to use
 - 0
 use_amp: true  # Use automatic mixed precision for faster training and lower memory usage
 torch_compile_model: false  # Compile the PyTorch model for optimized performance
