@@ -14,7 +14,7 @@ def get_config_from_args() -> CustomDictConfig:
         description='PyTorch Training. Currently only supports image classification')
     # primary cli args
     parser.add_argument(
-        "--cfg", "--config", type=str, dest="config", default="configs/classifier_cpu_config.yaml",
+        "--cfg", "--config", type=str, dest="config", default="configs/classifier_gpu_config.yaml",
         help="config file path (default: %(default)s)")
     parser.add_argument(
         "--id", "--run_id", type=str, dest="run_id", default="train_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
@@ -27,13 +27,16 @@ def get_config_from_args() -> CustomDictConfig:
         "-v", "--verbose", action="store_true", dest="verbose", default=False,
         help="run training in verbose mode (default: %(default)s)")
 
-    # Add additional arguments here
+    # Add additional arguments here (Overrides YAML configs)
     parser.add_argument(
-        "-r", "--resume_checkpoint", type=str, dest="resume_checkpoint", default=None,
-        help="Path to resume checkpoint. Overrides `trainer:resume_checkpoint` in config. (default: %(default)s)")
+        "-r", "--resume_checkpoint", type=str, dest="resume_checkpoint",
+        help="Path to resume checkpoint. Overrides `trainer:resume_checkpoint` in config.")
     parser.add_argument(
-        "--dev", "--gpu_device", type=int, dest="gpu_device", default=[0], nargs="*",
-        help="gpu_device list eg. 0, 0 1, 0 1 2. Pass --dev with no arg for cpu (default: %(default)s)")
+        "--dev", "--device", dest="device", choices=["cpu", "cuda"],
+        help="device for training. Use cpu or cuda.")
+    parser.add_argument(
+        "--gpu_device", type=int, dest="gpu_device", nargs="*",
+        help="gpu_devices to use. Pass as space-sep numbers eg. --gpu_device 0 / 0 1 / 0 1 2.")
     parser.add_argument(
         "--mode", type=str, dest="mode", default="TRAIN_TEST",
         choices=["TRAIN", "TRAIN_TEST", "TRAIN_TEST_FEATSELECT"],
@@ -45,6 +48,7 @@ def get_config_from_args() -> CustomDictConfig:
     # keys-val pairs can have nested structure separated by colons
     yaml_modification = {
         "trainer:resume_checkpoint": args.resume_checkpoint,
+        "device": args.device,
         "gpu_device": args.gpu_device,
         "mode": args.mode
     }

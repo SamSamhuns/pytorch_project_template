@@ -28,10 +28,13 @@ def get_config_from_args() -> CustomDictConfig:
         "-v", "--verbose", action="store_true", dest="verbose", default=False,
         help="Run testing in verbose mode (default: %(default)s)")
 
-    # Add additional arguments here
+    # Add additional arguments here (Overrides YAML configs)
     parser.add_argument(
-        "--dev", "--gpu_device", type=int, dest="gpu_device", default=[0], nargs="*",
-        help="gpu_device list eg. 0, 0 1, 0 1 2. Pass --dev with no arg for cpu (default: %(default)s)")
+        "--dev", "--device", dest="device", choices=["cpu", "cuda"],
+        help="device for training. Use cpu or cuda")
+    parser.add_argument(
+        "--gpu_device", type=int, dest="gpu_device", nargs="*",
+        help="gpu_devices to use. Pass as space-sep numbers eg. --gpu_device 0 / 0 1 / 0 1 2.")
     parser.add_argument(
         "--mode", type=str, dest="mode", default="TEST_PYTORCH",
         choices=["TEST_PYTORCH", "TEST_TORCHSCRIPT"],
@@ -43,6 +46,7 @@ def get_config_from_args() -> CustomDictConfig:
     # keys-val pairs can have nested structure separated by colons
     yaml_modification = {
         "trainer:resume_checkpoint": args.resume_checkpoint,
+        "device": args.device,
         "gpu_device": args.gpu_device,
         "mode": args.mode
     }
