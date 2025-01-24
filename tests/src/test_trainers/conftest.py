@@ -44,6 +44,7 @@ def mock_clsf_config(
         "seed": 42,
         "cudnn_deterministic": False,
         "cudnn_benchmark": False,
+        "device": "cuda" if gpu_device else "cpu",
         "gpu_device": gpu_device,
         "use_amp": False,
         "torch_compile_model": False,

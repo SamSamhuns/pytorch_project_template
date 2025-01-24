@@ -47,6 +47,7 @@ def sample_config():
     return {
         "name": "test_model",
         "seed": 42,
+        "device": "cpu",
         "gpu_device": None,
         "trainer": {
             "save_dir": PYTEST_TEMP_ROOT,
@@ -87,24 +88,6 @@ def mock_parser(scope="function"):
     parser.add_argument(
         '-o', '--override', type=str, nargs='+', dest="override", default=None)
     return parser
-
-
-@pytest.fixture
-def override_args(scope="function"):
-    """Returns a list of override args for testing"""
-    return [
-        {"flags": ['--dev', '--gpu_device'],
-         "dest": "gpu_device",
-         "help": "Config override arg: gpu_device list i.e. None or 0, 0 1, 0 1 2.",
-         "nargs": "*",
-         "type": int, "target": "gpu_device"},
-        {"flags": ['--mode'],
-         "dest": "mode",
-         "help": "Running mode. (default: %(default)s)",
-         "default": "TRAIN_TEST", "choices": ["TRAIN", "TRAIN_TEST", "TRAIN_TEST_FEATSELECT"],
-         "type": str, "target": "mode"}
-    ]
-
 
 ####################################
 ###### setup for loggers test ######
