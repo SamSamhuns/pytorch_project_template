@@ -44,7 +44,7 @@ class _BaseTrainer(ABC):
             logger_name=logger_name, logger_dir=self.config.log_dir)
 
         # ###################### set cuda vars ########################
-        is_cuda = torch.cuda.is_available()
+        is_cuda = torch.cuda.is_available() and self.config["device"] == "cuda"
         gpu_dev = self.config["gpu_device"]
         gpu_dev = [gpu_dev] if isinstance(gpu_dev, int) else gpu_dev
         if is_cuda and not gpu_dev:
@@ -88,11 +88,12 @@ class _BaseTrainer(ABC):
             raise ValueError(msg)
 
         state_dict = torch.load(ckpt_file) if self.cuda else torch.load(
-            ckpt_file, map_location=torch.device("cpu"))
+            ckpt_file, map_location=torch.device("cpu"), weights_only=False)
 
         # rename keys for dataparallel mode
+        use_cuda = self.config["device"] == "cuda"
         gpu_dev = self.config["gpu_device"]
-        if (gpu_dev and len(gpu_dev) > 1 and torch.cuda.device_count() > 1):
+        if (use_cuda and gpu_dev and len(gpu_dev) > 1 and torch.cuda.device_count() > 1):
             _state_dict = OrderedDict()
             for k, val in state_dict.items():
                 k = "module." + \
