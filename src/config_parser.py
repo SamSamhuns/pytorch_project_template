@@ -69,6 +69,8 @@ class CustomDictConfig(DictConfig):
 
         # Apply any modifications to the configuration
         if modification:
+            # Removes keys that have None as values
+            modification = {k: v for k, v in modification.items() if v}
             apply_modifications(self, modification)
 
         # set seeds
