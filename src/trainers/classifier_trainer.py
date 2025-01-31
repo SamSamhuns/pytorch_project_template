@@ -56,8 +56,9 @@ class ClassifierTrainer(BaseTrainer):
         # do not progress beyond for INFERENCE mode
         if config["mode"] in {"INFERENCE"}:
             self.model = self.model.to(self.device)
-            if self.config.resume:
-                self.model = self.load_checkpoint(self.model, self.config.resume)
+            if self.config.resume_checkpoint:
+                self.model = self.load_checkpoint(
+                    self.model, self.config.resume_checkpoint)
             return
 
         # define loss and instantiate it
