@@ -14,16 +14,17 @@ def get_config_from_args() -> CustomDictConfig:
         description="PyTorch Test supports classification eval")
     parser.add_argument(
         "--cfg", "--config", type=str, dest="config", required=True,
-        help="Config file path (default: %(default)s)")
+        help="YAML config file path.")
     parser.add_argument(
         "-r", "--resume_checkpoint", type=str, dest="resume_checkpoint", required=True,
-        help="Path to resume checkpoint. Overrides `trainer:resume_checkpoint` in config. (default: %(default)s)")
+        help="Path to resume checkpoint. Overrides `trainer:resume_checkpoint` in config.")
     parser.add_argument(
         "--id", "--run_id", type=str, dest="run_id", default="test_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
         help="Unique identifier for testing. Annotates checkpoints & logs. (default: %(default)s)")
     parser.add_argument(
         "-o", "--override", type=str, nargs="+", dest="override", default=None,
-        help="Override YAML config params. e.g. -o seed:1 dataset:args:name:NewDataset (default: %(default)s)")
+        help="Override config params. Must match keys in YAML config. "
+        "e.g. -o seed:1 dataset:type:NewDataType (default: %(default)s)")
     parser.add_argument(
         "-v", "--verbose", action="store_true", dest="verbose", default=False,
         help="Run testing in verbose mode (default: %(default)s)")

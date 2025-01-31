@@ -15,17 +15,17 @@ def get_config_from_args() -> CustomDictConfig:
     # primary cli args
     parser.add_argument(
         "--cfg", "--config", type=str, dest="config", default="configs/classifier_gpu_config.yaml",
-        help="config file path (default: %(default)s)")
+        help="YAML config file path (default: %(default)s)")
     parser.add_argument(
         "--id", "--run_id", type=str, dest="run_id", default="train_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
-        help="unique identifier for training. Annotates train ckpts & logs. (default: %(default)s)")
+        help="Unique identifier for training. Annotates train ckpts & logs. (default: %(default)s)")
     parser.add_argument(
         "-o", "--override", type=str, nargs='+', dest="override", default=None,
         help="Override config params. Must match keys in YAML config. "
-        "e.g. -o seed:1 dataset:type:DTYPE (default: %(default)s)")
+        "e.g. -o seed:1 dataset:type:NewDataType (default: %(default)s)")
     parser.add_argument(
         "-v", "--verbose", action="store_true", dest="verbose", default=False,
-        help="run training in verbose mode (default: %(default)s)")
+        help="Run training in verbose mode (default: %(default)s)")
 
     # Add additional arguments here (Overrides YAML configs)
     parser.add_argument(

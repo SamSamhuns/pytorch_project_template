@@ -87,8 +87,9 @@ class _BaseTrainer(ABC):
             self.logger.error(msg)
             raise ValueError(msg)
 
-        state_dict = torch.load(ckpt_file) if self.cuda else torch.load(
-            ckpt_file, map_location=torch.device("cpu"), weights_only=True)
+        wts_only = True
+        state_dict = torch.load(ckpt_file, weights_only=wts_only) if self.cuda else torch.load(
+            ckpt_file, map_location=torch.device("cpu"), weights_only=wts_only)
 
         # rename keys for dataparallel mode
         use_cuda = self.config["device"] == "cuda"
