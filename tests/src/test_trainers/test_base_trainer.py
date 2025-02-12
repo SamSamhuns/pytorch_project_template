@@ -112,7 +112,7 @@ def test_export_function(mode, file_suffix, base_trainer_and_logger, simple_2d_c
 
     # Check if paths and files are correctly constructed
     model_name = "model_gpu" if trainer.device.type == "cuda" else "model_cpu"
-    export_path = os.path.join(trainer.config.save_dir, model_name)
+    export_path = os.path.join(trainer.config["models_dir"], model_name)
     export_path = export_path + file_suffix
 
     info_calls = [call.args for call in logger.return_value.info.call_args_list]

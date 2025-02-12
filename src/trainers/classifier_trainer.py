@@ -318,7 +318,7 @@ class ClassifierTrainer(BaseTrainer):
                 if self.config.verbose:
                     self.logger.info("\tPlotting val %s", metric_name)
                 plot_metric(metric_name, y_true=y_true,  y_score=y_score, y_pred=y_pred,
-                            savepath=os.path.join(self.config.log_dir, f"val_e{self.current_epoch}_{metric_name}.png"))
+                            savepath=os.path.join(self.config["logs_dir"], f"val_e{self.current_epoch}_{metric_name}.png"))
                 continue
             metric_val = calc_metric(
                 metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
@@ -386,7 +386,7 @@ class ClassifierTrainer(BaseTrainer):
             if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
                 self.logger.info("\tPlotting %s", metric_name)
                 plot_metric(metric_name, y_true=y_true,  y_score=y_score, y_pred=y_pred,
-                            savepath=os.path.join(self.config.log_dir, f"{metric_name}.png"))
+                            savepath=os.path.join(self.config["logs_dir"], f"{metric_name}.png"))
                 continue
             metric_val = calc_metric(
                 metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
@@ -440,7 +440,7 @@ class ClassifierTrainer(BaseTrainer):
                     "Image path=%s: predicted label=%s", image_path, pred)
                 pred_file_labels.append([image_path, pred])
         if log_txt_preds:
-            with open(osp.join(self.config.log_dir, "pred.txt"), 'w', encoding="utf-8") as pred_ptr:
+            with open(osp.join(self.config["logs_dir"], "pred.txt"), 'w', encoding="utf-8") as pred_ptr:
                 for image_path, pred in pred_file_labels:
                     pred_ptr.write(f"{image_path}, {pred}\n")
 

@@ -72,11 +72,11 @@ class CustomDictConfig(DictConfig):
             # Removes keys that have None as values
             modification = {k: v for k, v in modification.items() if v}
             apply_modifications(self, modification)
+        # any cfgs should be received from self not config now
 
         # set seeds
-        seed = config.seed
-        random.seed(seed)
-        np.random.seed(seed)
+        random.seed(self.seed)
+        np.random.seed(self.seed)
         # If run_id is None, use timestamp as default run-id
         if run_id is None:
             run_id = datetime.now().strftime(r"%Y%m%d_%H%M%S")
@@ -84,22 +84,25 @@ class CustomDictConfig(DictConfig):
         self.verbose = verbose
         self.git_hash = get_git_revision_hash()
 
-        # Set directories for saving logs and models
-        _log_dir = osp.join(config.save_dir, config.name, run_id, "logs")
-        _save_dir = osp.join(config.save_dir, config.name, run_id, "models")
+        # Set directories for saving logs, metrics and models
+        save_root = osp.join(self.save_dir, self.experiment_name, run_id)
+        _logs_dir = osp.join(save_root, "logs")
+        _metrics_dir = osp.join(save_root, "metrics")
+        _models_dir = osp.join(save_root, "models")
 
         # Create necessary directories
-        os.makedirs(_save_dir, exist_ok=True)
-        os.makedirs(_log_dir, exist_ok=True)
+        os.makedirs(_logs_dir, exist_ok=True)
+        os.makedirs(_metrics_dir, exist_ok=True)
+        os.makedirs(_models_dir, exist_ok=True)
 
-        # Save the updated config to the save directory
-        OmegaConf.save(self, osp.join(_save_dir, "config.yaml"))
-        # assign updated logs and save dir after saving config
-        self.log_dir = _log_dir
-        self.save_dir = _save_dir
-        if config.trainer.use_tensorboard:
-            self.tboard_log_dir = osp.join(
-                config.save_dir, config.name, run_id, "tf_logs")
+        # Save the updated config to the save_root directory
+        OmegaConf.save(self, osp.join(save_root, "config.yaml"))
+        # assign updated logs, metrics and model dir after saving config
+        self.logs_dir = _logs_dir
+        self.metrics_dir = _metrics_dir
+        self.models_dir = _models_dir
+        if self.trainer.use_tensorboard:
+            self.tboard_log_dir = osp.join(save_root, "tf_logs")
 
     @classmethod
     def from_args(cls,

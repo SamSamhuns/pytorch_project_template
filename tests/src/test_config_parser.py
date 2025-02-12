@@ -29,8 +29,8 @@ def test_parse_and_cast_kv_overrides():
 
 def test_CustomDictConfig_initialization():
     config_dict = {
+        "experiment_name": "test_run",
         "save_dir": "/tmp",
-        "name": "test_run",
         "seed": 42,
         "trainer": {"use_tensorboard": True}
     }
@@ -38,20 +38,21 @@ def test_CustomDictConfig_initialization():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         config.save_dir = tmpdir
-        parser = CustomDictConfig(config)
+        cfg = CustomDictConfig(config)
 
-        assert parser.save_dir == os.path.join(
-            tmpdir, "test_run", parser.run_id, "models")
-        assert os.path.exists(parser.save_dir)
-        assert os.path.exists(parser.log_dir)
+        assert cfg.save_dir == os.path.join(tmpdir)
+        assert os.path.exists(cfg["save_dir"])
+        assert os.path.exists(cfg["models_dir"])
+        assert os.path.exists(cfg["logs_dir"])
+        assert os.path.exists(cfg["metrics_dir"])
         assert os.path.isfile(os.path.join(
-            parser.save_dir, "config.yaml"))
+            tmpdir, "test_run", cfg.run_id, "config.yaml"))
 
 
 def test_CustomDictConfig_from_args():
     config_dict = {
+        "experiment_name": "test_run",
         "save_dir": "/tmp",
-        "name": "test_run",
         "seed": 42,
         "trainer": {"use_tensorboard": True}
     }
@@ -76,16 +77,16 @@ def test_CustomDictConfig_from_args():
 
 def test_CustomDictConfig_get_set_item():
     config_dict = {
+        "experiment_name": "test_run",
         "save_dir": "/tmp",
-        "name": "test_run",
         "seed": 42,
         "trainer": {"use_tensorboard": True}
     }
     config = OmegaConf.create(config_dict)
     parser = CustomDictConfig(config)
 
-    parser["name"] = "updated_name"
-    assert parser["name"] == "updated_name"
+    parser["experiment_name"] = "updated_name"
+    assert parser["experiment_name"] == "updated_name"
 
     parser["new_key"] = "new_value"
     assert parser["new_key"] == "new_value"
@@ -93,8 +94,8 @@ def test_CustomDictConfig_get_set_item():
 
 def test_CustomDictConfig_str():
     config_dict = {
+        "experiment_name": "test_run",
         "save_dir": "/tmp",
-        "name": "test_run",
         "seed": 42,
         "trainer": {"use_tensorboard": True}
     }
@@ -103,16 +104,16 @@ def test_CustomDictConfig_str():
 
     config_str = str(parser)
     assert "save_dir" in config_str
-    assert "name" in config_str
+    assert "experiment_name" in config_str
 
 
 def test_CustomDictConfig_iter():
     config_dict = {
+        "experiment_name": "rand",
+        "save_dir": "/tmp",
         "run_id": "bar",
         "key1": "value1",
         "key2": "value2",
-        "save_dir": "/tmp",
-        "name": "rand",
         "seed": 42,
         "trainer": {"use_tensorboard": True}
     }
@@ -120,8 +121,9 @@ def test_CustomDictConfig_iter():
     parser = CustomDictConfig(config, run_id="bar")
     config_dict.pop("save_dir")
 
-    items = {k: v for k, v in parser.items()
-             if k not in {"git_hash", "save_dir", "log_dir", "verbose", "tboard_log_dir"}}
+    items = {
+        k: v for k, v in parser.items()
+        if k not in {"git_hash", "save_dir", "models_dir", "logs_dir", "metrics_dir", "verbose", "tboard_log_dir"}}
 
     assert items == config_dict
 
@@ -129,8 +131,8 @@ def test_CustomDictConfig_iter():
 @patch("src.config_parser.get_git_revision_hash", return_value="fake_hash")
 def test_git_hash_in_config(mock_get_git_revision_hash):
     config_dict = {
+        "experiment_name": "test_run",
         "save_dir": "/tmp",
-        "name": "test_run",
         "seed": 42,
         "trainer": {"use_tensorboard": True}
     }

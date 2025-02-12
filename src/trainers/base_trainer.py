@@ -41,7 +41,7 @@ class _BaseTrainer(ABC):
         self.config = config
         # General logger
         self.logger = get_logger(
-            logger_name=logger_name, logger_dir=self.config.log_dir)
+            logger_name=logger_name, logger_dir=self.config["logs_dir"])
 
         # ###################### set cuda vars ########################
         is_cuda = torch.cuda.is_available() and self.config["device"] == "cuda"
@@ -111,11 +111,11 @@ class _BaseTrainer(ABC):
         """
         Checkpoint saver
         args:
-            ckpt_save_name: checkpoint file name which is saved inside self.config.save_dir
+            ckpt_save_name: checkpoint file name which is saved inside self.config["models_dir"]
         """
         # create checkpoint directory if it doesnt exist
-        os.makedirs(self.config.save_dir, exist_ok=True)
-        save_path = osp.join(str(self.config.save_dir), ckpt_save_name)
+        os.makedirs(self.config["models_dir"], exist_ok=True)
+        save_path = osp.join(str(self.config["models_dir"]), ckpt_save_name)
         torch.save(model.state_dict(), save_path)
 
     @abstractmethod
@@ -193,10 +193,7 @@ class BaseTrainer(_BaseTrainer):
         self.config["dataset"]["args"]["mean"] = normalize[0].mean
         self.config["dataset"]["args"]["std"] = normalize[0].std
         _config = dict(self.config)
-        # only save the top level dir for the save dir
-        _config["save_dir"] = _config["save_dir"].split("/")[0]
-        _config.pop("log_dir")
-        _config.pop("tboard_log_dir", None)
+        # save updated config to YAML file
         OmegaConf.save(_config, osp.join(config["save_dir"], "config.yaml"))
 
         # log numerized remapped labels if present
@@ -325,7 +322,7 @@ class BaseTrainer(_BaseTrainer):
         sample_in = torch.randn((4, in_c, in_h, in_w)).to(self.device)
 
         model_name = "model_gpu" if self.device.type == "cuda" else "model_cpu"
-        export_path = osp.join(self.config.save_dir, model_name)
+        export_path = osp.join(self.config["models_dir"], model_name)
         export_path += f"_quant_{quantize_mode_backend}" if quantize_mode_backend else ""
         export_path = export_path + exporter_dict[mode][0]
         exporter = exporter_dict[mode][1](self.logger)
