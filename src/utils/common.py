@@ -196,7 +196,7 @@ def reorder_trainer_cfg(cfg_dict: dict) -> dict:
     and add any remaining keys from the original dict to the end.
     """
     ordered_keys = [
-        "name", "git_hash", "seed", "cudnn_deterministic", "cudnn_benchmark",
+        "experiment_name", "save_dir", "git_hash", "seed", "cudnn_deterministic", "cudnn_benchmark",
         "device", "gpu_device", "use_amp", "torch_compile_model",
         "trainer", "model", "dataset", "dataloader",
         "optimizer", "lr_scheduler", "loss", "metrics"]

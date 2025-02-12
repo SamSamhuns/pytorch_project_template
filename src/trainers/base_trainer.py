@@ -262,7 +262,7 @@ class BaseTrainer(_BaseTrainer):
 
         # ############ Tboard Summary Writer if enabled ##############
         if self.config["trainer"]["use_tensorboard"]:
-            _agent_name = self.config["name"]
+            _agent_name = self.config["experiment_name"]
             _optim_name = self.config["optimizer"]["type"]
             _bsize = self.config["dataloader"]["args"]["batch_size"]
             _lr = self.config["optimizer"]["args"]["lr"]

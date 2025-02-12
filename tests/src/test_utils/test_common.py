@@ -127,15 +127,15 @@ def test_inherit_missing_dict_params(parent, child, ignore_keys, expected_result
 
 def test_reorder_trainer_cfg():
     cfg = {
+        "experiment_name": "experiment1",
         "model": "resnet",
         "loss": "mse",
         "optimizer": "adam",
-        "name": "experiment1",
         "unexpected_key": "value"
     }
     sorted_cfg = reorder_trainer_cfg(cfg)
     actual_keys_order = list(sorted_cfg.keys())
-    assert actual_keys_order[:4] == ["name", "model", "optimizer", "loss"]
+    assert actual_keys_order[:4] == ["experiment_name", "model", "optimizer", "loss"]
     assert "unexpected_key" in actual_keys_order
 
 
