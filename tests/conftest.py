@@ -45,12 +45,12 @@ SAMPLE_CFG_PATH = f"{PYTEST_TEMP_ROOT}/sample_config.yaml"
 @pytest.fixture
 def sample_config():
     return {
-        "name": "test_model",
+        "experiment_name": "test_model",
+        "save_dir": PYTEST_TEMP_ROOT,
         "seed": 42,
         "device": "cpu",
         "gpu_device": None,
         "trainer": {
-            "save_dir": PYTEST_TEMP_ROOT,
             "use_tensorboard": False
         },
         "optimizer": {
@@ -66,7 +66,7 @@ def sample_config():
 @pytest.fixture
 def modifications():
     return {
-        "trainer:save_dir": f"{PYTEST_TEMP_ROOT}/modified",
+        "save_dir": f"{PYTEST_TEMP_ROOT}/modified",
         "seed": 123
     }
 

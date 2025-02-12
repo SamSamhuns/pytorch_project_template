@@ -37,7 +37,7 @@ def mock_clsf_config(
         root_directory, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
     gpu_device = request.param
     cfg_dict = {
-        "name": "pytest_base_trainer",
+        "experiment_name": "pytest_base_trainer",
         "save_dir": f"{PYTEST_TEMP_ROOT}/base_trainer",
         "git_hash": None,
         "mode": "PYTEST",

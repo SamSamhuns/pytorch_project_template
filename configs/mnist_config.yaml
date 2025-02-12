@@ -1,4 +1,4 @@
-name: mnist_image_classifier
+experiment_name: mnist_image_classifier
 save_dir: checkpoints
 git_hash: null
 mode: TRAIN
