@@ -194,7 +194,8 @@ class BaseTrainer(_BaseTrainer):
         self.config["dataset"]["args"]["std"] = normalize[0].std
         _config = dict(self.config)
         # save updated config to YAML file
-        OmegaConf.save(_config, osp.join(config["save_dir"], "config.yaml"))
+        save_root = osp.join(self.config["save_dir"], self.config["experiment_name"], self.config["run_id"])
+        OmegaConf.save(_config, osp.join(save_root, "config.yaml"))
 
         # log numerized remapped labels if present
         if config.verbose and hasattr(self.data_set, "labels2idx"):
