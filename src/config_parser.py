@@ -8,9 +8,10 @@ import random
 from datetime import datetime
 from typing import List, Optional, Any
 
+import torch
 import numpy as np
 from omegaconf import OmegaConf, DictConfig
-from .utils.common import get_git_revision_hash, try_bool, try_null
+from .utils.common import get_git_revision_hash, try_bool, try_null, BColors
 
 
 def apply_modifications(config: DictConfig, modification: dict) -> None:
@@ -83,9 +84,23 @@ class CustomDictConfig(DictConfig):
             apply_modifications(self, modification)
         # any cfgs should be received from self not config now
 
-        # set seeds
-        random.seed(self.seed)
-        np.random.seed(self.seed)
+        # set seeds if present
+        if self.seed is not None:
+            random.seed(self.seed)
+            np.random.seed(self.seed + 1)
+            torch.manual_seed(self.seed + 2)
+            if torch.cuda.is_available() and self.device == "cuda":
+                torch.cuda.manual_seed(self.seed + 3)
+
+        # Configure reproducibility settings
+        if self.reproducible:
+            print(f"{BColors.WARN}Warning: " +
+                  "Setting torch.backends.cudnn.deterministic to True. " +
+                  f"This may slow down GPU training.{BColors.ENDC}"
+                  )
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
+
         # If run_id is None, use timestamp as default run-id
         if run_id is None:
             run_id = datetime.now().strftime(r"%Y%m%d_%H%M%S")

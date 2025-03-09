@@ -52,10 +52,7 @@ class _BaseTrainer(ABC):
             self.logger.info(msg)
         # set cuda devices if cuda available & gpu_dev set or use cpu
         self.cuda = is_cuda and (gpu_dev not in (None, []))
-        torch.backends.cudnn.deterministic = self.config["cudnn_deterministic"]
-        torch.backends.cudnn.benchmark = self.config["cudnn_benchmark"]
         if self.cuda:
-            torch.cuda.manual_seed(self.config["seed"])
             if len(gpu_dev) > 1 and torch.cuda.device_count() == 1:
                 msg = f"Multi-gpu device ({gpu_dev}) set, but only one GPU avai."
                 self.logger.error(msg)
@@ -64,7 +61,6 @@ class _BaseTrainer(ABC):
             self.device = torch.device("cuda", gpu_dev[0])
             self.logger.info("Program will run on GPU device %s", self.device)
         else:
-            torch.manual_seed(self.config["seed"])
             self.device = torch.device("cpu")
             self.logger.info("Program will run on CPU")
         # #############################################################
@@ -154,7 +150,7 @@ class BaseTrainer(_BaseTrainer):
         super().__init__(config, logger_name)
         self.model = None  # placeholder model attrb. Must be init later
         # do not load datasets for INFERENCE mode
-        if config["mode"] in {"INFERENCE"}:
+        if self.config["mode"] in {"INFERENCE"}:
             return
 
         val_path = self.config["dataset"]["args"]["val_path"]
@@ -198,7 +194,7 @@ class BaseTrainer(_BaseTrainer):
         OmegaConf.save(_config, osp.join(save_root, "config.yaml"))
 
         # log numerized remapped labels if present
-        if config.verbose and hasattr(self.data_set, "labels2idx"):
+        if self.config.verbose and hasattr(self.data_set, "labels2idx"):
             msg = f"Remapped labels dict = {self.data_set.labels2idx}"
             self.logger.info(msg)
 
@@ -206,7 +202,14 @@ class BaseTrainer(_BaseTrainer):
         self.train_data_loader, self.val_data_loader, self.test_data_loader = None, None, None
         # in OSX systems ["dataloader"]["num_workers"] should be 0 which might increase train time
         dldr_type = self.config["dataloader"]["type"]
-        data_ldr_args = self.config["dataloader"]["args"].copy()
+        data_ldr_args = dict(self.config["dataloader"]["args"].copy())
+
+        # init torch.Generator for reproducibility if seed is present
+        generator = torch.Generator(device="cpu")
+        if self.config["seed"] is not None:
+            generator.manual_seed(self.config["seed"])
+        data_ldr_args["generator"] = generator
+
         self.train_data_loader = init_dataloader(
             dldr_type, dataset=self.data_set.train_set, **data_ldr_args)
 
@@ -232,7 +235,7 @@ class BaseTrainer(_BaseTrainer):
                 dldr_type, dataset=self.data_set.test_set, **data_ldr_args)
 
         # log dataset data count, uniq labels and counts
-        if config.verbose:
+        if self.config.verbose:
             ds = self.data_set.train_set
             train_set = ds.dataset if isinstance(ds, Subset) else ds
             test_set = self.data_set.test_set
@@ -270,7 +273,7 @@ class BaseTrainer(_BaseTrainer):
 
             _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}"
 
-            tb_logdir = config.tboard_log_dir
+            tb_logdir = self.config.tboard_log_dir
             tboard_writer = SummaryWriter(
                 log_dir=tb_logdir, filename_suffix=_suffix)
             self.tboard_writer = tboard_writer

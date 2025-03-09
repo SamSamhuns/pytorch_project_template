@@ -12,8 +12,7 @@ save_dir: checkpoints  # Directory to save checkpoints and logs
 git_hash: null  # Git hash for version control, set during runs
 mode: TRAIN  # Mode: TRAIN or TEST
 seed: 42  # Random seed for reproducibility
-cudnn_deterministic: false  # Set to true for reproducible results (slower GPU performance if true)
-cudnn_benchmark: true  # Enable to use faster GPU functions during training
+reproducible: true  # Sets cudnn benchmark to false and deterministic mode to true
 device: cuda  # Device to run the model on (cuda or cpu)
 gpu_device:  # List of GPU devices to use
 - 0

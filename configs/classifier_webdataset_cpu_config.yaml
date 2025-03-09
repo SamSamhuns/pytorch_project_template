@@ -3,8 +3,7 @@ save_dir: checkpoints
 git_hash: null
 mode: TRAIN
 seed: 42
-cudnn_deterministic: false
-cudnn_benchmark: true
+reproducible: true
 device: cpu
 gpu_device:
 - 0

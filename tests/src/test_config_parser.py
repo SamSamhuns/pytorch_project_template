@@ -32,6 +32,8 @@ def test_CustomDictConfig_initialization():
         "experiment_name": "test_run",
         "save_dir": "/tmp",
         "seed": 42,
+        "reproducible": True,
+        "device": "cpu",
         "trainer": {"use_tensorboard": True}
     }
     config = OmegaConf.create(config_dict)
@@ -54,6 +56,8 @@ def test_CustomDictConfig_from_args():
         "experiment_name": "test_run",
         "save_dir": "/tmp",
         "seed": 42,
+        "reproducible": True,
+        "device": "cpu",
         "trainer": {"use_tensorboard": True}
     }
     with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as temp_config:
@@ -80,6 +84,8 @@ def test_CustomDictConfig_get_set_item():
         "experiment_name": "test_run",
         "save_dir": "/tmp",
         "seed": 42,
+        "reproducible": True,
+        "device": "cpu",
         "trainer": {"use_tensorboard": True}
     }
     config = OmegaConf.create(config_dict)
@@ -97,6 +103,8 @@ def test_CustomDictConfig_str():
         "experiment_name": "test_run",
         "save_dir": "/tmp",
         "seed": 42,
+        "reproducible": True,
+        "device": "cpu",
         "trainer": {"use_tensorboard": True}
     }
     config = OmegaConf.create(config_dict)
@@ -115,6 +123,8 @@ def test_CustomDictConfig_iter():
         "key1": "value1",
         "key2": "value2",
         "seed": 42,
+        "reproducible": True,
+        "device": "cpu",
         "trainer": {"use_tensorboard": True}
     }
     config = OmegaConf.create(config_dict)
@@ -134,6 +144,8 @@ def test_git_hash_in_config(mock_get_git_revision_hash):
         "experiment_name": "test_run",
         "save_dir": "/tmp",
         "seed": 42,
+        "reproducible": True,
+        "device": "cpu",
         "trainer": {"use_tensorboard": True}
     }
     config = OmegaConf.create(config_dict)

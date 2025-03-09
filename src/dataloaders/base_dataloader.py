@@ -31,6 +31,7 @@ class CustomDataLoader(DataLoader):
                  timeout=0,
                  drop_last=False,
                  pin_memory=False,
+                 generator=None,
                  prefetch_factor=2,
                  worker_init_fn=None,
                  persistent_workers=False):
@@ -51,6 +52,7 @@ class CustomDataLoader(DataLoader):
             'timeout': timeout,
             'drop_last': drop_last,
             'pin_memory': pin_memory,  # setting to True will use some gpu mem
+            'generator': generator,
             'prefetch_factor': prefetch_factor,
             'worker_init_fn': worker_init_fn,
             'persistent_workers': persistent_workers
