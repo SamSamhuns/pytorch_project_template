@@ -9,7 +9,7 @@ import argparse
 from typing import Callable, Tuple
 from unittest.mock import MagicMock
 
-import imageio.v2 as imageio
+import imageio.v3 as imageio
 import onnxruntime as ort
 import webdataset as wds
 from PIL import Image

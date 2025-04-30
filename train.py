@@ -22,7 +22,7 @@ def get_config_from_args() -> CustomDictConfig:
     parser.add_argument(
         "-o", "--override", type=str, nargs='+', dest="override", default=None,
         help="Override config params. Must match keys in YAML config. "
-        "e.g. -o seed:1 dataset:type:NewDataType (default: %(default)s)")
+        "e.g. -o seed=1 dataset.type=NewDataType model.layers=[64,128,256] model.layers[2]=512 (default: %(default)s)")
     parser.add_argument(
         "-v", "--verbose", action="store_true", dest="verbose", default=False,
         help="Run training in verbose mode (default: %(default)s)")
@@ -30,7 +30,7 @@ def get_config_from_args() -> CustomDictConfig:
     # Add additional arguments here (Overrides YAML configs)
     parser.add_argument(
         "-r", "--resume_checkpoint", type=str, dest="resume_checkpoint",
-        help="Path to resume checkpoint. Overrides `trainer:resume_checkpoint` in config.")
+        help="Path to resume checkpoint. Overrides `trainer.resume_checkpoint` in config.")
     parser.add_argument(
         "--dev", "--device", dest="device", choices=["cpu", "cuda"],
         help="device for training. Use cpu or cuda.")
@@ -47,7 +47,7 @@ def get_config_from_args() -> CustomDictConfig:
     # match the YAML kv structure for any additional args above
     # keys-val pairs can have nested structure separated by colons
     yaml_modification = {
-        "trainer:resume_checkpoint": args.resume_checkpoint,
+        "trainer.resume_checkpoint": args.resume_checkpoint,
         "device": args.device,
         "gpu_device": args.gpu_device,
         "mode": args.mode

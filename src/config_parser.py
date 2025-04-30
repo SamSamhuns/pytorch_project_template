@@ -6,57 +6,12 @@ import os.path as osp
 import argparse
 import random
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import Optional
 
 import torch
 import numpy as np
 from omegaconf import OmegaConf, DictConfig
-from .utils.common import get_git_revision_hash, try_bool, try_null, BColors
-
-
-def apply_modifications(config: DictConfig, modification: dict) -> None:
-    """
-    Applies modifications to a nested DictConfig object using colon-separated keys inplace.
-    Args:
-        config (DictConfig): Original configuration object.
-        modification (dict): Dictionary with colon-separated keys representing the hierarchy and values to override.
-    """
-    for key, value in modification.items():
-        path = key.split(":")
-        node = config
-        for part in path[:-1]:  # Traverse to the parent node
-            if part not in node:
-                node[part] = {}  # Create nested structure if missing
-            node = node[part]
-        node[path[-1]] = value
-
-
-def parse_and_cast_kv_overrides(override: List[str], modification: dict) -> None:
-    """
-    Parses a list of key-value override strings and casts values to appropriate types in place.
-    Supports overriding lists using comma-separated values.
-
-    Args:
-        override (List[str]): List of strings in the format "key:value" or "key:sub_key1:sub_key2:val".
-                              Lists can also be passed as values with "key:val1,val2,val3".
-        modification (dict): Dictionary to store parsed key-value pairs.
-    """
-    def cast_value(val) -> Any:
-        """Attempts to cast a value to int, float, bool, None, or leaves it as a string."""
-        for cast in (int, float, try_bool, try_null):
-            try:
-                return cast(val)
-            except (ValueError, TypeError):
-                continue
-        return val  # Fallback to string if no other type matches
-
-    for opt in override:
-        # split at the last colon, i.e. key:subkey:val -> key:subkey, val
-        key, val = opt.rsplit(":", 1)
-        if "," in val:  # If it's a list
-            modification[key] = [cast_value(v) for v in val.split(",")]
-        else:
-            modification[key] = cast_value(val)
+from .utils.common import get_git_revision_hash, BColors
 
 
 class CustomDictConfig(DictConfig):
@@ -81,7 +36,8 @@ class CustomDictConfig(DictConfig):
         if modification:
             # Removes keys that have None as values
             modification = {k: v for k, v in modification.items() if v is not None}
-            apply_modifications(self, modification)
+            for k, v in modification.items():
+                OmegaConf.update(self, k, v, merge=True)
         # any cfgs should be received from self not config now
 
         # set seeds if present
@@ -147,17 +103,19 @@ class CustomDictConfig(DictConfig):
         # Add all args to modification from args
         if add_all_args:
             # only check top-level keys
-            mod_keys = {k.rsplit(':')[0] for k in modification}
+            mod_keys = {k.rsplit('.')[0] for k in modification}
             for arg, value in vars(args).items():
                 # add new keys not present in orig yaml config
                 if arg not in mod_keys and arg not in {"override"}:
                     modification[arg] = value
-        # Override configuration parameters if args.override is provided
-        if args.override:
-            parse_and_cast_kv_overrides(args.override, modification)
 
         # Load configuration from YAML
         config = OmegaConf.load(args.config)
+        # Apply dotlist overrides (-o)
+        if args.override:
+            dotlist_overrides = OmegaConf.from_dotlist(args.override)
+            config = OmegaConf.merge(config, dotlist_overrides)
+
         return cls(config, args.run_id, args.verbose, modification)
 
     def __str__(self):

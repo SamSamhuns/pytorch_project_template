@@ -20,14 +20,14 @@ def get_config_from_args():
         help="YAML config file path.")
     parser.add_argument(
         "-r", "--resume_checkpoint", type=str, dest="resume_checkpoint", required=True,
-        help="Path to resume checkpoint. Overrides `trainer:resume_checkpoint` in config.")
+        help="Path to resume checkpoint. Overrides `trainer.resume_checkpoint` in config.")
     parser.add_argument(
         "--id", "--run_id", type=str, dest="run_id", default="test_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
         help="Unique identifier for testing. Annotates checkpoints & logs. (default: %(default)s)")
     parser.add_argument(
         "-o", "--override", type=str, nargs="+", dest="override", default=None,
         help="Override config params. Must match keys in YAML config. "
-        "e.g. -o seed:1 dataset:type:NewDataType (default: %(default)s)")
+        "e.g. -o seed=1 dataset.type=NewDataType model.layers=[64,128,256] model.layers[2]=512 (default: %(default)s)")
     parser.add_argument(
         "-v", "--verbose", action="store_true", dest="verbose", default=False,
         help="Run testing in verbose mode (default: %(default)s)")
@@ -51,7 +51,7 @@ def get_config_from_args():
     # match the YAML kv structure for any additional args above
     # keys-val pairs can have nested structure separated by colons
     yaml_modification = {
-        "trainer:resume_checkpoint": args.resume_checkpoint,
+        "trainer.resume_checkpoint": args.resume_checkpoint,
         "device": args.device,
         "gpu_device": args.gpu_device,
         "mode": args.mode,

@@ -2,29 +2,7 @@ import os
 import tempfile
 from omegaconf import OmegaConf
 from unittest.mock import patch
-from src.config_parser import CustomDictConfig, apply_modifications, parse_and_cast_kv_overrides
-
-
-def test_apply_modifications():
-    config = OmegaConf.create({"level1": {"level2": {"key": "value"}}})
-    modifications = {"level1:level2:key": "new_value",
-                     "level1:level3": "added_value"}
-    apply_modifications(config, modifications)
-
-    assert config.level1.level2.key == "new_value"
-    assert config.level1.level3 == "added_value"
-
-
-def test_parse_and_cast_kv_overrides():
-    overrides = ["key1:123", "key2:45.6", "key3:true", "key4:null"]
-    modifications = {}
-
-    parse_and_cast_kv_overrides(overrides, modifications)
-
-    assert modifications["key1"] == 123
-    assert modifications["key2"] == 45.6
-    assert modifications["key3"] is True
-    assert modifications["key4"] is None
+from src.config_parser import CustomDictConfig
 
 
 def test_CustomDictConfig_initialization():
@@ -68,12 +46,12 @@ def test_CustomDictConfig_from_args():
         config = temp_config_path
         run_id = None
         verbose = True
-        override = ["name:new_name"]
+        override = ["name.new_name=bar"]
 
     args = MockArgs()
     parser = CustomDictConfig.from_args(args)
 
-    assert parser.name == "new_name"
+    assert parser.name.new_name == "bar"
     assert parser.verbose is True
 
     os.remove(temp_config_path)
