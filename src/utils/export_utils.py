@@ -139,7 +139,8 @@ class ONNXDynamoExportStrategy(ExportStrategy):
         # only cpu export mode supported as of now
         model = model.to(torch.device("cpu"))
         sample_in = sample_in.cpu()
-        export_options = torch.onnx.ExportOptions(dynamic_shapes=True)
+        # WARNING: dynamic_shapes=True fails for updated lib versions in requirements
+        export_options = torch.onnx.ExportOptions(dynamic_shapes=False)
         onnx_program = torch.onnx.dynamo_export(
             model, sample_in, export_options=export_options)
         onnx_program.save(path)
