@@ -27,7 +27,7 @@ def get_config_from_args():
     parser.add_argument(
         "-o", "--override", type=str, nargs="+", dest="override", default=None,
         help="Override config params. Must match keys in YAML config. "
-        "e.g. -o seed:1 dataset:type:DTYPE (default: %(default)s)")
+        "e.g. -o seed=1 dataset.type=DTYPE (default: %(default)s)")
     parser.add_argument(
         "-v", "--verbose", action="store_true", dest="verbose", default=False,
         help="run training in verbose mode (default: %(default)s)")

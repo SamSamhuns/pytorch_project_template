@@ -94,8 +94,8 @@ class CustomDictConfig(DictConfig):
         Args:
             args: Parsed CLI arguments.
             modification: Key-value pair to override in config.
-                          Can have nested structure separated by colons.
-                          e.g. ["key1:val1", "key2:sub_key2:val2"]
+                          Can have nested structure separated by periods(.)
+                          e.g. {"key1":"val1", "key2.sub_key2":"val2"}
             add_all_args: Add all args to modification 
                           that are not alr present as top-level keys.
         """
