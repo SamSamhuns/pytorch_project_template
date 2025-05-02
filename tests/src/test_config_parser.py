@@ -1,5 +1,6 @@
 import os
 import tempfile
+import pytest
 from omegaconf import OmegaConf
 from unittest.mock import patch
 from src.config_parser import CustomDictConfig
@@ -49,10 +50,8 @@ def test_CustomDictConfig_from_args():
         override = ["name.new_name=bar"]
 
     args = MockArgs()
-    parser = CustomDictConfig.from_args(args)
-
-    assert parser.name.new_name == "bar"
-    assert parser.verbose is True
+    with pytest.raises(ValueError, match="Override key 'name' does not exist in the YAML config"):
+        _ = CustomDictConfig.from_args(args)
 
     os.remove(temp_config_path)
 

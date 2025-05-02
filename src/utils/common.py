@@ -231,6 +231,35 @@ def recursively_flatten_config(config: DictConfig, parent_key: str = '', sep: st
     return dict(items)
 
 
+def validate_override_keys_exist(base_config: DictConfig, override_config: DictConfig, prefix="") -> None:
+    """
+    Recursively validates that all nested keys in `override_config` exist in `base_config`.
+
+    Args:
+        base_config (DictConfig): The original reference configuration.
+        override_config (DictConfig): The override configuration to validate.
+
+    Raises:
+        ValueError: If any key in override_config does not exist in base_config.
+    """
+    for key in override_config:
+        full_override_key = f"{prefix}.{key}" if prefix else key
+
+        if key not in base_config:
+            raise ValueError(
+                f"Override key '{full_override_key}' does not exist in the YAML config.")
+
+        base_val = base_config[key]
+        override_val = override_config[key]
+
+        if isinstance(override_val, DictConfig):
+            if not isinstance(base_val, DictConfig):
+                raise ValueError(
+                    f"Override key '{full_override_key}.{next(iter(override_val.keys()))}' does not exist in the YAML config.")
+            validate_override_keys_exist(
+                base_val, override_val, prefix=full_override_key)
+
+
 ############################ file utils ############################
 
 
