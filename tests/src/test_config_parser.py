@@ -1,6 +1,7 @@
 import os
 import tempfile
 import pytest
+import omegaconf
 from omegaconf import OmegaConf
 from unittest.mock import patch
 from src.config_parser import CustomDictConfig
@@ -50,7 +51,7 @@ def test_CustomDictConfig_from_args():
         override = ["name.new_name=bar"]
 
     args = MockArgs()
-    with pytest.raises(ValueError, match="Override key 'name' does not exist in the YAML config"):
+    with pytest.raises(omegaconf.errors.ConfigKeyError, match="Key 'name' is not in struct"):
         _ = CustomDictConfig.from_args(args)
 
     os.remove(temp_config_path)

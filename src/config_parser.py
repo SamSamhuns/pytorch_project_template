@@ -11,7 +11,7 @@ from typing import Optional
 import torch
 import numpy as np
 from omegaconf import OmegaConf, DictConfig
-from .utils.common import get_git_revision_hash, validate_override_keys_exist, BColors
+from .utils.common import get_git_revision_hash, BColors
 
 
 class CustomDictConfig(DictConfig):
@@ -114,8 +114,9 @@ class CustomDictConfig(DictConfig):
         # Apply dotlist overrides (-o)
         if args.override:
             dotlist_overrides = OmegaConf.from_dotlist(args.override)
-            validate_override_keys_exist(config, dotlist_overrides)
+            OmegaConf.set_struct(config, True)  # Enable strict mode to disallow unknown keys
             config = OmegaConf.merge(config, dotlist_overrides)
+            OmegaConf.set_struct(config, False)  # Disable strict mode to allow runtime modifications later
 
         return cls(config, args.run_id, args.verbose, modification)
 
