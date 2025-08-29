@@ -26,10 +26,10 @@ This is a template for a PyTorch Project for training, testing, inference demo, 
 
 ## Setup
 
-Use `python venv` or a `conda env` to install requirements:
+Use `poetry` or `python venv` or a `conda env` to install requirements:
 
--   Install full train requirements: `pip install -r requirements/train.txt`
--   Install minimal inference requirements: `pip install -r requirements/inference.txt`
+-   Poetry install full requirements: `poetry install --all-groups`
+-   Pip install full requirements: `pip install -r requirements.txt`
 
 ## Train
 

@@ -1,0 +1,82 @@
+[project]
+name = "pytorch-project-template"
+version = "0.1.0"
+description = "PyTorch model training, validation, export, and inference framework"
+authors = [
+    {name = "SamSamhuns",email = "samhunsadamant@gmail.com"}
+]
+license = {text = "Apache 2.0"}
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "imageio (==2.37.0)",
+    "matplotlib (==3.10.0)",
+    "omegaconf (==2.3.0)",
+    "onnx (==1.17.0)",
+    "onnxruntime (==1.21.1)",
+    "onnxscript (>=0.4.0,<0.5.0)",
+    "packaging (==24.2)",
+    "requests (==2.32.4)",
+    "scikit-learn (==1.6.1)",
+    "six (==1.17.0)",
+    "tensorboard (==2.18.0)",
+    "torch (>=2.8.0,<3.0.0)",
+    "torchinfo (==1.8.0)",
+    "torchvision (>=0.23.0,<0.24.0)",
+    "tqdm (==4.67.1)",
+    "webdataset (==0.2.100)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.12.11"
+
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.4.1"
+pytest-cov = "^6.2.1"
+pytest-mock = "^3.14.1"
+pytest-order = "^1.3.0"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+fix = true
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle (errors)
+    "F",   # pyflakes (undefined names, unused imports)
+    "B",   # bugbear (common bugs)
+    "UP",  # pyupgrade (modern Python syntax)
+    "SIM", # simplify
+    "C4",  # comprehensions
+    "I",   # isort (import sorting)
+    "N",   # naming
+    "A",   # builtins (shadowing)
+    "T20", # print statement bans
+    "D",   # pydocstyle (docstring formatting)
+    "ANN", # flake8-annotations
+    "RUF", # ruff-specific rules
+    # Add more categories if needed
+]
+ignore = [
+    "D203",   # Conflicts with D211
+    "D213",   # Conflicts with D212
+    "ANN101",
+    "ANN102", # self/cls annotations
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true

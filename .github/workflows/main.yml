@@ -19,16 +19,35 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-
+    
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        installer-parallel: true
+    
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+    
     - name: Install dependencies
       run: |
-        pip install -r requirements/train.txt
-        pip install -r tests/requirements.txt
-
+        poetry install --no-interaction --no-root
+    
+    - name: Install project
+      run: |
+        poetry install --no-interaction
+    
     - name: Run all tests
       run: |
-        pytest -v tests
+        poetry run pytest -v tests

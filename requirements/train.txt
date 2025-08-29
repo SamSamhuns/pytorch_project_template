@@ -3,14 +3,14 @@ matplotlib==3.10.0
 omegaconf==2.3.0
 onnx==1.17.0
 onnxruntime==1.21.1
-onnxscript==0.2.5
+onnxscript==0.4.0
 packaging==24.2
 requests==2.32.4
 scikit-learn==1.6.1
 six==1.17.0
 tensorboard==2.18.0
-torch==2.6.0
+torch==2.8.0
 torchinfo==1.8.0
-torchvision==0.21.0
+torchvision==0.23.0
 tqdm==4.67.1
 webdataset==0.2.100

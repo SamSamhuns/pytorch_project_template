@@ -136,18 +136,25 @@ class ONNXDynamoExportStrategy(ExportStrategy):
     """ONNX dynamo export logic"""
 
     def export(self, model: Module, path: str, sample_in: torch.Tensor):
-        # only cpu export mode supported as of now
+        # Only CPU export mode supported as of now
         model = model.to(torch.device("cpu"))
         sample_in = sample_in.cpu()
-        # WARNING: dynamic_shapes=True fails for updated lib versions in requirements
-        export_options = torch.onnx.ExportOptions(dynamic_shapes=False)
-        onnx_program = torch.onnx.dynamo_export(
-            model, sample_in, export_options=export_options)
-        onnx_program.save(path)
+
+        # Use dynamo_export, not export with dynamo=True
+        export_output = torch.onnx.export(
+            model,
+            sample_in,
+            dynamo=True,
+            input_names=["input"],
+            output_names=["output"],
+            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+        )
+
+        # Save the exported model
+        export_output.save(path)
 
     def test_inference(self, model: Module, path: str, sample_in: torch.Tensor):
         return onnx_inference_check(model, path, sample_in, self.logger)
-
 
 class TSTraceExportStrategy(ExportStrategy):
     """TorchScript tracing export logic"""

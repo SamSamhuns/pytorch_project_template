@@ -37,9 +37,9 @@ def test_train_one_epoch_method(clsf_trainer_and_logger):
 
     trainer.train_one_epoch()
 
-    final_params = [p for p in trainer.model.parameters()]
+    final_params = list(trainer.model.parameters())
     param_changes = any(not torch.equal(ip, fp)
-                        for ip, fp in zip(initial_params, final_params))
+                        for ip, fp in zip(initial_params, final_params, strict=True))
     assert param_changes, "Model parameters did not change after training epoch."
 
     logger_instance = mocked_logger.return_value
