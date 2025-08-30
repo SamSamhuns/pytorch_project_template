@@ -1,8 +1,7 @@
+"""Base Metrics
 """
-Base Metrics
-"""
-import torch
 import numpy as np
+import torch
 from numpy.typing import ArrayLike
 from sklearn.metrics import confusion_matrix, roc_curve
 
@@ -28,8 +27,7 @@ def accuracy_topk_torch(y_pred: torch.tensor, y_true: torch.tensor, topk=(1,)):
 
 
 def optimal_thres_from_roc_curve(y_true: ArrayLike, y_score: ArrayLike):
-    """
-    Calculate and return the optimal threshold for binary classification based on the roc curve
+    """Calculate and return the optimal threshold for binary classification based on the roc curve
     """
     fpr, tpr, thresholds = roc_curve(y_true, y_score)
     # Find the optimal threshold (closest to the (0,1) point)
@@ -41,14 +39,13 @@ def optimal_thres_from_roc_curve(y_true: ArrayLike, y_score: ArrayLike):
 
 
 def calc_clsf_metrics(y_pred: ArrayLike, y_true: ArrayLike, pos_class=1, neg_class=0):
-    """
-    Calculate and return clsf tp, tn, fp, and fn metrics 
+    """Calculate and return clsf tp, tn, fp, and fn metrics
     given binary classification labels.
     """
-    tp = sum((p == t == pos_class for p, t in zip(y_pred, y_true)))
-    tn = sum((p == t == neg_class for p, t in zip(y_pred, y_true)))
-    fp = sum((p == pos_class and t == neg_class for p, t in zip(y_pred, y_true)))
-    fn = sum((p == neg_class and t == pos_class for p, t in zip(y_pred, y_true)))
+    tp = sum((p == t == pos_class for p, t in zip(y_pred, y_true, strict=False)))
+    tn = sum((p == t == neg_class for p, t in zip(y_pred, y_true, strict=False)))
+    fp = sum((p == pos_class and t == neg_class for p, t in zip(y_pred, y_true, strict=False)))
+    fn = sum((p == neg_class and t == pos_class for p, t in zip(y_pred, y_true, strict=False)))
     return tp, tn, fp, fn
 
 
@@ -109,8 +106,7 @@ def fdr(y_pred: ArrayLike, y_true: ArrayLike, pos_class=1, neg_class=0):
 
 
 def comprehensive_clsf_metrics(y_pred: ArrayLike, y_true: ArrayLike):
-    """
-    Calculate and return a comprehensive set of classification metrics.
+    """Calculate and return a comprehensive set of classification metrics.
 
     This function computes a variety of metrics used to evaluate the performance 
     of a binary classification model. These metrics include true positives (tp), 
@@ -119,11 +115,13 @@ def comprehensive_clsf_metrics(y_pred: ArrayLike, y_true: ArrayLike):
     negative predictive value (npv), false positive rate (fpr), false negative rate (fnr), 
     false discovery rate (fdr), and overall accuracy (acc).
 
-    Parameters:
+    Parameters
+    ----------
     - y_pred (array-like): Predicted binary labels from the model. Should be 1 for positive class and 0 for negative class.
     - y_true (array-like): True binary labels. Should be 1 for positive class and 0 for negative class.
 
-    Returns:
+    Returns
+    -------
     - dict: A dictionary containing the following key-value pairs:
         - 'tp': Number of true positives
         - 'tn': Number of true negatives
@@ -142,6 +140,7 @@ def comprehensive_clsf_metrics(y_pred: ArrayLike, y_true: ArrayLike):
     - This function assumes binary classification and the inputs must be binary arrays.
     - The function does not handle missing values or check input types. 
       Ensure that the inputs are clean and of the correct type before using this function.
+
     """
     cm = confusion_matrix(y_true, y_pred)
     fp = cm.sum(axis=0) - np.diag(cm)

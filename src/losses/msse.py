@@ -1,11 +1,10 @@
-from typing import Tuple
+
 import torch
 import torch.nn as nn
 
 
 class MSSELoss(nn.Module):
-    """
-    Mean of sum of squared errors loss. 
+    """Mean of sum of squared errors loss.
     MSSELoss scales the loss unlike MSELoss
     """
 
@@ -22,7 +21,7 @@ class MSSELoss(nn.Module):
         else:
             self.reduction = lambda x: x
 
-    def forward(self, inputs: torch.Tensor, outputs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, inputs: torch.Tensor, outputs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         scores = torch.sum((outputs - inputs) ** 2,
                            dim=tuple(range(1, outputs.dim())))
         loss = self.reduction(scores)

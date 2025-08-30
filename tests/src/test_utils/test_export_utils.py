@@ -1,18 +1,22 @@
-"""
-Tests for src.utils.export_utils
-"""
+"""Tests for src.utils.export_utils."""
 import os
-import numpy as np
 
+import numpy as np
 import pytest
-from tests.conftest import PYTEST_TEMP_ROOT
+
 from src.utils.export_utils import (
-    torch_inference, onnx_inference,
-    ONNXTSExportStrategy, ONNXDynamoExportStrategy, TSTraceExportStrategy, TSScriptExportStrategy)
+    ONNXDynamoExportStrategy,
+    ONNXTSExportStrategy,
+    TSScriptExportStrategy,
+    TSTraceExportStrategy,
+    onnx_inference,
+    torch_inference,
+)
+from tests.conftest import PYTEST_TEMP_ROOT
 
 
 def test_torch_inference(simple_2d_conv_model, sample_tensor):
-    """Perform inference"""
+    """Perform inference."""
     output = torch_inference(simple_2d_conv_model, sample_tensor)
     # Check output type and shape
     assert isinstance(output, np.ndarray), "Output should be a numpy array"
@@ -20,7 +24,7 @@ def test_torch_inference(simple_2d_conv_model, sample_tensor):
 
 
 def test_onnx_inference(onnx_session, sample_tensor):
-    """Perform inference"""
+    """Perform inference."""
     output = onnx_inference(onnx_session, sample_tensor)
     # Since onnx_inference returns a list of outputs, we check the first item
     assert isinstance(output, list), "Output should be a list"
@@ -29,7 +33,7 @@ def test_onnx_inference(onnx_session, sample_tensor):
 
 
 def test_inference_compatibility(simple_2d_conv_model, onnx_session, sample_tensor):
-    """Test pytorch and onnx inference compatibility"""
+    """Test pytorch and onnx inference compatibility."""
     # Get outputs from both PyTorch and ONNX models
     torch_output = torch_inference(simple_2d_conv_model, sample_tensor)
     onnx_output = onnx_inference(onnx_session, sample_tensor)[0]
@@ -60,7 +64,7 @@ def test_export(setup_model_and_logger, sample_tensor, strategy_class, export_fi
 ])
 @pytest.mark.order(after=["test_export"])
 def test_inference(setup_model_and_logger, sample_tensor, strategy_class, export_file_extn):
-    """Test exported models inference"""
+    """Test exported models inference."""
     model, logger = setup_model_and_logger
     file_path = PYTEST_TEMP_ROOT + f"/temp_model{export_file_extn}"
     strategy = strategy_class(logger)

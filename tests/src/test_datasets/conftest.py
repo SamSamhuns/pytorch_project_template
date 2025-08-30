@@ -1,10 +1,11 @@
 import os.path as osp
 
-import torch
 import pytest
+import torch
 from torchvision import transforms
-from src.datasets.base_dataset import ImageFolderDataset
+
 from src.datasets import ClassifierDataset
+from src.datasets.base_dataset import ImageFolderDataset
 
 # ######### Fixtures for BaseDataset #########
 

@@ -1,17 +1,14 @@
-"""
-splits a directory with object classes in different subdirectories into
+"""splits a directory with object classes in different subdirectories into
 train, test and optionally val sub-directory with the same class sub-directory
 structure
 """
-import os
-import glob
-import shutil
-import random
 import argparse
-from typing import List
+import glob
+import os
+import random
+import shutil
 
 from tqdm import tqdm
-
 
 # #################### Raw Data Organization #########################
 #   raw_data
@@ -35,7 +32,7 @@ random.seed(42)
 # ###################################################################
 
 
-def create_dir_and_copy_files(directory: str, f_list: List[str]) -> None:
+def create_dir_and_copy_files(directory: str, f_list: list[str]) -> None:
     """directory: directory where files will be copied to
     f_list: list of files which will be copied to directory
     """

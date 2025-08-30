@@ -1,15 +1,16 @@
-"""
-An example for the model class
+"""An example for the model class
 """
 import math
+
 import torch.nn as nn
-from .base_model import BaseModel
+
 from src.utils.weights_initializer import weights_init
+
+from .base_model import BaseModel
 
 
 class CustomModel(BaseModel):
-    """
-    Example NN model
+    """Example NN model
     """
 
     def __init__(self, in_c: int, num_classes: int, input_image_size: int, **kwargs):
@@ -52,8 +53,7 @@ class CustomModel(BaseModel):
         self.apply(weights_init)
 
     def _compute_flattened_size(self, input_size: int) -> int:
-        """
-        Compute the size of the feature maps after the feature extractor
+        """Compute the size of the feature maps after the feature extractor
         given the input image size.
         """
         def conv_output_size(size, kernel_size=3, stride=1, padding=1):

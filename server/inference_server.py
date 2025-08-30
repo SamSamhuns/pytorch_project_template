@@ -1,19 +1,20 @@
 import sys
+
 sys.path.append("./")
 import os
-from typing import Optional
 
 import torch
 from omegaconf import OmegaConf
-from src.trainers import init_trainer
+
 from src.config_parser import CustomDictConfig
+from src.trainers import init_trainer
 
 
-def init_detectors(models_param_dict: dict, device: Optional[str] = "0"):
-    """
-    Args:
-        models_param_dict: dict = dict key (model name): val ([model weight, model config])
-        device: str = device where inf is run, "cpu", "0", "0,1", "0,1,2"
+def init_detectors(models_param_dict: dict, device: str | None = "0"):
+    """Args:
+    models_param_dict: dict = dict key (model name): val ([model weight, model config])
+    device: str = device where inf is run, "cpu", "0", "0,1", "0,1,2"
+
     """
     print(f"Initializing models {models_param_dict.keys()} in device {device}")
 
@@ -25,13 +26,13 @@ def init_detectors(models_param_dict: dict, device: Optional[str] = "0"):
     return models_dict
 
 
-def init_single_detector(f_config: str, f_checkpoint: str, device: Optional[str]="0", inf_type: str = "pytorch"):
-    """
-    Args:
-        f_config: str = path to YAML config file
-        f_checkpoint: str = path to checkpoint .pth file
-        device: str = device where inf is run, "cpu", "0", "0,1", "0,1,2"
-        inf_type: str = pytorch/onnx
+def init_single_detector(f_config: str, f_checkpoint: str, device: str | None="0", inf_type: str = "pytorch"):
+    """Args:
+    f_config: str = path to YAML config file
+    f_checkpoint: str = path to checkpoint .pth file
+    device: str = device where inf is run, "cpu", "0", "0,1", "0,1,2"
+    inf_type: str = pytorch/onnx
+
     """
     print(f"Initializing detector from {f_checkpoint} with config {f_config}")
     if not os.path.exists(f_checkpoint) or not os.path.exists(f_config):

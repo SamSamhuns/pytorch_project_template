@@ -1,10 +1,10 @@
 """convert dataset to tar format for fast loading with webdataset"""
-import glob
 import argparse
-from tqdm import tqdm
-import webdataset as wds
-import imageio.v2 as imageio
+import glob
 
+import imageio.v2 as imageio
+import webdataset as wds
+from tqdm import tqdm
 
 # #################### Raw Data Organization ########################
 #   raw_data
@@ -24,7 +24,7 @@ import imageio.v2 as imageio
 def generate_tar(src_data_dir: str,
                  tar_path: str,
                  mapping_fname: str = "dataset_mapping.txt") -> None:
-    """ generates a combined tar archive for loading into webdataset
+    """Generates a combined tar archive for loading into webdataset
     from class folder separated data from src_data_dir & a class mapping txt file
     """
     # fix path for globbing

@@ -1,12 +1,11 @@
 """Duplicate data"""
+import argparse
+import glob
 import os
 import os.path as osp
-import glob
 import shutil
-import argparse
 
 from tqdm import tqdm
-
 
 # #################### Raw Data Organization ########################
 #   raw_data
@@ -43,10 +42,10 @@ def safe_copy(file_path, out_dir, dst=None) -> None:
     else:
         base, extension = osp.splitext(name)
         i = 1
-        while osp.exists(osp.join(out_dir, '{}_{}{}'.format(base, i, extension))):
+        while osp.exists(osp.join(out_dir, f'{base}_{i}{extension}')):
             i += 1
         shutil.copy(file_path, osp.join(
-            out_dir, '{}_{}{}'.format(base, i, extension)))
+            out_dir, f'{base}_{i}{extension}'))
 
 
 def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:

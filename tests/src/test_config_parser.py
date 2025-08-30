@@ -1,9 +1,11 @@
 import os
 import tempfile
-import pytest
-import omegaconf
-from omegaconf import OmegaConf
 from unittest.mock import patch
+
+import omegaconf
+import pytest
+from omegaconf import OmegaConf
+
 from src.config_parser import CustomDictConfig
 
 

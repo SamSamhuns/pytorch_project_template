@@ -1,5 +1,4 @@
-"""
-Base customized dataloader
+"""Base customized dataloader
 """
 import numpy as np
 from torch.utils.data import DataLoader
@@ -8,8 +7,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 
 
 def default_collate_fn(batch):
-    """
-    collate function to filter out None
+    """Collate function to filter out None
     batch is None when there is an error in loading a data point
     """
     batch = list(filter(lambda x: x is not None, batch))
@@ -17,8 +15,7 @@ def default_collate_fn(batch):
 
 
 class CustomDataLoader(DataLoader):
-    """
-    Base class for all data loaders
+    """Base class for all data loaders
     """
 
     def __init__(self,

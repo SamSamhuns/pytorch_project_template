@@ -1,14 +1,19 @@
 import os
 import tempfile
+
+import pytest
 import torch
 from PIL import Image
-import pytest
 
-from tests.conftest import NUM_CLS, NUM_IMGS_P_CLS, PYTEST_TEMP_ROOT
 from src.datasets import ImageFolderDataset
 from src.datasets.base_dataset import (
-    is_file_ext_valid, _find_classes, _make_dataset, get_pil_img, write_class_mapping_to_file)
-
+    _find_classes,
+    _make_dataset,
+    get_pil_img,
+    is_file_ext_valid,
+    write_class_mapping_to_file,
+)
+from tests.conftest import NUM_CLS, NUM_IMGS_P_CLS, PYTEST_TEMP_ROOT
 
 
 def test_is_file_ext_valid():
@@ -103,6 +108,6 @@ def test_write_class_mapping_to_file(image_dataset):
     mapping_path = os.path.join(PYTEST_TEMP_ROOT, "class_mapping.txt")
     write_class_mapping_to_file(image_dataset.class_to_idx, mapping_path)
     assert os.path.exists(mapping_path)
-    with open(mapping_path, 'r', encoding="utf-8") as f:
+    with open(mapping_path, encoding="utf-8") as f:
         lines = f.readlines()
         assert len(lines) == NUM_CLS

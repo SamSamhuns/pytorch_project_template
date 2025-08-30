@@ -1,26 +1,26 @@
+"""Contains utility functions meant to be used internally & externally
 """
-Contains utility functions meant to be used internally & externally
-"""
-from contextlib import redirect_stdout
+import glob
 import io
 import os
-import glob
 import socket
 import subprocess
-from typing import Set, List, Any, Callable, Union, Optional
 from collections import OrderedDict
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
+from contextlib import redirect_stdout
+from typing import Any, Optional
+
 import numpy as np
-from torchvision.transforms.transforms import Compose
 from omegaconf import DictConfig, OmegaConf
+from torchvision.transforms.transforms import Compose
 
 
 class BColors:
-    """
-    Border Color values for pretty printing in terminal
+    """Border Color values for pretty printing in terminal
     Sample Use:
         print(f"{BColors.WARN}Warning: Information.{BColors.ENDC}"
     """
+
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
@@ -32,7 +32,7 @@ class BColors:
     UNDERLINE = '\033[4m'
 
 
-class AverageMeter(object):
+class AverageMeter:
     """Computes and stores the average and current value"""
 
     def __init__(self):
@@ -62,9 +62,8 @@ class MissingConfigError(Exception):
 ############################ conversion utils ############################
 
 
-def try_bool(val: Any) -> Optional[bool]:
-    """
-    Check if x is boolabe (eq. to true/false) & converts to bool else raise ValueError
+def try_bool(val: Any) -> bool | None:
+    """Check if x is boolabe (eq. to true/false) & converts to bool else raise ValueError
     """
     if val.lower() in ("true", "false"):
         return val.lower() == "true"
@@ -73,8 +72,7 @@ def try_bool(val: Any) -> Optional[bool]:
 
 
 def try_null(val: Any) -> Optional[None]:
-    """
-    Check if x is nullable (eq. to "null") & converts to None else raise ValueError
+    """Check if x is nullable (eq. to "null") & converts to None else raise ValueError
     """
     if val.lower() in {"null", "none"}:
         return None
@@ -83,8 +81,7 @@ def try_null(val: Any) -> Optional[None]:
 
 
 def can_be_conv_to_float(var: Any) -> bool:
-    """
-    Checks if a var can be converted to a float & return bool
+    """Checks if a var can be converted to a float & return bool
     """
     try:
         float(var)
@@ -118,23 +115,24 @@ def identity(x):
 
 
 def is_port_in_use(port: int) -> bool:
-    """
-    Checks if a port is free for use
+    """Checks if a port is free for use
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as stream:
         return stream.connect_ex(('localhost', int(port))) == 0
 
 
 def round_to_nearest_divisor(n: int, divisor: int) -> int:
-    """
-    Rounds an integer to the nearest multiple of a given divisor.
+    """Rounds an integer to the nearest multiple of a given divisor.
 
-    Parameters:
+    Parameters
+    ----------
         n (int): The integer to be rounded.
         divisor (int): The divisor to which 'n' will be rounded to the nearest multiple.
 
-    Returns:
+    Returns
+    -------
         int: The nearest multiple of 'divisor' to 'n'.
+
     """
     mod = n % divisor
     if mod > (divisor//2):
@@ -142,9 +140,8 @@ def round_to_nearest_divisor(n: int, divisor: int) -> int:
     return n - mod
 
 
-def stable_sort(arr: List[Any]) -> List:
-    """
-    Sorts lists with numbers which are of type strings in the correct order.
+def stable_sort(arr: list[Any]) -> list:
+    """Sorts lists with numbers which are of type strings in the correct order.
     Numeric elements will appear before non-numeric.
     i.e. ['1', '10', '2'] is sorted to ['1', '2', '10'],
          [7.0, '1', '2', '10', 5, 'xyz', 'a'] is sorted to ['1', '2', 5, 7.0, '10', 'a', 'xyz'],
@@ -166,18 +163,20 @@ def sigmoid(x):
 
 
 def inherit_missing_dict_params(
-        parent: dict, child: dict, ignore_keys: Set[str], inplace: bool = True) -> Union[None, dict]:
-    """
-    Inherit missing params from parent to child dict, ignoring ignore_keys
+        parent: dict, child: dict, ignore_keys: set[str], inplace: bool = True) -> None | dict:
+    """Inherit missing params from parent to child dict, ignoring ignore_keys
 
-    Parameters:
+    Parameters
+    ----------
         parent (dict): The dictionary whose key-value pairs are to be inherited.
         child (dict): The dictionary to be updated with values from 'parent'.
         ignore_keys (Set[str]): A list of keys to be excluded from the update process.
         inplace (bool): If True, update 'child' dict inplace and do not return anything.
 
-    Returns:
+    Returns
+    -------
         None: The function updates the 'child' dictionary in place and does not return anything.
+
     """
     if not inplace:
         child = child.copy()
@@ -191,8 +190,7 @@ def inherit_missing_dict_params(
 
 
 def reorder_trainer_cfg(cfg_dict: dict) -> dict:
-    """
-    Sort the OrderedDict based on the ordered_keys order
+    """Sort the OrderedDict based on the ordered_keys order
     and add any remaining keys from the original dict to the end.
     """
     ordered_keys = [
@@ -211,8 +209,7 @@ def reorder_trainer_cfg(cfg_dict: dict) -> dict:
 
 
 def recursively_flatten_config(config: DictConfig, parent_key: str = '', sep: str = '.') -> MutableMapping:
-    """
-    Recursively flattens a potentially nested OmegaConf DictConfig and returns 
+    """Recursively flattens a potentially nested OmegaConf DictConfig and returns
     a flat dictionary with the keys separated by sep.
     
     :param config: The DictConfig object to flatten.
@@ -235,7 +232,7 @@ def recursively_flatten_config(config: DictConfig, parent_key: str = '', sep: st
 
 
 def find_latest_file_in_dir(dir_path: str, ext: str = "pth"):
-    """returns latest file with the ext from the dir_path directory
+    """Returns latest file with the ext from the dir_path directory
     """
     dir_path = str(dir_path)
     dir_path_appended = dir_path + \

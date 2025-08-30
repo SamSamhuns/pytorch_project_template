@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from numpy.typing import ArrayLike
-from sklearn.metrics import RocCurveDisplay, PrecisionRecallDisplay
 from sklearn.calibration import CalibrationDisplay
+from sklearn.metrics import PrecisionRecallDisplay, RocCurveDisplay
 
 
 def plot_roc_curve(y_true: ArrayLike, y_pred: ArrayLike, savepath: str = "roc_curve.png",  **kwargs):

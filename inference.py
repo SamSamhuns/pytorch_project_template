@@ -1,5 +1,4 @@
-"""
-Script for running inference with trained .pt torch models
+"""Script for running inference with trained .pt torch models
 
 Note: The inference script can be ported for use without a config file as well.
 Use the torch checkpoint file and the necessary transforms that are used for porting
@@ -7,8 +6,8 @@ Use the torch checkpoint file and the necessary transforms that are used for por
 import argparse
 from datetime import datetime
 
-from src.trainers import init_trainer
 from src.config_parser import CustomDictConfig
+from src.trainers import init_trainer
 
 
 def get_config_from_args():

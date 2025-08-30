@@ -1,7 +1,6 @@
 from .base_dataloader import CustomDataLoader
 from .webdataset_dataloader import WebDatasetDataLoader
 
-
 IMPLEMENTED_DATALOADERS = {
     "CustomDataLoader": CustomDataLoader,
     "WebDatasetDataLoader": WebDatasetDataLoader}

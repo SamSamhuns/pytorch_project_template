@@ -1,14 +1,14 @@
 """Find corrupt images, i.e., images that cannot be opened with imageio"""
-import os
-import glob
 import argparse
+import glob
+import os
 
 import imageio
 from tqdm import tqdm
 
 
 def validate_imgs(source_path, corrupt_flist_txt, remove) -> None:
-    """ validate imgs and optionally remove corrupt images
+    """Validate imgs and optionally remove corrupt images
     """
     # fix path for globbing
     if not source_path.endswith(('/', '*')):

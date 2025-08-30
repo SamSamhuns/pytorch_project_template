@@ -1,5 +1,4 @@
-"""
-Model that  use existing models from PyTorch https://pytorch.org/vision/stable/models.html
+"""Model that  use existing models from PyTorch https://pytorch.org/vision/stable/models.html
 
 List of existing models in torchvision.models
     squeezenet1_0, densenet161, inception_v3, googlenet, mobilenet_v2, mobilenet_v3_large, mobilenet_v3_small, etc
@@ -22,19 +21,21 @@ The input images are in the range [0, 1]
      )])
 """
 from collections import OrderedDict
-import torchvision.models as models
-import torch.nn as nn
+
 import torch
+import torch.nn as nn
+import torchvision.models as models
+
 from .base_model import BaseModel
 
 
 class ClassifierModel(BaseModel):
-    """
-    backbone: network to extract features
+    """backbone: network to extract features
     num_classes: num classes to predict/ num of outputs of network, exclusive to feat_extract
     feat_extract: only use network for feat extract, exclusive to num_classes
     pretrained: use weights pretrained from imagenet
     """
+
     def __init__(self,
                  backbone: str = "mobilenet_v2",
                  num_classes: int = 10,
@@ -66,7 +67,7 @@ class ClassifierModel(BaseModel):
             # self.backbone.fc.in_features
             final_layer = getattr(self.backbone, final_layer_name)
             final_layer = final_layer[-1] if isinstance(final_layer, nn.Sequential) else final_layer
-            n_inputs = getattr(final_layer, "in_features")
+            n_inputs = final_layer.in_features
             classifier = nn.Sequential(OrderedDict([
                 ('dropout', nn.Dropout(p=0.2, inplace=False)),
                 ('fc1', nn.Linear(n_inputs, num_classes)),

@@ -1,9 +1,10 @@
-"""
-Mnist main model
+"""Mnist main model
 """
 import torch.nn as nn
 import torch.nn.functional as F
+
 from src.utils.weights_initializer import weights_init
+
 from .base_model import BaseModel
 
 

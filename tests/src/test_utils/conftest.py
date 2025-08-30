@@ -1,11 +1,11 @@
+
 import torch
 from torch.utils.data import Dataset
-from typing import Tuple
 
 
 # Dummy dataset for testing
 class DummyDataset(Dataset):
-    def __init__(self, samples: int, image_size: Tuple[int, int], seed: int = 42):
+    def __init__(self, samples: int, image_size: tuple[int, int], seed: int = 42):
         self.samples = samples
         self.image_size = image_size
         self.seed = seed

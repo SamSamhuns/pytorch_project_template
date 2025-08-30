@@ -1,8 +1,8 @@
-"""
-Tests for src.utils. custom_statistics
+"""Tests for src.utils. custom_statistics
 """
 import torch
-from src.utils.custom_statistics import get_model_params, get_img_dset_mean_std
+
+from src.utils.custom_statistics import get_img_dset_mean_std, get_model_params
 from tests.src.test_utils.conftest import DummyDataset
 
 

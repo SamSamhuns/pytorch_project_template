@@ -1,18 +1,18 @@
-from typing import Callable
+from collections.abc import Callable
+
 import pytest
 import torch
 from omegaconf import OmegaConf
 
 from src.config_parser import CustomDictConfig
-from src.trainers import (BaseTrainer, ClassifierTrainer)
-from tests.conftest import PYTEST_TEMP_ROOT, NUM_CLS, NUM_IMGS_P_CLS
+from src.trainers import BaseTrainer, ClassifierTrainer
+from tests.conftest import NUM_CLS, NUM_IMGS_P_CLS, PYTEST_TEMP_ROOT
 
 CUDA_AVAI = torch.cuda.is_available()
 
 
 class PatchedBaseTrainer(BaseTrainer):
-    """
-    Patches the abstract methods of the BaseTrainer class
+    """Patches the abstract methods of the BaseTrainer class
     """
 
     def __init__(self, **kwargs):
@@ -32,7 +32,8 @@ class PatchedBaseTrainer(BaseTrainer):
 def mock_clsf_config(
         request, root_directory, create_and_save_dummy_imgs: Callable) -> CustomDictConfig:
     """Configure and create a training environment for a
-    CNN classifier using a custom image dataset"""
+    CNN classifier using a custom image dataset
+    """
     create_and_save_dummy_imgs(
         root_directory, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
     gpu_device = request.param
@@ -137,7 +138,8 @@ def base_trainer_and_logger(
         mock_clsf_config: CustomDictConfig,
         mocker):
     """Get a abstract method patched BaseTrainer
-    and the associated logger"""
+    and the associated logger
+    """
     mocked_logger = mocker.patch('logging.getLogger')
     trainer = PatchedBaseTrainer(
         config=mock_clsf_config,
@@ -151,7 +153,8 @@ def clsf_trainer_and_logger(
         mock_clsf_config: CustomDictConfig,
         mocker):
     """Get a abstract method patched TimeSeriesClassifierTrainer
-    and the associated logger"""
+    and the associated logger
+    """
     mocked_logger = mocker.patch('logging.getLogger')
     trainer = ClassifierTrainer(
         config=mock_clsf_config,

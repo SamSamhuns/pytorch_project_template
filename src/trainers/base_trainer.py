@@ -1,5 +1,4 @@
-"""
-Base Trainer
+"""Base Trainer
 Implements logging torch device setup, save & load checkpoint,
 tensorboard logging, dataset and dataloader inits
 """
@@ -7,34 +6,34 @@ import os
 import os.path as osp
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-import tqdm
 
 import numpy as np
 import torch
-from torch import nn
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import Subset
-from torchvision.transforms.transforms import Normalize
-from tensorboard import program
+import tqdm
 from omegaconf import OmegaConf
+from tensorboard import program
+from torch import nn
+from torch.utils.data import Subset
+from torch.utils.tensorboard import SummaryWriter
+from torchvision.transforms.transforms import Normalize
 
-from src.loggers import get_logger
-from src.config_parser import CustomDictConfig
-from src.datasets import init_dataset
-from src.dataloaders import init_dataloader
 from src.augmentations import init_transform
+from src.config_parser import CustomDictConfig
+from src.dataloaders import init_dataloader
+from src.datasets import init_dataset
+from src.loggers import get_logger
+from src.utils.common import BColors, find_latest_file_in_dir, is_port_in_use, recursively_flatten_config
 from src.utils.export_utils import (
-    ONNXDynamoExportStrategy, ONNXTSExportStrategy,
-    TSScriptExportStrategy, TSTraceExportStrategy,
-    QuantizedModelWrapper)
-from src.utils.common import (
-    recursively_flatten_config, is_port_in_use,
-    find_latest_file_in_dir, BColors)
+    ONNXDynamoExportStrategy,
+    ONNXTSExportStrategy,
+    QuantizedModelWrapper,
+    TSScriptExportStrategy,
+    TSTraceExportStrategy,
+)
 
 
 class _BaseTrainer(ABC):
-    """
-    base functions which will be overloaded
+    """base functions which will be overloaded
     """
 
     def __init__(self, config: CustomDictConfig, logger_name: str = "logger") -> None:
@@ -66,8 +65,7 @@ class _BaseTrainer(ABC):
         # #############################################################
 
     def load_checkpoint(self, model: nn.Module, file_path: str) -> nn.Module:
-        """
-        Load checkpoint for model from file_path
+        """Load checkpoint for model from file_path
         args:
             model: model whose weights are loaded from file_path
             file_path: file_path to checkpoint file/folder with only weights,
@@ -104,8 +102,7 @@ class _BaseTrainer(ABC):
         return model
 
     def save_checkpoint(self, model: nn.Module, ckpt_save_name: str = "checkpoint.pth") -> None:
-        """
-        Checkpoint saver
+        """Checkpoint saver
         args:
             ckpt_save_name: checkpoint file name which is saved inside self.config["models_dir"]
         """
@@ -116,34 +113,29 @@ class _BaseTrainer(ABC):
 
     @abstractmethod
     def train(self):
-        """
-        main train function
+        """Main train function
         """
         raise NotImplementedError()
 
     @abstractmethod
     def test(self):
-        """
-        main test function
+        """Main test function
         """
         raise NotImplementedError()
 
     def validate(self):
-        """
-        main validate function
+        """Main validate function
         """
         raise NotImplementedError()
 
     def export(self):
-        """
-        main export function
+        """Main export function
         """
         raise NotImplementedError()
 
 
 class BaseTrainer(_BaseTrainer):
-    """
-    Inherits from _BaseTrainer class with dataset, dataloader, and tboard logging initialized
+    """Inherits from _BaseTrainer class with dataset, dataloader, and tboard logging initialized
     """
 
     def __init__(self, config: CustomDictConfig, logger_name: str = "logger") -> None:
@@ -297,8 +289,7 @@ class BaseTrainer(_BaseTrainer):
         # #############################################################
 
     def export(self, mode: str = "ONNX_TS", quantize_mode_backend: str = None):
-        """
-        Export pytorch model to onnx/torchscript with optional quantization
+        """Export pytorch model to onnx/torchscript with optional quantization
         Currently supported quantization mode includes ("fbgemm", "x86", "qnnpack", "onednn")
         """
         # dict with export path suffix & export strategy
@@ -336,11 +327,12 @@ class BaseTrainer(_BaseTrainer):
         self.logger.info("%s export complete", mode)
 
     def quantize_model(self, backend: str = "qnnpack") -> nn.Module:
-        """
-        Quantizes the model.
+        """Quantizes the model.
+
         Args:
             backend (str): The backend for quantization ("fbgemm", "x86", "qnnpack", "onednn").
         Note: All tensors must be in cpu
+
         """
         if self.device != torch.device("cpu"):
             self.logger.warning("Quantization is only tested on cpu. Running on GPU may cause errors.")

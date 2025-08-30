@@ -1,15 +1,13 @@
-import torch
 # import matplotlib
 # matplotlib.use('Agg')  # or 'PS', 'PDF', 'SVG'
-
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from torchvision.utils import make_grid
 
 
 def plot_images_grid(x: torch.tensor, savepath: str, title: str = '', nrow=8, padding=2, normalize=False, pad_value=0):
     """Plot 4D Tensor of images of shape (B x C x H x W) as a grid."""
-
     grid = make_grid(x, nrow=nrow, padding=padding, normalize=normalize, pad_value=pad_value)
     npgrid = grid.cpu().numpy()
 

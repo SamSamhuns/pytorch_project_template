@@ -3,8 +3,7 @@ import pytest
 import torch
 from PIL import Image
 
-from src.augmentations import NumerizeLabels, ImagenetClassifierPreprocess, MnistPreprocess
-
+from src.augmentations import ImagenetClassifierPreprocess, MnistPreprocess, NumerizeLabels
 
 ####################################################################
 # tests for functions from augmentations.numeric
@@ -23,8 +22,7 @@ def test_numerize_labels_without_stable_sort():
 
 
 def test_numerize_labels_with_stable_sort():
-    """
-    Test the order maintained by stable_sort
+    """Test the order maintained by stable_sort
     stable sort behavior:
     ['1', '10', '2'] would be sorted as ['1', '2', '10'],
     """
@@ -86,8 +84,8 @@ class TestMnistPreprocess:
         assert isinstance(preprocess, MnistPreprocess)
 
     def test_transform_non_equality(self, preprocess):
-        assert not(preprocess.train is preprocess.val)
-        assert not(preprocess.train is preprocess.test)
+        assert preprocess.train is not preprocess.val
+        assert preprocess.train is not preprocess.test
 
     def test_inference_transform_difference(self, preprocess):
         assert preprocess.inference != preprocess.train

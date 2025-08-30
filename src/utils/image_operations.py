@@ -1,18 +1,17 @@
-from typing import Tuple
-
 import cv2
 import numpy as np
 
 
 def pad_resize_image(cv2_img: np.ndarray,
-                     new_size: Tuple[int, int] = (640, 480),
-                     color: Tuple[int, int, int] = (125, 125, 125)) -> np.ndarray:
-    """
-    resize and pad image with color if necessary, maintaining orig scale
-    args:
+                     new_size: tuple[int, int] = (640, 480),
+                     color: tuple[int, int, int] = (125, 125, 125)) -> np.ndarray:
+    """Resize and pad image with color if necessary, maintaining orig scale.
+
+    Args:
         cv2_img: numpy.ndarray = cv2 image
         new_size: tuple(int, int) = (width, height)
         color: tuple(int, int, int) = (B, G, R)
+
     """
     in_h, in_w = cv2_img.shape[:2]
     new_w, new_h = new_size
@@ -49,7 +48,7 @@ def clip_coords(boxes, img_shape):
 
 
 def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
-    # Rescale coords (xyxy) from img1_shape to img0_shape
+    """Rescale coords (xyxy) from img1_shape to img0_shape."""
     if ratio_pad is None:  # calculate from img0_shape
         gain = min(img1_shape[0] / img0_shape[0],
                    img1_shape[1] / img0_shape[1])

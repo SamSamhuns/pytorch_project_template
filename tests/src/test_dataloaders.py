@@ -1,6 +1,5 @@
-from torch.utils.data import DataLoader
-import torch
 import pytest
+import torch
 
 from src.dataloaders import CustomDataLoader, WebDatasetDataLoader
 from src.dataloaders.webdataset_dataloader import collate_fn

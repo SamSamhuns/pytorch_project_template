@@ -1,16 +1,13 @@
-import sys
 import logging
+import sys
 from subprocess import call
-from typing import Tuple
 
 import torch
 from torch.utils import data
 
 
 def print_cuda_statistics():
-    """
-    Print statistics of cuda devices
-    """
+    """Print statistics of cuda devices."""
     logger = logging.getLogger("Cuda Statistics")
 
     logger.info('__Python VERSION: %s', sys.version)
@@ -31,9 +28,7 @@ def print_cuda_statistics():
 
 
 def get_model_params(model: torch.nn.Module):
-    """
-    Get total number of params in model 
-    """
+    """Get total number of params in model."""
     total_params = sum(torch.numel(p) for p in model.parameters())
     net_parameters = filter(lambda p: p.requires_grad, model.parameters())
     trainable_params = sum(torch.numel(p) for p in net_parameters)
@@ -43,9 +38,9 @@ def get_model_params(model: torch.nn.Module):
             'Non-trainable params': total_params - trainable_params}
 
 
-def get_img_dset_mean_std(dataset: data.Dataset, method: str = "online") -> Tuple[torch.Tensor, torch.Tensor]:
-    """
-    Calculate the channel-wise mean and std dev of the train data using an online two-pass method.
+def get_img_dset_mean_std(dataset: data.Dataset, method: str = "online") -> tuple[torch.Tensor, torch.Tensor]:
+    """Calculate the channel-wise mean and std dev of the train data using an online two-pass method.
+
     or an offline one-pass method which the entire data is loaded in memory.
     Results match for both methods within a difference of 1e-4
 
@@ -53,6 +48,7 @@ def get_img_dset_mean_std(dataset: data.Dataset, method: str = "online") -> Tupl
         dataset: Dataset which should return data,_ when iterated over.
                  The data should be an image tensor of shape [3, H, W].
         method: offline or online method
+
     """
     assert method in {"online", "offline"}, "method can only be set to `online` or `offline`"
     if method == "online":

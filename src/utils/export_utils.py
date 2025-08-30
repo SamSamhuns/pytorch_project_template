@@ -1,41 +1,36 @@
-"""
-PyTorch export utils
-"""
+"""PyTorch export utils."""
 from abc import ABC, abstractmethod
 from logging import Logger
 from timeit import Timer
 
-import onnx
-import torch
 import numpy as np
+import onnx
 import onnxruntime as ort
+import torch
 from torch.nn.modules import Module
 
 
 class ExportStrategy(ABC):
-    """
-    Base class for export strategy
+    """Base class for export strategy.
+
     logger: Optional logger object to log instead of printing
     """
+
     def __init__(self, logger: Logger = None) -> None:
         super().__init__()
         self.logger = logger
 
     @abstractmethod
     def export(self, model: Module, path: str, sample_in: torch.Tensor):
-        """
-        Exports pytorch model to implemented export mode
-        """
+        """Exports pytorch model to implemented export mode."""
 
     @abstractmethod
     def test_inference(self, model: Module, path: str, sample_in: torch.Tensor):
-        """
-        Tests exported model output vs the original torch model output for similarity
-        """
+        """Tests exported model output vs the original torch model output for similarity."""
 
 
 def torch_inference(model, sample_in):
-    """Pytorch/Torchscript based inference"""
+    """Pytorch/Torchscript based inference."""
     with torch.no_grad():
         return model(sample_in).cpu().numpy()
 
@@ -49,8 +44,9 @@ def onnx_inference(ort_sess, sample_in):
 
 def onnx_inference_check(
         model: Module, onnx_model_path: str, sample_in: torch.Tensor, logger: Logger = None) -> None:
-    """
-    Test exported ONNX model and inference. Currently only supports CPU based export check
+    """Test exported ONNX model and inference.
+    
+    Currently only supports CPU based export check
     Returns True if the ONNX model's output matches the PyTorch model's output, False otherwise.
     """
     # only cpu mode supported for now
@@ -85,8 +81,9 @@ def onnx_inference_check(
 
 def ts_inference_check(
         model: Module, ts_model_path: str, sample_in: torch.Tensor, logger: Logger = None) -> None:
-    """
-    Test exported torchscript model and inference.  Currently only supports CPU based export check
+    """Test exported torchscript model and inference.
+
+    Currently only supports CPU based export check
     Returns True if the ts model's output matches the PyTorch model's output, False otherwise.
     """
     ts_model = torch.jit.load(ts_model_path)
@@ -114,7 +111,7 @@ def ts_inference_check(
 
 
 class ONNXTSExportStrategy(ExportStrategy):
-    """ONNX torchscript export logic"""
+    """ONNX torchscript export logic."""
 
     def export(self, model: Module, path: str, sample_in: torch.Tensor):
         # only cpu export mode supported as of now

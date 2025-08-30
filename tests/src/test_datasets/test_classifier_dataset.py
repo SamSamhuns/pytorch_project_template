@@ -1,7 +1,8 @@
 import os
 import os.path as osp
-import torch
+
 import pytest
+import torch
 
 from src.datasets import ClassifierDataset
 from tests.conftest import PYTEST_TEMP_ROOT

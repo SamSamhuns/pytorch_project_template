@@ -1,18 +1,26 @@
+"""Tests for src.utils.common
 """
-Tests for src.utils.common
-"""
-import pytest
 import errno
 import socket
 import subprocess
+
+import pytest
 from omegaconf import OmegaConf
 
-from tests.conftest import PYTEST_TEMP_ROOT
 from src.utils.common import (
-    BColors, round_to_nearest_divisor, can_be_conv_to_float, try_bool, try_null,
-    capture_output, is_port_in_use, get_git_revision_hash, stable_sort,
-    inherit_missing_dict_params, reorder_trainer_cfg,
-    recursively_flatten_config)
+    BColors,
+    can_be_conv_to_float,
+    capture_output,
+    get_git_revision_hash,
+    inherit_missing_dict_params,
+    is_port_in_use,
+    recursively_flatten_config,
+    reorder_trainer_cfg,
+    round_to_nearest_divisor,
+    stable_sort,
+    try_bool,
+    try_null,
+)
 
 
 def test_BColors():
@@ -89,7 +97,7 @@ def test_is_port_in_use():
         s.bind(("127.0.0.1", 50001))
         s.listen(1)
         assert is_port_in_use(50001)
-    except socket.error as e:
+    except OSError as e:
         if e.errno == errno.EADDRINUSE:
             print("Port is already in use")
         else:

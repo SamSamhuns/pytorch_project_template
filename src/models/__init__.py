@@ -1,8 +1,7 @@
 from .base_model import BaseModel
 from .classifier_model import ClassifierModel
-from .mnist_model import MnistModel
 from .custom_model import CustomModel
-
+from .mnist_model import MnistModel
 
 IMPLEMENTED_MODELS = {
     "ClassifierModel": ClassifierModel,

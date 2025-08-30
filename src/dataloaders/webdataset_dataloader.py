@@ -3,8 +3,7 @@ from torch.utils.data.dataloader import default_collate
 
 
 def collate_fn(batch):
-    """
-    collate function to filter out None
+    """Collate function to filter out None
     batch is None when there is an error in loading a data point
     """
     batch = list(filter(lambda x: x is not None, batch))
@@ -12,8 +11,7 @@ def collate_fn(batch):
 
 
 class WebDatasetDataLoader(DataLoader):
-    """
-    Base class for all data loaders
+    """Base class for all data loaders
     """
 
     def __init__(self,

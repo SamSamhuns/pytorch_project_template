@@ -1,4 +1,3 @@
-from typing import Tuple
 
 from torch import nn
 from torchinfo import summary
@@ -11,8 +10,7 @@ class BaseModel(nn.Module):
         super().__init__()
 
     def forward(self, *input_x):
-        """
-        Forward pass logic
+        """Forward pass logic
         :return: Network output
         """
         raise NotImplementedError
@@ -53,9 +51,8 @@ class BaseModel(nn.Module):
         else:
             raise NotImplementedError(f"{method} initialization not implemented")
 
-    def print_summary(self, input_size: Tuple[int], device: str = "cpu"):
-        """
-        Generate Network summary.
+    def print_summary(self, input_size: tuple[int], device: str = "cpu"):
+        """Generate Network summary.
         input_size: tuple of input size [bsize, ...]
         device: str should be either 'cuda' or 'cpu'
         """

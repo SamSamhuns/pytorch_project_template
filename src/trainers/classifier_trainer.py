@@ -1,41 +1,38 @@
-"""
-Time Series Classification trainer
+"""Time Series Classification trainer
 Dataset should be in the format [batch_size, num_channels, seq_len]
 """
-import os
-import time
-import glob
 import copy
+import glob
+import os
 import os.path as osp
+import time
 from contextlib import nullcontext
-from typing import Optional, List, Tuple
 
-from PIL import Image
 import numpy as np
-import tqdm
 import torch
 import torch.nn.functional as F
+import tqdm
+from PIL import Image
 from torch.amp import autocast
+from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 
-from src.trainers import BaseTrainer
-from src.datasets.base_dataset import IMG_EXTENSIONS
+from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
+from src.dataloaders import init_dataloader
+from src.datasets.base_dataset import IMG_EXTENSIONS
 from src.losses import init_loss
-from src.models import init_model
 from src.metrics import calc_metric, plot_metric
+from src.models import init_model
 from src.optimizers import init_optimizer
 from src.schedulers import init_scheduler
-from src.dataloaders import init_dataloader
-from src.augmentations import init_transform
-from src.utils.custom_statistics import get_model_params
+from src.trainers import BaseTrainer
 from src.utils.common import BColors
+from src.utils.custom_statistics import get_model_params
 
 
 class ClassifierTrainer(BaseTrainer):
-    """
-    Main ClassifierTrainer with the train, test, validate, inference, load_checkpoint and save_checkpoint funcs
+    """Main ClassifierTrainer with the train, test, validate, inference, load_checkpoint and save_checkpoint funcs
     """
 
     def __init__(self, config: CustomDictConfig, logger_name: str):
@@ -122,8 +119,7 @@ class ClassifierTrainer(BaseTrainer):
             self.logger.info("Training will be done from scratch")
 
     def train_one_epoch(self) -> None:
-        """
-        One epoch of training
+        """One epoch of training
         """
         if self.config.verbose:
             self.logger.info("Training set:")
@@ -207,9 +203,8 @@ class ClassifierTrainer(BaseTrainer):
                                           self.optimizer.param_groups[0]["lr"],
                                           self.current_epoch)
 
-    def eval_one_epoch(self, data_loader: DataLoader) -> Tuple[float, List[int], List[float], List[int]]:
-        """
-        Evaluate model on one epoch with the given dataloader
+    def eval_one_epoch(self, data_loader: DataLoader) -> tuple[float, list[int], list[float], list[int]]:
+        """Evaluate model on one epoch with the given dataloader
         """
         self.model.eval()
         cumu_test_loss = 0
@@ -240,8 +235,7 @@ class ClassifierTrainer(BaseTrainer):
         return cumu_test_loss, y_true, y_score, y_pred
 
     def train(self) -> None:
-        """
-        Main training function with loop
+        """Main training function with loop
         """
         train_start_tm = time.perf_counter()
         epochs = self.config["trainer"]["epochs"]
@@ -280,8 +274,7 @@ class ClassifierTrainer(BaseTrainer):
         self.logger.info("Finished training.\n")
 
     def validate(self) -> None:
-        """
-        One epoch of model validation
+        """One epoch of model validation
         """
         val_start_tm = time.perf_counter()
 
@@ -350,9 +343,8 @@ class ClassifierTrainer(BaseTrainer):
                                           val_loss,
                                           self.current_epoch)
 
-    def test(self, weight_path: Optional[str] = None) -> None:
-        """
-        main test function
+    def test(self, weight_path: str | None = None) -> None:
+        """Main test function
         args:
             weight_path: Path to pth weight file that will be loaded for test
                          Default is set to None which uses latest chkpt weight file
@@ -402,9 +394,8 @@ class ClassifierTrainer(BaseTrainer):
         self.logger.info("\nTest time: %.3fs", test_end_tm - test_start_tm)
         self.logger.info("Finished testing model.")
 
-    def inference(self, source_path: str, weight_path: Optional[str] = None, log_txt_preds: bool = True) -> List[Tuple[str, float]]:
-        """
-        Run inference on an image file or directory with existing model or model loaded with new weight_path
+    def inference(self, source_path: str, weight_path: str | None = None, log_txt_preds: bool = True) -> list[tuple[str, float]]:
+        """Run inference on an image file or directory with existing model or model loaded with new weight_path
         Args:
             source_path: str
         """
@@ -447,14 +438,15 @@ class ClassifierTrainer(BaseTrainer):
         self.logger.info("Inference complete for %s", source_path)
         return pred_file_labels
 
-    def calc_feature_importance(self, weight_path: Optional[str] = None, imp_metric: str = "f1_score") -> None:
-        """
-        Calculate feature importance using permutation feature importance
+    def calc_feature_importance(self, weight_path: str | None = None, imp_metric: str = "f1_score") -> None:
+        """Calculate feature importance using permutation feature importance
         WARNING: This is a slow process and not recommended for datasets with a lot of features i.e. images.
-        args:
+
+        Args:
             weight_path: Path to pth weight file that will be loaded for test
                          Default is set to None which uses latest ckpt weight file
             imp_metric: metric used to differentiate the most important features
+
         """
         self.logger.info("\nTesting feature importance...")
         test_start_tm = time.perf_counter()
@@ -513,7 +505,7 @@ class ClassifierTrainer(BaseTrainer):
             feat_metrics_dict[feat_key]["average_loss"] = test_loss
             for metric_name in self.config["metrics"]["test"]:
                 if (metric_name in {"confusion_matrix", "classification_report"}
-                        or metric_name == "roc_auc_score" and np.unique(y_true).size > 2):
+                        or (metric_name == "roc_auc_score" and np.unique(y_true).size > 2)):
                     # dont calculate roc_auc_score for mult class clsf
                     continue
                 if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:

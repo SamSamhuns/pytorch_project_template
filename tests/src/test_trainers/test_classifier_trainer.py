@@ -1,6 +1,8 @@
 import warnings
+
 import pytest
 import torch
+
 from src.config_parser import CustomDictConfig
 from src.trainers import ClassifierTrainer
 

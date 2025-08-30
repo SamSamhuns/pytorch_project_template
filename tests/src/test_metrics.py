@@ -1,6 +1,7 @@
 import pytest
 import torch
-from src.metrics import accuracy_topk_torch, tpr, tnr, ppv, npv, fpr, fnr, fdr, comprehensive_clsf_metrics
+
+from src.metrics import accuracy_topk_torch, comprehensive_clsf_metrics, fdr, fnr, fpr, npv, ppv, tnr, tpr
 from src.metrics.base_metrics import calc_clsf_metrics
 
 

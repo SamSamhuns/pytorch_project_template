@@ -1,5 +1,4 @@
-"""
-Training script, run with: python train.py --cfg YAML_CONFIG_PATH
+"""Training script, run with: python train.py --cfg YAML_CONFIG_PATH
 """
 import argparse
 from datetime import datetime

@@ -1,27 +1,23 @@
-"""
-Base Dataset Class
+"""Base Dataset Class
 """
 import os
 import os.path as osp
-from typing import List, Dict
 
 from PIL import Image
 from torch.utils import data
 
-
 IMG_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.webp'}
 
 
-def is_file_ext_valid(filepath: str, extensions: List[str]):
-    """
-    check if a filepath has allowed extensions
+def is_file_ext_valid(filepath: str, extensions: list[str]):
+    """Check if a filepath has allowed extensions
     """
     filepath_lower = filepath.lower()
     return any(filepath_lower.endswith(ext) for ext in extensions)
 
 
 def _find_classes(root_dir: str):
-    """returns tuple class names & class to idx dicts from root_dir
+    """Returns tuple class names & class to idx dicts from root_dir
     root_dir struct:
         root
             |_ class_x
@@ -41,10 +37,9 @@ def _find_classes(root_dir: str):
 
 
 def _make_dataset(directory: str,
-                  class_to_idx: Dict[str, int],
-                  extensions: List[str]):
-    """
-    returns a list of img_path, class index tuples
+                  class_to_idx: dict[str, int],
+                  extensions: list[str]):
+    """Returns a list of img_path, class index tuples
     """
     images = []
     directory = osp.expanduser(directory)
@@ -63,8 +58,7 @@ def _make_dataset(directory: str,
 
 
 def get_pil_img(path):
-    """
-    open path as file to avoid ResourceWarning
+    """Open path as file to avoid ResourceWarning
     """
     # (https://github.com/python-pillow/Pillow/issues/835)
     with open(path, 'rb') as fread:
@@ -76,7 +70,7 @@ def accimage_loader(path):
     import accimage
     try:
         return accimage.Image(path)
-    except IOError:
+    except OSError:
         # Potentially a decoding problem, fall back to PIL.Image
         return get_pil_img(path)
 
@@ -90,8 +84,7 @@ def default_loader(path):
 
 
 def write_class_mapping_to_file(mapping, fpath) -> None:
-    """
-    mapping must be one level deep dict of class_names to index
+    """Mapping must be one level deep dict of class_names to index
     """
     with open(fpath, 'w', encoding="utf-8") as fw:
         for class_name, class_idx in mapping.items():
@@ -99,8 +92,7 @@ def write_class_mapping_to_file(mapping, fpath) -> None:
 
 
 class BaseDataset(data.Dataset):
-    """
-    A generic data loader where the samples are arranged as follows:
+    """A generic data loader where the samples are arranged as follows:
     Note: ImageNet style class_dir->subdirs->subdirs->images... is also supported
         root
             |_ class_x
@@ -120,10 +112,12 @@ class BaseDataset(data.Dataset):
             E.g, ``transforms.RandomCrop`` for images.
         target_transforms (callable, optional): Function/transforms that takes
             in the target and transforms it.
-     Attributes:
+
+    Attributes:
         classes (list): List of the class names.
         class_to_idx (dict): Dict with items (class_name, class_index).
         samples (list): List of (sample path, class_index) tuples
+
     """
 
     def __init__(self,
@@ -151,8 +145,7 @@ class BaseDataset(data.Dataset):
         self.target_transforms = target_transforms
 
     def __getitem__(self, index):
-        """
-        Args:
+        """Args:
             index (int): Index
 
         Returns:
@@ -160,6 +153,7 @@ class BaseDataset(data.Dataset):
             where target is class_index of the target class.
 
             None when there is an error loading a datum
+
         """
         if index < 0 or index >= len(self.data):
             raise IndexError(f"Index {index} is out of range for dataset of size {len(self.data)}.")
@@ -194,8 +188,7 @@ class BaseDataset(data.Dataset):
 
 
 class ImageFolderDataset(BaseDataset):
-    """
-    An Image data loader where the images are arranged as follows:
+    """An Image data loader where the images are arranged as follows:
     Note: ImageNet style class_dir->subdirs->subdirs->images... is also supported
         root
             |_ class_x
@@ -216,10 +209,11 @@ class ImageFolderDataset(BaseDataset):
         loader (callable, optional):
             A function to load an image given its path.
 
-     Attributes:
+    Attributes:
         classes (list): List of the class names.
         class_to_idx (dict): Dict with items (class_name, class_index).
         imgs (list): List of (image path, class_index) tuples
+
     """
 
     def __init__(self,

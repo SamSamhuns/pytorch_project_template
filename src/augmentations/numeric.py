@@ -1,16 +1,16 @@
-from typing import Any, List, Union
+from typing import Any
 
 import numpy as np
+
 from src.utils.common import stable_sort
 
 
 class NumerizeLabels:
-    """
-    Converts a list of string labels to numeric labels. 
+    """Converts a list of string labels to numeric labels.
     Use stable sort by default i.e. ['1', '10', '2'] would be sorted as ['1', '2', '10']
     """
 
-    def __init__(self, uniq_labels_list: Union[List[Any], np.ndarray], use_stable_sort: bool = True) -> None:
+    def __init__(self, uniq_labels_list: list[Any] | np.ndarray, use_stable_sort: bool = True) -> None:
         if use_stable_sort:
             uniq_labels_list = stable_sort(uniq_labels_list)
         self.numeric_label_dict = {

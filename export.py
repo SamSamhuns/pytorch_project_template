@@ -1,5 +1,4 @@
-"""
-Export script to convert pytorch model to torshscript/onnx.
+"""Export script to convert pytorch model to torshscript/onnx.
 Run with: python export.py --cfg YAML_CONFIG_PATH -r PTH_MODEL_PATH --mode ONNX_TS
 """
 import argparse

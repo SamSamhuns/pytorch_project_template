@@ -6,8 +6,7 @@ from torch.optim.optimizer import Optimizer
 
 
 def lr_warmup_cosine_annealing(epoch: int, total_epochs: int, warmup_epochs: int = 5) -> float:
-    """
-    Returns lr for given epoch after combining lr warmup and cosine annealing
+    """Returns lr for given epoch after combining lr warmup and cosine annealing
     """
     if epoch < warmup_epochs:
         return epoch / warmup_epochs
@@ -17,14 +16,14 @@ def lr_warmup_cosine_annealing(epoch: int, total_epochs: int, warmup_epochs: int
 
 
 class WarmupCosineAnnealingScheduler(LambdaLR):
-    """
-    Learning rate scheduler with warm-up and cosine annealing.
+    """Learning rate scheduler with warm-up and cosine annealing.
 
     Args:
         optimizer (Optimizer): The optimizer for which to adjust the learning rate.
         total_epochs (int): Total number of epochs for the main cosine annealing phase.
         warmup_epochs (int, optional): Number of epochs for the warm-up phase. Default is 5.
         **kwargs: Additional arguments to pass to the LambdaLR constructor.
+
     """
 
     def __init__(self, optimizer: Optimizer,
@@ -36,9 +35,9 @@ class WarmupCosineAnnealingScheduler(LambdaLR):
 
 if __name__ == "__main__":
     # test the lrwarmup cosine annealing scheduler
-    from torch.optim import SGD
-    from torch import nn
     import matplotlib.pyplot as plt
+    from torch import nn
+    from torch.optim import SGD
 
     model = nn.Linear(100, 10)
     optim = SGD(model.parameters(), lr=0.1)

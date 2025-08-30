@@ -1,19 +1,18 @@
-import urllib.request as urllib2
-from enum import Enum
-import traceback
 import json
-import uuid
-import sys
 import os
 import re
+import sys
+import traceback
+import urllib.request as urllib2
+import uuid
+from enum import Enum
 
-from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
 import requests
 import uvicorn
+from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
+from fastapi.responses import FileResponse
 from inference_server import init_detectors, run_detector
-
+from pydantic import BaseModel
 
 # The root is the absolute path of the __init_.py under the source
 ROOT = os.path.abspath(__file__)[:os.path.abspath(__file__).rfind(os.path.sep)]
@@ -65,7 +64,7 @@ async def cache_file(name: str, data: bytes):
     return image_file_path
 
 
-class InferenceProcessTask():
+class InferenceProcessTask:
     def __init__(self, func, input_data):
         super().__init__()
         self.func = func

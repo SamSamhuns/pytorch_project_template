@@ -1,15 +1,14 @@
-"""
-Image Classifier Data loader
+"""Image Classifier Data loader
 """
 import os.path as osp
 
 import imageio.v2 as imageio
-import webdataset as wds
 import torchvision.utils as v_utils
-from torchvision.transforms.transforms import Normalize, Compose
+import webdataset as wds
+from torchvision.transforms.transforms import Compose, Normalize
 
 from src.datasets import base_dataset
-from src.utils.common import identity, add_tfms
+from src.utils.common import add_tfms, identity
 from src.utils.custom_statistics import get_img_dset_mean_std
 
 
@@ -24,8 +23,7 @@ def _get_webdataset_len(data_path) -> int:
 
 
 def _get_webdataset(dset_path: str, tfms: Compose, dset_len: int, decode: str = "pil"):
-    """
-    Get a webdataset
+    """Get a webdataset
     """
     return (wds.WebDataset(dset_path, shardshuffle=True)
             .shuffle(1000)
@@ -46,8 +44,7 @@ class ClassifierDataset:
                  val_path='val',
                  test_path='test',
                  **kwargs):
-        """
-        train_transform: torchvision.transforms for train data
+        """train_transform: torchvision.transforms for train data
         val_transform: torchvision.transforms for validation data
         test_transform: torchvision.transforms for test data
         data_mode: Mode for getting data
@@ -119,8 +116,7 @@ class ClassifierDataset:
         self.test_transform = test_transform
 
     def plot_samples_per_epoch(self, batch, epoch, out_dir):
-        """
-        Plotting the batch images
+        """Plotting the batch images
         :param batch: Tensor of shape (B,C,H,W)
         :param epoch: the number of current epoch
         :param out_dir: output save directory
@@ -135,8 +131,7 @@ class ClassifierDataset:
         return imageio.imread(img_epoch)
 
     def make_gif(self, epochs, out_dir):
-        """
-        Make a gif from a multiple images of epochs
+        """Make a gif from a multiple images of epochs
         :param epochs: num_epochs till now
         :param out_dir: output save directory
         :return:

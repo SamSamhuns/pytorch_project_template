@@ -1,14 +1,30 @@
 # classification metrics
 import numpy as np
 from sklearn.metrics import (
-    accuracy_score, top_k_accuracy_score, f1_score,
-    precision_score, recall_score, roc_auc_score, average_precision_score,
-    classification_report, confusion_matrix)
-from .base_metrics import (
-    accuracy_topk_torch, comprehensive_clsf_metrics, optimal_thres_from_roc_curve,
-    tpr, tnr, ppv, npv, fpr, fnr, fdr)
-from .plots import (plot_roc_curve,  plot_pr_curve, plot_calibration_curve)
+    accuracy_score,
+    average_precision_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+    top_k_accuracy_score,
+)
 
+from .base_metrics import (
+    accuracy_topk_torch,
+    comprehensive_clsf_metrics,
+    fdr,
+    fnr,
+    fpr,
+    npv,
+    optimal_thres_from_roc_curve,
+    ppv,
+    tnr,
+    tpr,
+)
+from .plots import plot_calibration_curve, plot_pr_curve, plot_roc_curve
 
 IMPLEMENTED_METRICS = {
     "accuracy_score": accuracy_score,

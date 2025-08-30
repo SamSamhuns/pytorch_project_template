@@ -1,26 +1,25 @@
+"""Test configurations
 """
-Test configurations
-"""
-import os
-import os.path as osp
+import argparse
 import glob
 import logging
-import argparse
-from typing import Callable, Tuple
+import os
+import os.path as osp
+from collections.abc import Callable
 from unittest.mock import MagicMock
 
 import imageio.v3 as imageio
-import onnxruntime as ort
-import webdataset as wds
-from PIL import Image
 import numpy as np
+import onnxruntime as ort
 import pytest
 import torch
+import webdataset as wds
+from PIL import Image
 from torch import nn
 from torch.utils.data import Dataset
 
-from src.utils.common import identity
 from src.datasets.classifier_dataset import _get_webdataset_len
+from src.utils.common import identity
 
 PYTEST_TEMP_ROOT = "/tmp/pytest"
 os.makedirs(PYTEST_TEMP_ROOT, exist_ok=True)
@@ -73,8 +72,7 @@ def modifications():
 
 @pytest.fixture
 def mock_parser(scope="function"):
-    """
-    Generate a mock parser for testing based on train.py script
+    """Generate a mock parser for testing based on train.py script
     """
     parser = argparse.ArgumentParser("Mock parser")
     parser.add_argument(
@@ -161,8 +159,7 @@ def dummy_webdataset(mock_webdataset_path):
 
 
 class Simple2DConvModel(nn.Module):
-    """
-    Inputs must be of shape [bsize, 3, H, W] where H and W are the height and width of the input images.
+    """Inputs must be of shape [bsize, 3, H, W] where H and W are the height and width of the input images.
     """
 
     def __init__(self, height=100, width=100):
@@ -234,15 +231,17 @@ def root_directory():
     return f"{PYTEST_TEMP_ROOT}/dataset/mock_imgs"
 
 
-def _create_and_save_dummy_imgs(dir_path: str, n_cls: int = 5, n_imgs_p_cls: int = 30, size: Tuple[int, int] = (100, 100)) -> str:
-    """
-    Create and save dummy images to dir_path with image pixels separated by class.
-    Parameters: 
+def _create_and_save_dummy_imgs(dir_path: str, n_cls: int = 5, n_imgs_p_cls: int = 30, size: tuple[int, int] = (100, 100)) -> str:
+    """Create and save dummy images to dir_path with image pixels separated by class.
+
+    Parameters
+    ----------
         dir_path: str = path to root image directory
         n_cls: int = number of classes
         n_imgs_p_cls: int = number of images per class
         size: Tuple[int, int] = size in [width, height]
     Returns: str
+
     """
     os.makedirs(dir_path, exist_ok=True)
     classes = [f"class_{ci}" for ci in range(n_cls)]
@@ -275,7 +274,7 @@ def dump_mock_img_data_dir(root_directory, create_and_save_dummy_imgs) -> str:
 def generate_tar(src_data_dir: str,
                  tar_path: str,
                  mapping_fname: str = "dataset_mapping.txt") -> None:
-    """ generates a combined tar archive for loading into webdataset
+    """Generates a combined tar archive for loading into webdataset
     from class folder separated data from src_data_dir & a class mapping txt file
     """
     # fix path for globbing

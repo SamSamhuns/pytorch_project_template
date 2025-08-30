@@ -11,6 +11,5 @@ class MnistPreprocess:
                                     transforms.Normalize((0.1307,), (0.3081,))])
 
     def __init__(self):
-        """
-        Class to store the train, test, inference transforms or augmentations
+        """Class to store the train, test, inference transforms or augmentations
         """

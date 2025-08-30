@@ -4,7 +4,6 @@ import torch
 from src.models import ClassifierModel
 
 
-
 def test_initialization(classifier_model_params):
     """Test initialization of the ClassifierModel."""
     model = ClassifierModel(**classifier_model_params)

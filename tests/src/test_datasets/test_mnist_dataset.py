@@ -1,7 +1,8 @@
 from unittest.mock import patch
-import torch
+
 import pytest
 from torchvision.transforms import ToTensor
+
 from src.datasets import MnistDataset
 
 

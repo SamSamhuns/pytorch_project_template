@@ -1,8 +1,8 @@
 """convert dataset to tar format for fast loading with webdataset"""
-import glob
 import argparse
-from tqdm import tqdm
+import glob
 
+from tqdm import tqdm
 
 # #################### Raw Data Organization ########################
 #   raw_data
@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 def generate_tar(src_data_dir: str,
                  mapping_file_path: str = 'dataset_mapping.txt') -> None:
-    """ generates a class id2name mapping txt file based on the 1st level directory structure
+    """Generates a class id2name mapping txt file based on the 1st level directory structure
     """
     # fix path for globbing
     if not src_data_dir.endswith(('/', '*')):

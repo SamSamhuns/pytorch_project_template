@@ -1,5 +1,4 @@
-"""
-Custom model transforms
+"""Custom model transforms
 The class must have a train, val, and test transforms.Compose member
 """
 from torchvision import transforms
@@ -20,16 +19,15 @@ class ImagenetClassifierPreprocess:
     inference = transforms.Compose(common_transform.copy())
 
     def __init__(self):
-        """
-        Class to store the train, test, inference transforms or augmentations
+        """Class to store the train, test, inference transforms or augmentations
         """
 
 
 class CustomImageClassifierPreprocess:
-    """
-    The Normalize transforms is added inside the dataset class for this preprocessor
+    """The Normalize transforms is added inside the dataset class for this preprocessor
     after calculating the train set mean and std dev
     """
+
     common_transform = [
         transforms.Resize(224),
         transforms.ToTensor()]
@@ -39,6 +37,5 @@ class CustomImageClassifierPreprocess:
     inference = transforms.Compose(common_transform.copy())
 
     def __init__(self):
-        """
-        Class to store the train, test, inference transforms or augmentations
+        """Class to store the train, test, inference transforms or augmentations
         """

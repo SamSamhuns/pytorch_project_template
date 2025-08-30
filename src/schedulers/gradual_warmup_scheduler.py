@@ -3,8 +3,8 @@
 # Gradual increase in learning rate by a constant amount to avoid sudden increase in lr
 
 import warnings
-from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 
+from torch.optim.lr_scheduler import ReduceLROnPlateau, _LRScheduler
 
 EPOCH_DEPRECATION_WARNING = (
     "The epoch parameter in `scheduler.step()` was not necessary and is being "
@@ -28,6 +28,7 @@ class GradualWarmupScheduler(_LRScheduler):
         after_scheduler (Scheduler): scheduler to use after gradual warmup of lr is done. Default: None.
         last_epoch (int): The index of last epoch. Default: -1.
             verbose (bool): If ``True``, prints a message to stdout for each update. Default: ``False``.
+
     """
 
     def __init__(self, optimizer, eps_lr=0.000001, warmup_epochs=5, after_scheduler=None, last_epoch=-1, verbose=False):
@@ -95,15 +96,15 @@ class GradualWarmupScheduler(_LRScheduler):
 
 def main():
     # for testing the custom scheduler only
-    import tqdm
-    import numpy as np
     import matplotlib.pyplot as plt
+    import numpy as np
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
+    import tqdm
     from torch.optim import SGD
-    from torchvision import datasets, transforms
     from torch.utils.data import DataLoader, Subset
+    from torchvision import datasets, transforms
 
     class Network(nn.Module):
         def __init__(self):

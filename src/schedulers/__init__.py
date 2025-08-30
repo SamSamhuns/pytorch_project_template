@@ -1,6 +1,6 @@
-from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR, OneCycleLR
-from .warmup_cosine_annealing_scheduler import WarmupCosineAnnealingScheduler
+from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau, StepLR
 
+from .warmup_cosine_annealing_scheduler import WarmupCosineAnnealingScheduler
 
 IMPLEMENTED_SCHEDULERS = {
     "StepLR": StepLR,

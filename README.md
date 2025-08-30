@@ -28,7 +28,7 @@ This is a template for a PyTorch Project for training, testing, inference demo, 
 
 Use `poetry` or `python venv` or a `conda env` to install requirements:
 
--   Poetry install full requirements: `poetry install --all-groups`
+-   Poetry install full requirements: `poetry install --all-groups` (Recommended)
 -   Pip install full requirements: `pip install -r requirements.txt`
 
 ## Train

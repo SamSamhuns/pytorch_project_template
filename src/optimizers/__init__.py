@@ -1,4 +1,4 @@
-from torch.optim import SGD, Adam, AdamW, Adadelta, Adagrad, Adamax, RMSprop
+from torch.optim import SGD, Adadelta, Adagrad, Adam, Adamax, AdamW, RMSprop
 
 IMPLEMENTED_OPTIMIZERS = {"SGD": SGD, "Adam": Adam, "AdamW": AdamW, "Adadelta": Adadelta,
                           "Adagrad": Adagrad, "Adamax": Adamax, "RMSprop": RMSprop}

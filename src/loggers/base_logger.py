@@ -1,5 +1,4 @@
-"""
-Logger object
+"""Logger object
 
 Logging levels
 Debug = 10
@@ -8,14 +7,13 @@ Warning = 30
 Error = 40
 Critical = 50
 """
+import logging
 import os
 import pprint
-import logging
 
 
 class LogFilter(logging.Filter):
-    """
-    Filters logger logs based on exclusion keyword
+    """Filters logger logs based on exclusion keyword
     """
 
     def __init__(self, exc_keyword):
@@ -37,8 +35,7 @@ def get_logger(logger_name: str,
                console_level: int = logging.DEBUG,
                console_exc_keyword: str = "",
                propagate: bool = False) -> logging.Logger:
-    """
-    Logger settings should be configured and imported from configs dir
+    """Logger settings should be configured and imported from configs dir
     Note: adding multiple handlers to a logger causes the same logs being printed multiple times
     """
     os.makedirs(logger_dir, exist_ok=True)

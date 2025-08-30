@@ -1,7 +1,9 @@
 import os
 import warnings
-import torch
+
 import pytest
+import torch
+
 from tests.src.test_trainers.conftest import PatchedBaseTrainer
 
 
@@ -85,8 +87,9 @@ def test_validation_split_configuration(mock_clsf_config, mock_logger, val_path,
 
 
 def test_full_training_cycle(base_trainer_and_logger, mocker):
-    """Integration testing for the full training cycle to ensure no exceptions 
-    and that basic calls are made."""
+    """Integration testing for the full training cycle to ensure no exceptions
+    and that basic calls are made.
+    """
     trainer, _ = base_trainer_and_logger
     mocker.patch.object(trainer, 'train', return_value=None)
     mocker.patch.object(trainer, 'validate', return_value=None)

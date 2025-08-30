@@ -1,6 +1,6 @@
-from torch.nn import NLLLoss, CrossEntropyLoss, MSELoss, BCELoss, BCEWithLogitsLoss
-from .msse import MSSELoss
+from torch.nn import BCELoss, BCEWithLogitsLoss, CrossEntropyLoss, MSELoss, NLLLoss
 
+from .msse import MSSELoss
 
 IMPLEMENTED_LOSSES = {"NLLLoss": NLLLoss,
                       "CrossEntropyLoss": CrossEntropyLoss,

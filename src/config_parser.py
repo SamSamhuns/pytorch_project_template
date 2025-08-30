@@ -1,49 +1,50 @@
-"""
-CLI config parsing module with OmegaConf and YAML support
-"""
+"""CLI config parsing module with OmegaConf and YAML support."""
+import argparse
 import os
 import os.path as osp
-import argparse
 import random
 from datetime import datetime
-from typing import Optional
 
-import yaml
-import torch
 import numpy as np
-from omegaconf import OmegaConf, DictConfig
-from .utils.common import get_git_revision_hash, BColors
+import torch
+import yaml
+from omegaconf import DictConfig, OmegaConf
+
+from .utils.common import BColors, get_git_revision_hash
 
 
 def parse_omegaconf_primitive(val_str):
-    """
-    Parses a string representation of a omegaconf value (int, float, str, bool, ${oc.env:HOME})
-    and returns the corresponding Python type.
+    """Parse a string representation of a omegaconf value (int, float, str, bool, ${oc.env:HOME}) and returns the corresponding Python type.
+
     Args:
         val_str: String representation of the value.
+
     Returns:
         Parsed value as a Python type (int, float, str, bool).
+
     """
     wrapped = OmegaConf.create({"_val_": yaml.safe_load(val_str)})
     return OmegaConf.to_container(wrapped, resolve=True)["_val_"]
 
 
 class CustomDictConfig(DictConfig):
-    """
-    A wrapper around OmegaConf's DictConfig to extend its functionality.
+    """A wrapper around OmegaConf's DictConfig to extend its functionality.
+
     Handles additional tasks like setting up directories, logging, and
     applying runtime modifications.
+
     Args:
         config: DictConfig object with configurations.
         run_id: Unique Identifier for train & test. Used to save ckpts & training log.
         modification: Additional key-value pairs to override in config.
+
     """
 
     def __init__(self,
                  config: DictConfig,
-                 run_id: Optional[str] = None,
+                 run_id: str | None = None,
                  verbose: bool = False,
-                 modification: Optional[dict] = None):
+                 modification: dict | None = None):
         super().__init__(config)
 
         # Apply any modifications to the configuration
@@ -101,10 +102,10 @@ class CustomDictConfig(DictConfig):
     @classmethod
     def from_args(cls,
                   args: argparse.Namespace,
-                  modification: Optional[dict] = None,
+                  modification: dict | None = None,
                   add_all_args: bool = True):
-        """
-        Initialize this class from CLI arguments. Used in train, test.
+        """Initialize this class from CLI arguments. Used in train, test.
+
         Args:
             args: Parsed CLI arguments.
             modification: Key-value pair to override in config.
@@ -112,6 +113,7 @@ class CustomDictConfig(DictConfig):
                           e.g. {"key1":"val1", "key2.sub_key2":"val2"}
             add_all_args: Add all args to modification 
                           that are not alr present as top-level keys.
+
         """
         modification = {} if not modification else modification
         # Add all args to modification from args
