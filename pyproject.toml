@@ -37,6 +37,7 @@ optional = true
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.12.11"
+pre-commit = "^4.3.0"
 
 [tool.poetry.group.test]
 optional = true
