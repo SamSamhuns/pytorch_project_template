@@ -38,8 +38,8 @@ RUN python3 -m venv $VIRTUAL_ENV
 RUN pip install pip==24.0
 
 # Copy and install Python dependencies
-COPY ./server/requirements_server.txt "$WORKDIR/"
-RUN pip install -r "$WORKDIR/requirements_server.txt"
+COPY ./server/requirements.txt "$WORKDIR/"
+RUN pip install -r "$WORKDIR/requirements.txt"
 
 # Copy application code to the working directory
 COPY . "$WORKDIR"

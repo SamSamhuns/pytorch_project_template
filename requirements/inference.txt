@@ -1,9 +1,0 @@
-imageio==2.37.0
-onnx==1.17.0
-onnxruntime==1.21.1
-onnxscript==0.4.0
-torch==2.8.0
-torchinfo==1.8.0
-torchvision==0.23.0
-tqdm==4.67.1
-webdataset==0.2.100
