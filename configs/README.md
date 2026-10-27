@@ -10,7 +10,6 @@ An example Configuration file is provided at `classifier_cpu_config.yaml`
 experiment_name: image_classifier  # Name of experiment, name of the dir for saving logs, metrics & models
 save_dir: checkpoints  # Directory to save checkpoints and logs
 git_hash: null  # Git hash for version control, set during runs
-mode: TRAIN  # Mode: TRAIN or TEST
 seed: 42  # Random seed for reproducibility
 reproducible: true  # Sets cudnn benchmark to false and deterministic mode to true
 device: cuda  # Device to run the model on (cuda or cpu)
