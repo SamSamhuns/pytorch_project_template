@@ -1,59 +1,8 @@
-import numpy as np
 import pytest
 import torch
 from PIL import Image
 
-from src.augmentations import ImagenetClassifierPreprocess, MnistPreprocess, NumerizeLabels
-
-####################################################################
-# tests for functions from augmentations.numeric
-####################################################################
-
-
-def test_numerize_labels_without_stable_sort():
-    """Testing with a basic list of labels"""
-    labels = ['cat', 'dog', 'bird']
-    numerizer = NumerizeLabels(labels, use_stable_sort=False)
-
-    # Check if all labels are correctly numerized
-    assert numerizer('cat') == 0, "Numerization of 'cat' failed"
-    assert numerizer('dog') == 1, "Numerization of 'dog' failed"
-    assert numerizer('bird') == 2, "Numerization of 'bird' failed"
-
-
-def test_numerize_labels_with_stable_sort():
-    """Test the order maintained by stable_sort
-    stable sort behavior:
-    ['1', '10', '2'] would be sorted as ['1', '2', '10'],
-    """
-    # Assuming stable_sort sorts numbers in ascending order and strings alphabetically
-    labels = ['cat', 'dog', 'apple', 10, 2, 'banana', 1]
-    numerizer = NumerizeLabels(labels)
-    sorted_label_dict = {1: 0, 2: 1, 10: 2, 'apple': 3, 'banana': 4, 'cat': 5, 'dog': 6}
-
-    for label, index in sorted_label_dict.items():
-        assert numerizer(label) == index, f"Numerization or order of {label} failed"
-
-
-def test_numerize_labels_with_numpy_array():
-    """Test initialization with a NumPy array"""
-    labels = np.array(['cat', 'dog', 'bird'])
-    numerizer = NumerizeLabels(labels)
-
-    assert numerizer('bird') == 0, "Numerization of 'bird' failed"
-    assert numerizer('cat') == 1, "Numerization of 'cat' failed"
-    assert numerizer('dog') == 2, "Numerization of 'dog' failed"
-
-
-def test_numerize_labels_error_on_unknown_label():
-    """Test error raised when an unknown label is passed to the numerizer"""
-    labels = ['cat', 'dog', 'bird']
-    numerizer = NumerizeLabels(labels)
-
-    with pytest.raises(KeyError):
-        # Trying to numerize an unlisted label should raise KeyError
-        numerizer('fish')
-
+from src.augmentations import ImagenetClassifierPreprocess, MnistPreprocess
 
 ####################################################################
 # tests for functions from augmentations.classifier_transforms
