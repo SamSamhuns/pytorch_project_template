@@ -279,7 +279,7 @@ class ClassifierTrainer(BaseTrainer):
         val_end_tm = time.perf_counter()
         if self.config.verbose:
             self.logger.info("Validation set:")
-            self.logger.info("\tval time: %.3fs", (val_end_tm - val_end_tm))
+            self.logger.info("\tval time: %.3fs", (val_end_tm - val_start_tm))
             self.logger.info("\tavg loss: %.4f", val_loss)
             for metric_name, metric_val in metric_name_val_dict.items():
                 if metric_name in {"confusion_matrix", "classification_report"}:
