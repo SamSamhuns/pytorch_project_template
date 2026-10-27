@@ -25,6 +25,14 @@ def test_initialization_webdataset(basic_params, mock_webdataset_path):
     assert dataset.train_set is not None, "Training set should be initialized."
 
 
+def test_split_missing_a_class_dir_raises(tmp_path, create_and_save_dummy_imgs):
+    """A test split without class_2 would map its classes to different indices than train"""
+    create_and_save_dummy_imgs(str(tmp_path / "train"), n_cls=3, n_imgs_p_cls=2)
+    create_and_save_dummy_imgs(str(tmp_path / "test"), n_cls=2, n_imgs_p_cls=2)
+    with pytest.raises(ValueError, match="differ from the train classes"):
+        ClassifierDataset(root=str(tmp_path), train_path="train", val_path=None, test_path="test")
+
+
 def test_non_implemented_mode(basic_params):
     """Test initialization with a non-implemented mode."""
     with pytest.raises(NotImplementedError):
