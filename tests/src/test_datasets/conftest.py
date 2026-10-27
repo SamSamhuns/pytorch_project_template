@@ -1,7 +1,6 @@
 import os.path as osp
 
 import pytest
-import torch
 from torchvision import transforms
 
 from src.datasets import ClassifierDataset
@@ -45,8 +44,3 @@ def mock_classifierdataset(basic_params):
 @pytest.fixture
 def mnist_dir():
     return "data"
-
-
-@pytest.fixture
-def sample_batch():
-    return torch.rand(10, 1, 28, 28)  # 10 images, 1 channel, 28x28 pixels
