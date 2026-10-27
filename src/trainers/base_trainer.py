@@ -19,7 +19,7 @@ from src.config_parser import CustomDictConfig
 from src.dataloaders import init_dataloader
 from src.datasets import init_dataset
 from src.loggers import get_logger
-from src.utils.common import BColors, find_latest_file_in_dir, is_port_in_use, recursively_flatten_config
+from src.utils.common import BColors, is_port_in_use, recursively_flatten_config
 from src.utils.export_utils import (
     ONNXDynamoExportStrategy,
     ONNXTSExportStrategy,
@@ -64,22 +64,16 @@ class _BaseTrainer(ABC):
         """Load checkpoint for model from file_path
         args:
             model: model whose weights are loaded from file_path
-            file_path: file_path to checkpoint file/folder with only weights,
-                  if folder is used, latest checkpoint having extension "ext" is loaded
+            file_path: path to a checkpoint file with only weights, e.g. models/best.pth
         """
-        ckpt_file = None
-        if osp.isfile(file_path):
-            ckpt_file = file_path
-        elif osp.isdir(file_path):
-            ckpt_file = find_latest_file_in_dir(file_path, ext="pth")
-        if ckpt_file is None:
-            msg = f"'{file_path}' is not a torch weight file or a dir containing one."
+        if not osp.isfile(file_path):
+            msg = f"'{file_path}' is not a checkpoint file. Pass one, e.g. .../models/best.pth"
             self.logger.error(msg)
             raise ValueError(msg)
 
-        state_dict = torch.load(ckpt_file, map_location="cpu", weights_only=True)
+        state_dict = torch.load(file_path, map_location="cpu", weights_only=True)
         model.load_state_dict(state_dict)
-        self.logger.info("Loaded checkpoint %s", ckpt_file)
+        self.logger.info("Loaded checkpoint %s", file_path)
         return model
 
     def save_checkpoint(self, model: nn.Module, ckpt_save_name: str = "checkpoint.pth") -> str:

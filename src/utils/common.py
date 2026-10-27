@@ -1,8 +1,6 @@
 """Contains utility functions meant to be used internally & externally
 """
-import glob
 import io
-import os
 import socket
 import subprocess
 from collections import OrderedDict
@@ -225,20 +223,3 @@ def recursively_flatten_config(config: DictConfig, parent_key: str = '', sep: st
         else:
             items.append((new_key, value))
     return dict(items)
-
-
-############################ file utils ############################
-
-
-def find_latest_file_in_dir(dir_path: str, ext: str = "pth"):
-    """Returns latest file with the ext from the dir_path directory
-    """
-    dir_path = str(dir_path)
-    dir_path_appended = dir_path + \
-        (f"/*.{ext}" if dir_path[-1] != '/' else f"*.{ext}")
-    list_of_files = glob.glob(dir_path_appended)
-    if len(list_of_files) == 0:
-        print(f"INFO: Directory '{dir_path}' is empty")
-        return None
-    latest_file = max(list_of_files, key=os.path.getctime)
-    return latest_file
