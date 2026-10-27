@@ -37,7 +37,7 @@ model:
   type: ClassifierModel  # Model type
   args:
     backbone: mobilenet_v2  # Backbone network for feature extraction
-    feat_extract: false  # If true, freezes backbone layers and trains only the classifier head
+    feat_extract: false  # If true, the last Linear layer becomes Identity and the model returns features, not class scores
     num_classes: 20  # Number of output classes
     pretrained_weights: MobileNet_V2_Weights.IMAGENET1K_V1  # Pretrained weights to initialize the backbone
   info:
