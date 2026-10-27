@@ -69,9 +69,9 @@ class ClassifierTrainer(BaseTrainer):
         self.scheduler = init_scheduler(
             self.config["lr_scheduler"]["type"], **self.config["lr_scheduler"]["args"],
             optimizer=self.optimizer)
-        # initialize metrics dict
-        self.best_val_metric_dict = {
-            metric: [] for metric in self.config["metrics"]["val"]}
+        # best.pth is saved whenever the val accuracy beats best_val_acc
+        self.best_val_acc = float("-inf")
+        self.best_checkpoint_path = None  # set once this run saves a best.pth
         # initialize counter
         self.current_epoch = 1
         self.current_iteration = 0
@@ -242,7 +242,7 @@ class ClassifierTrainer(BaseTrainer):
             self.train_one_epoch()
             if epoch % self.config["trainer"]["valid_freq"] == 0:
                 if self.val_data_loader is not None:
-                    self.validate()
+                    self.validate()  # also saves best.pth when the val accuracy improves
             # scheduler.step should be called after validate()
             if isinstance(self.scheduler, (ReduceLROnPlateau, OneCycleLR)):
                 # ReduceLROnPlateau takes metrics during its step call (inside validate())
@@ -252,17 +252,7 @@ class ClassifierTrainer(BaseTrainer):
             else:
                 self.scheduler.step()
 
-            # save trained model checkpoint
-            if self.config["trainer"]["save_best_only"]:
-                for metric in self.config["metrics"]["val"]:
-                    mlist = self.best_val_metric_dict[metric]
-                    # save if 1 or 0 metrics present or if metric is better than previous best
-                    if (len(mlist) <= 1 or
-                        (metric == "loss" and mlist[-1][1] < mlist[-2][1]) or
-                            (metric == "accuracy_score" and mlist[-1][1] > mlist[-2][1])):
-                        self.save_checkpoint(self.model, "best.pth")
-            elif epoch % self.config["trainer"]["weight_save_freq"] == 0:
-                self.save_checkpoint(self.model, f"checkpoint_{epoch}.pth")
+            self.save_checkpoint(self.model, "last.pth")
             self.current_epoch += 1
         train_end_tm = time.perf_counter()
         train_tm = train_end_tm - train_start_tm
@@ -280,13 +270,9 @@ class ClassifierTrainer(BaseTrainer):
             self.val_data_loader)
         val_accuracy = 100. * (y_true == y_pred).mean()
 
-        # add metrics to tracking best_val_metric_dict
-        if "accuracy_score" in self.best_val_metric_dict:
-            self.best_val_metric_dict["accuracy_score"].append(
-                [self.current_epoch, val_accuracy])
-        if "loss" in self.best_val_metric_dict:
-            self.best_val_metric_dict["loss"].append(
-                [self.current_epoch, val_loss])
+        if val_accuracy > self.best_val_acc:
+            self.best_val_acc = val_accuracy
+            self.best_checkpoint_path = self.save_checkpoint(self.model, "best.pth")
 
         if isinstance(self.scheduler, ReduceLROnPlateau):
             # ReduceLROnPlateau scheduler takes metrics during its step call

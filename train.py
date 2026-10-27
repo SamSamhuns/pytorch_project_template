@@ -60,10 +60,11 @@ def main():
     trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="train")
 
     trainer.train()
+    # test this run's best.pth; it is None if validation never ran, then the last weights are tested
     if config["mode"] == "TRAIN_TEST":
-        trainer.test()
+        trainer.test(trainer.best_checkpoint_path)
     elif config["mode"] == "TRAIN_TEST_FEATSELECT":
-        trainer.test()
+        trainer.test(trainer.best_checkpoint_path)
         trainer.calc_feature_importance()
 
 
