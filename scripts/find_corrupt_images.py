@@ -42,9 +42,7 @@ def main():
                         class imgs inside folders""")
     parser.add_argument('-r',
                         '--remove',
-                        type=bool,
-                        default=False,
-                        required=False,
+                        action="store_true",
                         help="""Remove corrupt imgs. By default,
                         the imgs are only listed and saved in a file""")
     parser.add_argument('-t',

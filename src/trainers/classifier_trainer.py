@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
 from src.dataloaders import init_dataloader
-from src.datasets.base_dataset import IMG_EXTENSIONS
+from src.datasets.base_dataset import IMG_EXTENSIONS, is_file_ext_valid
 from src.losses import init_loss
 from src.metrics import calc_metric, plot_metric
 from src.models import init_model
@@ -407,9 +407,8 @@ class ClassifierTrainer(BaseTrainer):
         image_list = []
         if osp.isdir(source_path):
             fpaths = glob.glob(osp.join(source_path, "*"))
-            image_list = [path for path in fpaths if osp.splitext(
-                path)[-1] in IMG_EXTENSIONS]
-        elif osp.isfile(source_path) and osp.splitext(source_path)[-1] in IMG_EXTENSIONS:
+            image_list = [path for path in fpaths if is_file_ext_valid(path, IMG_EXTENSIONS)]
+        elif osp.isfile(source_path) and is_file_ext_valid(source_path, IMG_EXTENSIONS):
             image_list = [source_path]
         else:
             raise ValueError(
