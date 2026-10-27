@@ -51,7 +51,6 @@ dataloader:
     validation_split: 0.1
     drop_last: false
     pin_memory: true
-    prefetch_factor: 2
     worker_init_fn: null
 optimizer:
   type: SGD

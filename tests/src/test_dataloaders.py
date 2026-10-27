@@ -41,7 +41,7 @@ class TestCustomDataLoader:
     def test_no_workers(self, mock_dataset):
         """Test with num_workers=0"""
         loader = CustomDataLoader(
-            mock_dataset, batch_size=10, shuffle=False, num_workers=0, prefetch_factor=None)
+            mock_dataset, batch_size=10, shuffle=False, num_workers=0)
         for batch in loader:
             # Last batch might be smaller if not dropping the last
             assert len(batch) == 9
@@ -58,7 +58,7 @@ class TestCustomDataLoader:
 class TestWebDatasetDataLoader:
     def test_initialization(self, dummy_webdataset):
         loader = WebDatasetDataLoader(
-            dummy_webdataset, batch_size=4, num_workers=0, prefetch_factor=None)
+            dummy_webdataset, batch_size=4, num_workers=0)
         assert loader is not None
         assert loader.n_samples == NUM_CLS * NUM_IMGS_P_CLS
 
