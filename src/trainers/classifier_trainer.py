@@ -85,19 +85,11 @@ class ClassifierTrainer(BaseTrainer):
         # load model and loss to device
         self.model = self.model.to(self.device)
         self.loss = self.loss.to(self.device)
-        # handle param logging and weight init for DataParallel
+        # log params of the model inside DataParallel, if wrapped
         if isinstance(self.model, torch.nn.DataParallel):
             self.logger.info("Model info: %s", get_model_params(self.model.module))
-            try:
-                self.model.module.initialize_weights(method="he")
-            except AttributeError as err:
-                self.logger.warning("%s", err)
         else:
             self.logger.info("Model info: %s", get_model_params(self.model))
-            try:
-                self.model.initialize_weights(method="he")
-            except AttributeError as err:
-                self.logger.warning("%s", err)
         if self.config["torch_compile_model"]:
             self.logger.info("Using torch compile mode")
             self.model = torch.compile(self.model)

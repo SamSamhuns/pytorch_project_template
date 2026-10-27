@@ -2,6 +2,7 @@ import warnings
 
 import pytest
 import torch
+import torchvision
 
 from src.config_parser import CustomDictConfig
 from src.trainers import ClassifierTrainer
@@ -78,6 +79,17 @@ def test_train_method(clsf_trainer_and_logger):
     assert trainer.current_epoch > initial_epoch, "No epochs were completed."
     logger_instance = mocked_logger.return_value
     assert logger_instance.info.call_count > 0, "No logging occurred during training."
+
+
+def test_pretrained_weights_survive_trainer_init(clsf_trainer_and_logger):
+    """The trainer must not re-initialize a pretrained backbone"""
+    trainer, _ = clsf_trainer_and_logger
+    pretrained = torchvision.models.get_model(
+        "mobilenet_v2", weights="MobileNet_V2_Weights.IMAGENET1K_V1")
+
+    expected = pretrained.features.state_dict()
+    actual = trainer.model.model.features.state_dict()
+    assert all(torch.equal(actual[k].cpu(), v) for k, v in expected.items())
 
 
 def test_validate_method(mock_clsf_config: CustomDictConfig, mocker):
