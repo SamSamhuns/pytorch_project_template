@@ -7,24 +7,9 @@ from datetime import datetime
 
 import numpy as np
 import torch
-import yaml
 from omegaconf import DictConfig, OmegaConf
 
 from .utils.common import BColors, get_git_revision_hash
-
-
-def parse_omegaconf_primitive(val_str):
-    """Parse a string representation of a omegaconf value (int, float, str, bool, ${oc.env:HOME}) and returns the corresponding Python type.
-
-    Args:
-        val_str: String representation of the value.
-
-    Returns:
-        Parsed value as a Python type (int, float, str, bool).
-
-    """
-    wrapped = OmegaConf.create({"_val_": yaml.safe_load(val_str)})
-    return OmegaConf.to_container(wrapped, resolve=True)["_val_"]
 
 
 class CustomDictConfig(DictConfig):
@@ -127,14 +112,13 @@ class CustomDictConfig(DictConfig):
 
         # Load configuration from YAML
         config = OmegaConf.load(args.config)
-        # Apply dotlist overrides (-o)
+        # Apply dotlist overrides (-o), parsed with OmegaConf's grammar, e.g. lr=1e-3 becomes a float
         if args.override:
-            OmegaConf.set_struct(config, True)  # Enable strict mode to disallow unknown keys
             for override in args.override:
-                if '=' not in override:
+                if '=' not in override:  # without "=", merge_with_dotlist would silently set the key to None
                     raise ValueError(f"Invalid override format: {override}. Expected format: key=value")
-                key, val_str = override.split("=", 1)
-                OmegaConf.update(config, key, parse_omegaconf_primitive(val_str))
+            OmegaConf.set_struct(config, True)  # Enable strict mode to disallow unknown keys
+            config.merge_with_dotlist(args.override)
             OmegaConf.set_struct(config, False)  # Disable strict mode to allow runtime modifications later
 
         return cls(config, args.run_id, args.verbose, modification)
