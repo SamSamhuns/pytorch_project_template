@@ -66,23 +66,6 @@ def get_pil_img(path):
         return img.convert('RGB')
 
 
-def accimage_loader(path):
-    import accimage
-    try:
-        return accimage.Image(path)
-    except OSError:
-        # Potentially a decoding problem, fall back to PIL.Image
-        return get_pil_img(path)
-
-
-def default_loader(path):
-    from torchvision import get_image_backend
-    if get_image_backend() == 'accimage':
-        return accimage_loader(path)
-    else:
-        return get_pil_img(path)
-
-
 def write_class_mapping_to_file(mapping, fpath) -> None:
     """Mapping must be one level deep dict of class_names to index
     """
@@ -221,7 +204,7 @@ class ImageFolderDataset(BaseDataset):
                  file_extensions=IMG_EXTENSIONS,
                  transforms=None,
                  target_transforms=None,
-                 loader=default_loader):
+                 loader=get_pil_img):
         super().__init__(
             root,
             loader,
@@ -229,26 +212,3 @@ class ImageFolderDataset(BaseDataset):
             transforms=transforms,
             target_transforms=target_transforms)
         self.imgs = self.data
-
-
-if __name__ == "__main__":
-    from torchvision import transforms
-
-    train_data = ImageFolderDataset(
-        "data/birds_dataset/valid",
-        IMG_EXTENSIONS,
-        transforms=transforms.Compose([
-            transforms.CenterCrop(299),
-            transforms.ColorJitter(brightness=1.5,
-                                   contrast=0.8,
-                                   saturation=0.8,
-                                   hue=0.4),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ToTensor(),
-        ]))
-    print("Printing ImageFolderDataset data class", train_data)
-    print("Printing len of data class (Number of images in data)", len(train_data))
-    print("Printing the shape of the first datum and its label from the data",
-          train_data[0][0].shape, train_data[0][1])
-
-    print()
