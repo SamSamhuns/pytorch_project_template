@@ -1,7 +1,5 @@
 """Tests for src.utils.common
 """
-import errno
-import socket
 import subprocess
 
 import pytest
@@ -13,7 +11,6 @@ from src.utils.common import (
     capture_output,
     get_git_revision_hash,
     inherit_missing_dict_params,
-    is_port_in_use,
     recursively_flatten_config,
     reorder_trainer_cfg,
     round_to_nearest_divisor,
@@ -84,26 +81,6 @@ def test_capture_stdout(test_str="Test string xxx"):
         print(x)
     output = capture_output(_print, "param1")
     assert output == test_str + "\nparam1\n"
-
-
-def test_is_port_in_use():
-    """This test assumes no service is running on port 50000"""
-    assert not is_port_in_use(50000)
-
-    # Mock socket to simulate a port in use situation
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.bind(("127.0.0.1", 50001))
-        s.listen(1)
-        assert is_port_in_use(50001)
-    except OSError as e:
-        if e.errno == errno.EADDRINUSE:
-            print("Port is already in use")
-        else:
-            # something else raised the socket.error exception
-            print(e)
-        assert False
-    s.close()
 
 
 def test_round_to_nearest_divisor():

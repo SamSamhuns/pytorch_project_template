@@ -1,7 +1,6 @@
 """Contains utility functions meant to be used internally & externally
 """
 import io
-import socket
 import subprocess
 from collections import OrderedDict
 from collections.abc import Callable, MutableMapping
@@ -109,13 +108,6 @@ def capture_output(func: Callable, *args, **kwargs):
 
 def identity(x):
     return x
-
-
-def is_port_in_use(port: int) -> bool:
-    """Checks if a port is free for use
-    """
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as stream:
-        return stream.connect_ex(('localhost', int(port))) == 0
 
 
 def round_to_nearest_divisor(n: int, divisor: int) -> int:

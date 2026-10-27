@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import torch
-from tensorboard import program
 from torch import nn
 from torch.utils.data import Subset
 from torch.utils.tensorboard import SummaryWriter
@@ -18,7 +17,7 @@ from src.config_parser import CustomDictConfig
 from src.dataloaders import init_dataloader
 from src.datasets import init_dataset
 from src.loggers import get_logger
-from src.utils.common import BColors, is_port_in_use, recursively_flatten_config
+from src.utils.common import BColors, recursively_flatten_config
 from src.utils.export_utils import ONNXDynamoExportStrategy, ONNXTSExportStrategy
 
 
@@ -224,19 +223,6 @@ class BaseTrainer(_BaseTrainer):
             flat_cfg = recursively_flatten_config(self.config)
             for cfg_key, cfg_val in flat_cfg.items():
                 self.tboard_writer.add_text(cfg_key, str(cfg_val))
-
-            tboard_port = self.config["trainer"]["tensorboard_port"]
-            if tboard_port is not None:
-                while is_port_in_use(tboard_port) and tboard_port < 65535:
-                    tboard_port += 1
-                    print(f"Port {tboard_port - 1} unavailable."
-                          "Switching to {tboard_port} for tboard logging")
-
-                tboard = program.TensorBoard()
-                tboard.configure(
-                    argv=[None, "--logdir", tb_logdir, "--port", str(tboard_port)])
-                url = tboard.launch()
-                self.logger.info("Tensorboard logger started on %s", url)
         # #############################################################
 
     def export(self, mode: str = "ONNX_TS"):

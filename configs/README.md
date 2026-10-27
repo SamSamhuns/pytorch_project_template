@@ -27,7 +27,6 @@ trainer:
   epochs: 12  # Number of training epochs
   verbosity: 2  # Verbosity level of training logs
   use_tensorboard: true  # Enable TensorBoard logging
-  tensorboard_port: null  # Port for TensorBoard (null for default)
 
 # Model configuration
 model:
