@@ -99,8 +99,8 @@ class _BaseTrainer(ABC):
         self.logger.info("Loaded checkpoint %s", ckpt_file)
         return model
 
-    def save_checkpoint(self, model: nn.Module, ckpt_save_name: str = "checkpoint.pth") -> None:
-        """Checkpoint saver
+    def save_checkpoint(self, model: nn.Module, ckpt_save_name: str = "checkpoint.pth") -> str:
+        """Checkpoint saver, returns the saved path
         args:
             ckpt_save_name: checkpoint file name which is saved inside self.config["models_dir"]
         """
@@ -108,6 +108,7 @@ class _BaseTrainer(ABC):
         os.makedirs(self.config["models_dir"], exist_ok=True)
         save_path = osp.join(str(self.config["models_dir"]), ckpt_save_name)
         torch.save(model.state_dict(), save_path)
+        return save_path
 
     @abstractmethod
     def train(self):
@@ -150,11 +151,6 @@ class BaseTrainer(_BaseTrainer):
         val_split = self.config["dataloader"]["args"]["validation_split"]
         if (val_path is not None and val_split > 0):
             msg = f"If val_path {val_path} is not None, val_split({val_split}) must be 0"
-            self.logger.error(msg)
-            raise ValueError(msg)
-        # check if val_metrics present when save_best_only is True
-        if self.config["trainer"]["save_best_only"] and not self.config["metrics"]["val"]:
-            msg = "val metrics must be present to save best model"
             self.logger.error(msg)
             raise ValueError(msg)
 

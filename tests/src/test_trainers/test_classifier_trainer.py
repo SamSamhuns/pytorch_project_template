@@ -1,5 +1,7 @@
+import os.path as osp
 import warnings
 
+import numpy as np
 import pytest
 import torch
 import torch.nn.functional as F
@@ -79,6 +81,7 @@ def test_train_method(clsf_trainer_and_logger):
     trainer.train()
 
     assert trainer.current_epoch > initial_epoch, "No epochs were completed."
+    assert osp.isfile(osp.join(trainer.config["models_dir"], "last.pth"))
     logger_instance = mocked_logger.return_value
     assert logger_instance.info.call_count > 0, "No logging occurred during training."
 
@@ -92,6 +95,19 @@ def test_pretrained_weights_survive_trainer_init(clsf_trainer_and_logger):
     expected = pretrained.features.state_dict()
     actual = trainer.model.model.features.state_dict()
     assert all(torch.equal(actual[k].cpu(), v) for k, v in expected.items())
+
+
+def test_best_checkpoint_keeps_highest_val_accuracy(clsf_trainer_and_logger, mocker):
+    """Val accuracies 90% -> 50% -> 60% must save best.pth once, for the 90%"""
+    trainer, _ = clsf_trainer_and_logger
+    save_checkpoint = mocker.patch.object(trainer, "save_checkpoint")
+    y_true = np.zeros(10, dtype=int)
+    for n_wrong in [1, 5, 4]:
+        y_pred = (np.arange(10) < n_wrong).astype(int)
+        mocker.patch.object(trainer, "eval_one_epoch", return_value=(0.5, y_true, y_pred.astype(float), y_pred))
+        trainer.validate()
+
+    save_checkpoint.assert_called_once_with(trainer.model, "best.pth")
 
 
 def test_eval_loss_is_mean_over_samples(clsf_trainer_and_logger):

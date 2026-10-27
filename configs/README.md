@@ -23,10 +23,8 @@ quant_backend: null  # Quantization mode, used only in export
 trainer:
   type: ClassifierTrainer  # Trainer type (classification tasks)
   resume_checkpoint: null  # Path to checkpoint for resuming training
-  save_best_only: true  # Save only the best checkpoint based on validation metrics
   batch_log_freq: 5  # Logging frequency within an epoch
-  weight_save_freq: 5  # Frequency of saving model weights across epochs
-  valid_freq: 2  # Frequency of validation during training
+  valid_freq: 2  # Validate every N epochs; best.pth is saved when val accuracy improves, last.pth every epoch
   epochs: 12  # Number of training epochs
   verbosity: 2  # Verbosity level of training logs
   use_tensorboard: true  # Enable TensorBoard logging
