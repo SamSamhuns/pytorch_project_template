@@ -71,7 +71,6 @@ dataloader:
     validation_split: 0.0  # Fraction of data to use for validation
     drop_last: false  # Drop the last incomplete batch
     pin_memory: true  # Enable pinned memory for faster data transfer to GPU
-    prefetch_factor: 2  # Number of samples preloaded by each worker
     worker_init_fn: null  # Custom initialization function for workers
 
 # Optimizer configuration
