@@ -108,7 +108,6 @@ def gen_basic_config() -> Callable:
             "logger_level": logging.WARN,
             "file_level": logging.INFO,
             "console_level": logging.ERROR,
-            "console_exc_keyword": "",
             "propagate": True
         }
         return cfg | kwargs
