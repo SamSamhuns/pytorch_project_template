@@ -71,6 +71,11 @@ class ClassifierDataset:
                 test_root = osp.join(root, test_path)
                 self.test_set = base_dataset.ImageFolderDataset(
                     test_root, transforms=test_transform)
+            # class indices come from the sorted class dirs, so every split needs the same dirs
+            for split in (self.val_set, self.test_set):
+                if split is not None and split.classes != self.train_set.classes:
+                    raise ValueError(f"Classes in {split.root} {split.classes} "
+                                     f"differ from the train classes {self.train_set.classes}")
         elif data_mode == "webdataset":
             train_root = osp.join(root, train_path)
             train_len = _get_webdataset_len(train_root)
