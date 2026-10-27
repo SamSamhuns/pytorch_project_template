@@ -1,4 +1,4 @@
-"""Export script to convert pytorch model to torshscript/onnx.
+"""Export script to convert pytorch model to onnx.
 Run with: python export.py --cfg YAML_CONFIG_PATH -r PTH_MODEL_PATH --mode ONNX_TS
 """
 import argparse
@@ -11,7 +11,7 @@ from src.trainers import init_trainer
 def get_config_from_args() -> CustomDictConfig:
     """Get CustomDictConfig obj from argparse"""
     parser = argparse.ArgumentParser(
-        description="PyTorch Export. Supports ONNX and TorchScript export")
+        description="PyTorch Export. Supports ONNX export")
     # primary cli args
     parser.add_argument(
         "--cfg", "--config", type=str, dest="config", required=True,
@@ -39,12 +39,8 @@ def get_config_from_args() -> CustomDictConfig:
         help="GPU device to use, e.g. --gpu_device 0. Only one GPU is supported.")
     parser.add_argument(
         "--mode", type=str, dest="mode", required=True,
-        choices=["ONNX_TS", "ONNX_DYNAMO", "TS_TRACE", "TS_SCRIPT"],
+        choices=["ONNX_TS", "ONNX_DYNAMO"],
         help="Running mode.")
-    parser.add_argument(
-        "-q", "--quant_backend", type=str, dest="quant_backend",
-        help="Quantization mode backend. (If None, dont quantize. Only supports TS_SCRIPT)",
-        choices=["fbgemm", "x86", "qnnpack", "onednn"])
     args = parser.parse_args()
 
     # To override key-value params from YAML file,
@@ -55,7 +51,6 @@ def get_config_from_args() -> CustomDictConfig:
         "device": args.device,
         "gpu_device": args.gpu_device,
         "mode": args.mode,
-        "quant_backend": args.quant_backend,
     }
     return CustomDictConfig.from_args(args, yaml_modification)
 
@@ -65,7 +60,7 @@ def main():
     trainer = init_trainer(
         config["trainer"]["type"], config=config, logger_name="export")
 
-    trainer.export(config["mode"], config["quant_backend"])
+    trainer.export(config["mode"])
 
 
 if __name__ == "__main__":

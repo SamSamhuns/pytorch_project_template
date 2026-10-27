@@ -7,7 +7,6 @@ device: cpu
 gpu_device: null
 use_amp: false
 torch_compile_model: false
-quant_backend: null
 trainer:
   type: ClassifierTrainer
   resume_checkpoint: null
