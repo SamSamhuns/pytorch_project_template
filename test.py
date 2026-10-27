@@ -34,7 +34,7 @@ def get_config_from_args() -> CustomDictConfig:
         help="device for training. Use cpu or cuda")
     parser.add_argument(
         "--gpu_device", type=int, dest="gpu_device", nargs="*",
-        help="gpu_devices to use. Pass as space-sep numbers eg. --gpu_device 0 / 0 1 / 0 1 2.")
+        help="GPU device to use, e.g. --gpu_device 0. Only one GPU is supported.")
     parser.add_argument(
         "--mode", type=str, dest="mode", default="TEST_PYTORCH",
         choices=["TEST_PYTORCH", "TEST_TORCHSCRIPT"],
