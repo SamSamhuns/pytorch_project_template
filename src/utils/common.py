@@ -97,7 +97,7 @@ def get_git_revision_hash() -> str:
     """Get the git hash of the current commit. Returns None if run from a non-git init repo"""
     try:
         return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
-    except subprocess.CalledProcessError as excep:
+    except (subprocess.CalledProcessError, OSError) as excep:  # OSError: git is not installed
         print(excep, "Couldn't get git hash of the current repo. Returning None")
     return None
 

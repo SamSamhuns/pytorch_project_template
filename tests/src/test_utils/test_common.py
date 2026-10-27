@@ -65,17 +65,16 @@ def test_can_be_conv_to_float():
     assert not can_be_conv_to_float('apple')
 
 
-def test_get_git_revision_hash():
+def test_get_git_revision_hash(mocker):
     """Assuming the test is run in a git-initialized folder"""
     expected_hash = subprocess.check_output(
         ['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
     assert get_git_revision_hash() == expected_hash
 
-    # Mock subprocess to simulate a non-git repo situation
-    def raiser(*args, **kwargs):
-        raise subprocess.CalledProcessError(1, 'git')
-    subprocess.check_output = raiser
-    assert get_git_revision_hash() is None
+    # Not a git repo, or git not installed (e.g. a slim Docker image)
+    for error in (subprocess.CalledProcessError(1, 'git'), FileNotFoundError('git')):
+        mocker.patch('subprocess.check_output', side_effect=error)
+        assert get_git_revision_hash() is None
 
 
 def test_capture_stdout(test_str="Test string xxx"):
