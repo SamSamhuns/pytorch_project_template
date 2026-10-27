@@ -9,6 +9,7 @@ import torchvision
 
 from src.config_parser import CustomDictConfig
 from src.metrics import calc_metric
+from src.models import init_model
 from src.trainers import ClassifierTrainer
 
 
@@ -131,6 +132,20 @@ def test_binary_y_score_is_positive_class_probability(clsf_trainer_and_logger):
 
     _, y_true, y_score, _ = trainer.eval_one_epoch([(log_probs, target)])
     assert calc_metric("roc_auc_score", y_true=y_true, y_score=y_score) == 1.0
+
+
+def test_compiled_checkpoint_loads_into_plain_model(mock_clsf_config: CustomDictConfig, mocker):
+    """torch_compile_model must not add the "_orig_mod." prefix to saved keys"""
+    mocker.patch('logging.getLogger')
+    mock_clsf_config["torch_compile_model"] = True
+    mock_clsf_config["trainer"]["epochs"] = 1
+    trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="compile_logger")
+    mocker.patch.object(trainer, "train_one_epoch")  # train() still compiles and saves last.pth
+    trainer.train()
+
+    plain_model = init_model("ClassifierModel", **mock_clsf_config["model"]["args"])
+    plain_model.load_state_dict(torch.load(
+        osp.join(mock_clsf_config["models_dir"], "last.pth"), weights_only=True))
 
 
 def test_validate_method(mock_clsf_config: CustomDictConfig, mocker):

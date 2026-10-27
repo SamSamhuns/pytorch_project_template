@@ -49,18 +49,26 @@ class ClassifierTrainer(BaseTrainer):
         # define models
         self.model = init_model(
             self.config["model"]["type"], **model_args)
+        self.logger.info("Model info: %s", get_model_params(self.model))
+
+        # resume from a checkpoint, if given
+        resume_ckpt = self.config["trainer"]["resume_checkpoint"]
+        if resume_ckpt and self.config["mode"] == "TEST_TORCHSCRIPT":
+            self.model = torch.jit.load(resume_ckpt, map_location="cpu")
+            self.logger.info("Loaded checkpoint %s", resume_ckpt)
+        elif resume_ckpt:
+            self.model = self.load_checkpoint(self.model, resume_ckpt)
+        else:
+            self.logger.info("Training will be done from scratch")
+        self.model = self.model.to(self.device)
 
         # do not progress beyond for INFERENCE mode
         if config["mode"] in {"INFERENCE"}:
-            self.model = self.model.to(self.device)
-            if self.config.resume_checkpoint:
-                self.model = self.load_checkpoint(
-                    self.model, self.config.resume_checkpoint)
             return
 
         # define loss and instantiate it
         self.loss = init_loss(
-            self.config["loss"]["type"], **self.config["loss"]["args"])
+            self.config["loss"]["type"], **self.config["loss"]["args"]).to(self.device)
         # define optimizer
         self.optimizer = init_optimizer(
             self.config["optimizer"]["type"], **self.config["optimizer"]["args"],
@@ -75,40 +83,6 @@ class ClassifierTrainer(BaseTrainer):
         # initialize counter
         self.current_epoch = 1
         self.current_iteration = 0
-
-        # use multi-gpu if cuda available and multi-dev set with gpu_device
-        gpu_device = self.config["gpu_device"]
-        gpu_device = [gpu_device] if isinstance(gpu_device, int) else gpu_device
-        if self.cuda and len(gpu_device) > 1 and torch.cuda.device_count() > 1:
-            self.model = torch.nn.DataParallel(self.model, device_ids=gpu_device)
-
-        # load model and loss to device
-        self.model = self.model.to(self.device)
-        self.loss = self.loss.to(self.device)
-        # log params of the model inside DataParallel, if wrapped
-        if isinstance(self.model, torch.nn.DataParallel):
-            self.logger.info("Model info: %s", get_model_params(self.model.module))
-        else:
-            self.logger.info("Model info: %s", get_model_params(self.model))
-        if self.config["torch_compile_model"]:
-            self.logger.info("Using torch compile mode")
-            self.model = torch.compile(self.model)
-
-        resume_ckpt: str = None
-        # resume from checkpoint if resume_checkpoint is not None
-        if self.config["trainer"]["resume_checkpoint"] is not None:
-            resume_ckpt = self.config["trainer"]["resume_checkpoint"]
-
-        # resume from ckpt if resume_ckpt is not None
-        if resume_ckpt:
-            if self.config["mode"] == "TEST_TORCHSCRIPT":
-                self.model = torch.jit.load(resume_ckpt).to(self.device)
-                self.logger.info("Loaded checkpoint %s", resume_ckpt)
-            else:  # default to pytorch
-                self.model = self.load_checkpoint(self.model,  resume_ckpt)
-        # else load from scratch
-        else:
-            self.logger.info("Training will be done from scratch")
 
     def train_one_epoch(self) -> None:
         """One epoch of training
@@ -235,6 +209,10 @@ class ClassifierTrainer(BaseTrainer):
     def train(self) -> None:
         """Main training function with loop
         """
+        if self.config["torch_compile_model"]:
+            self.logger.info("Using torch compile mode")
+            # compiles in place, so state_dict keys stay the same as the uncompiled model's
+            self.model.compile()
         train_start_tm = time.perf_counter()
         epochs = self.config["trainer"]["epochs"]
         self.logger.info("Starting training...")

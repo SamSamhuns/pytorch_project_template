@@ -5,7 +5,6 @@ tensorboard logging, dataset and dataloader inits
 import os
 import os.path as osp
 from abc import ABC, abstractmethod
-from collections import OrderedDict
 
 import numpy as np
 import torch
@@ -50,11 +49,10 @@ class _BaseTrainer(ABC):
         # set cuda devices if cuda available & gpu_dev set or use cpu
         self.cuda = is_cuda and (gpu_dev not in (None, []))
         if self.cuda:
-            if len(gpu_dev) > 1 and torch.cuda.device_count() == 1:
-                msg = f"Multi-gpu device ({gpu_dev}) set, but only one GPU avai."
+            if len(gpu_dev) > 1:
+                msg = f"Only single-GPU training is supported, but gpu_device is {gpu_dev}"
                 self.logger.error(msg)
                 raise ValueError(msg)
-            # for dataparallel, only gpu_dev[0] can be specified
             self.device = torch.device("cuda", gpu_dev[0])
             self.logger.info("Program will run on GPU device %s", self.device)
         else:
@@ -79,22 +77,7 @@ class _BaseTrainer(ABC):
             self.logger.error(msg)
             raise ValueError(msg)
 
-        wts_only = True
-        state_dict = torch.load(ckpt_file, weights_only=wts_only) if self.cuda else torch.load(
-            ckpt_file, map_location=torch.device("cpu"), weights_only=wts_only)
-
-        # rename keys for dataparallel mode
-        use_cuda = self.config["device"] == "cuda"
-        gpu_dev = self.config["gpu_device"]
-        if (use_cuda and gpu_dev and len(gpu_dev) > 1 and torch.cuda.device_count() > 1):
-            _state_dict = OrderedDict()
-            for k, val in state_dict.items():
-                k = "module." + \
-                    k if "module" not in k else k.replace(
-                        "features.module.", "module.features.")
-                _state_dict[k] = val
-            state_dict = _state_dict
-
+        state_dict = torch.load(ckpt_file, map_location="cpu", weights_only=True)
         model.load_state_dict(state_dict)
         self.logger.info("Loaded checkpoint %s", ckpt_file)
         return model
