@@ -3,8 +3,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.utils.weights_initializer import weights_init
-
 from .base_model import BaseModel
 
 
@@ -16,8 +14,6 @@ class MnistModel(BaseModel):
         self.conv2_drop = nn.Dropout2d()
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, num_classes)
-
-        self.apply(weights_init)
 
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))

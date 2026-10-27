@@ -4,8 +4,6 @@ import math
 
 import torch.nn as nn
 
-from src.utils.weights_initializer import weights_init
-
 from .base_model import BaseModel
 
 
@@ -48,9 +46,6 @@ class CustomModel(BaseModel):
             nn.Linear(256, num_classes),
             nn.LogSoftmax(dim=1)
         )
-
-        # Initialize weights
-        self.apply(weights_init)
 
     def _compute_flattened_size(self, input_size: int) -> int:
         """Compute the size of the feature maps after the feature extractor
