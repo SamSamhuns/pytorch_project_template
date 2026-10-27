@@ -12,18 +12,6 @@ from sklearn.metrics import (
     top_k_accuracy_score,
 )
 
-from .base_metrics import (
-    accuracy_topk_torch,
-    comprehensive_clsf_metrics,
-    fdr,
-    fnr,
-    fpr,
-    npv,
-    optimal_thres_from_roc_curve,
-    ppv,
-    tnr,
-    tpr,
-)
 from .plots import plot_calibration_curve, plot_pr_curve, plot_roc_curve
 
 IMPLEMENTED_METRICS = {
@@ -36,16 +24,6 @@ IMPLEMENTED_METRICS = {
     "average_precision_score": average_precision_score,
     "classification_report": classification_report,
     "confusion_matrix": confusion_matrix,
-    "accuracy_topk_torch": accuracy_topk_torch,
-    "comprehensive_clsf_metrics": comprehensive_clsf_metrics,
-    "optimal_thres_from_roc_curve": optimal_thres_from_roc_curve,
-    "true_positive_rate": tpr,
-    "true_negative_rate": tnr,
-    "positive_predictive_value": ppv,
-    "negative_predictive_value": npv,
-    "false_positive_rate": fpr,
-    "false_negative_rate": fnr,
-    "false_discovery_rate": fdr,
 }
 
 
@@ -72,7 +50,7 @@ def calc_metric(metric_name: str, **kwargs):
         if metric_name in {
                 "roc_auc_score",
                 "average_precision_score",
-                "optimal_thres_from_roc_curve"}:
+                "top_k_accuracy_score"}:
             kwargs = {k: v for k, v in kwargs.items() if k != "y_pred"}
         else:
             kwargs = {k: v for k, v in kwargs.items() if k != "y_score"}
