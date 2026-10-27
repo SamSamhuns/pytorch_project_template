@@ -136,7 +136,8 @@ class ClassifierTrainer(BaseTrainer):
             with autocast("cuda") if self.config["use_amp"] else nullcontext():
                 output = self.model(data).squeeze(-1)
                 loss = self.loss(output, target)
-            cum_train_loss += loss.item()
+            # loss is the batch mean, so weight it by the batch size
+            cum_train_loss += loss.item() * data.size(0)
             # get the index of the max log-probability
             if loss_type in {"BCELoss", "BCEWithLogitsLoss"}:
                 pred = (F.sigmoid(output) >= 0.5).to(int)
@@ -195,8 +196,9 @@ class ClassifierTrainer(BaseTrainer):
                                           self.optimizer.param_groups[0]["lr"],
                                           self.current_epoch)
 
-    def eval_one_epoch(self, data_loader: DataLoader) -> tuple[float, list[int], list[float], list[int]]:
-        """Evaluate model on one epoch with the given dataloader
+    def eval_one_epoch(self, data_loader: DataLoader) -> tuple[float, np.ndarray, np.ndarray, np.ndarray]:
+        """Evaluate model on one epoch with the given dataloader.
+        Returns the mean loss, y_true, y_score and y_pred.
         """
         self.model.eval()
         cumu_test_loss = 0
@@ -208,8 +210,8 @@ class ClassifierTrainer(BaseTrainer):
                 target = target.to(self.device, non_blocking=True)
                 target = target.float() if loss_type in {"BCELoss", "BCEWithLogitsLoss"} else target
                 output = self.model(data).squeeze(-1)
-                # sum up batch loss
-                cumu_test_loss += self.loss(output, target).item()
+                # sum up batch loss (the loss is the batch mean, so weight it by the batch size)
+                cumu_test_loss += self.loss(output, target).item() * data.size(0)
                 # get the log-probability (proba) & index of the max log-probability (preds)
                 if loss_type in {"BCELoss", "BCEWithLogitsLoss"}:
                     proba = F.sigmoid(output)
@@ -224,7 +226,7 @@ class ClassifierTrainer(BaseTrainer):
         y_score = torch.concat(y_score).cpu().numpy()
         y_pred = torch.concat(y_pred).cpu().numpy()
 
-        return cumu_test_loss, y_true, y_score, y_pred
+        return cumu_test_loss / len(y_true), y_true, y_score, y_pred
 
     def train(self) -> None:
         """Main training function with loop
@@ -270,16 +272,9 @@ class ClassifierTrainer(BaseTrainer):
         """
         val_start_tm = time.perf_counter()
 
-        cumu_val_loss, y_true, y_score, y_pred = self.eval_one_epoch(
+        val_loss, y_true, y_score, y_pred = self.eval_one_epoch(
             self.val_data_loader)
-
-        if self.data_set.val_set:
-            val_size = len(self.data_set.val_set)
-        else:  # take val set size from sampler if data_set.val_set is None
-            val_size = len(self.val_data_loader.sampler.indices)
-        val_loss = cumu_val_loss / val_size
-        correct = sum(y_true == y_pred)
-        val_accuracy = 100. * correct / val_size
+        val_accuracy = 100. * (y_true == y_pred).mean()
 
         # add metrics to tracking best_val_metric_dict
         if "accuracy_score" in self.best_val_metric_dict:
@@ -351,11 +346,8 @@ class ClassifierTrainer(BaseTrainer):
             raise NotImplementedError("test_data_loader is None or missing."
                                       "test_path might not have been set")
 
-        cumu_test_loss, y_true, y_score, y_pred = self.eval_one_epoch(
+        test_loss, y_true, y_score, y_pred = self.eval_one_epoch(
             self.test_data_loader)
-
-        test_size = len(self.data_set.test_set)
-        test_loss = cumu_test_loss / test_size
 
         self.logger.info("Test set:")
         self.logger.info("\tAverage loss: %.4f", test_loss)
@@ -477,11 +469,8 @@ class ClassifierTrainer(BaseTrainer):
                 np.random.shuffle(feat_dataset.data[:, feat_idx, :])
             feat_imp_data_loader = init_dataloader(
                 self.config["dataloader"]["type"], dataset=feat_dataset, **data_ldr_args)
-            cumu_test_loss, y_true, y_score, y_pred = self.eval_one_epoch(
+            test_loss, y_true, y_score, y_pred = self.eval_one_epoch(
                 feat_imp_data_loader)
-
-            test_size = len(self.data_set.test_set)
-            test_loss = cumu_test_loss / test_size
 
             if feat_idx < num_feats:
                 self.logger.info(
