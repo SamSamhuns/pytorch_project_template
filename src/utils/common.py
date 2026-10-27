@@ -12,7 +12,6 @@ from typing import Any, Optional
 
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
-from torchvision.transforms.transforms import Compose
 
 
 class BColors:
@@ -243,14 +242,3 @@ def find_latest_file_in_dir(dir_path: str, ext: str = "pth"):
         return None
     latest_file = max(list_of_files, key=os.path.getctime)
     return latest_file
-
-
-########################## data utils ##############################
-
-def add_tfms(transform: Compose, tfms: Callable):
-    """Add transforms to existing transforms"""
-    transforms_list = transform.transforms
-    transforms_list.append(tfms)
-    return Compose(transforms_list)
-
-####################################################################
