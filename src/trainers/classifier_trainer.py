@@ -1,7 +1,5 @@
-"""Time Series Classification trainer
-Dataset should be in the format [batch_size, num_channels, seq_len]
+"""Image classification trainer
 """
-import copy
 import glob
 import os
 import os.path as osp
@@ -19,7 +17,6 @@ from torch.utils.data import DataLoader
 
 from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
-from src.dataloaders import init_dataloader
 from src.datasets.base_dataset import IMG_EXTENSIONS, is_file_ext_valid
 from src.losses import init_loss
 from src.metrics import calc_metric, plot_metric
@@ -27,7 +24,6 @@ from src.models import init_model
 from src.optimizers import init_optimizer
 from src.schedulers import init_scheduler
 from src.trainers import BaseTrainer
-from src.utils.common import BColors
 from src.utils.custom_statistics import get_model_params
 
 
@@ -38,17 +34,9 @@ class ClassifierTrainer(BaseTrainer):
     def __init__(self, config: CustomDictConfig, logger_name: str):
         super().__init__(config, logger_name)
 
-        # ###### define model args for UCR Dataset ######
-        model_args = self.config["model"]["args"]
-        # warning when using wrong loss for binary classification
-        if "c_out" in model_args and model_args["c_out"] == 2:
-            if self.config["loss"]["type"] in {"NLLLoss", "CrossEntropyLoss"}:
-                msg = f"{BColors.WARN}WARNING: For useful confs. for two class outputs, " + \
-                      f"BCE losses are preferable over {self.config['loss']['type']}{BColors.ENDC}"
-                self.logger.warning("%s", msg)
         # define models
         self.model = init_model(
-            self.config["model"]["type"], **model_args)
+            self.config["model"]["type"], **self.config["model"]["args"])
         self.logger.info("Model info: %s", get_model_params(self.model))
 
         # resume from a checkpoint, if given
@@ -388,96 +376,3 @@ class ClassifierTrainer(BaseTrainer):
 
         self.logger.info("Inference complete for %s", source_path)
         return pred_file_labels
-
-    def calc_feature_importance(self, weight_path: str | None = None, imp_metric: str = "f1_score") -> None:
-        """Calculate feature importance using permutation feature importance
-        WARNING: This is a slow process and not recommended for datasets with a lot of features i.e. images.
-
-        Args:
-            weight_path: Path to pth weight file that will be loaded for test
-                         Default is set to None which uses latest ckpt weight file
-            imp_metric: metric used to differentiate the most important features
-
-        """
-        self.logger.info("\nTesting feature importance...")
-        test_start_tm = time.perf_counter()
-
-        if weight_path is not None:
-            print(f"Loading new checkpoint from {weight_path} for testing")
-            self.model = self.load_checkpoint(self.model, weight_path)
-        test_path = self.config["dataset"]["args"]["test_path"]
-        if test_path is None and self.data_set.test_set is None:
-            err_msg = "Test path or test set is missing"
-            self.logger.error(err_msg)
-            raise ValueError(err_msg)
-        data_ldr_args = self.config["dataloader"]["args"].copy()
-        data_ldr_args["validation_split"] = 0.0
-        data_ldr_args["shuffle"] = False
-
-        dataset = self.data_set.test_set
-        num_feats = dataset.data.shape[1]
-        if num_feats == 1:  # dataset shape must be [bsize, feat_len, seq_len]
-            self.logger.warning(
-                "Only 1 feat in dataset. Permutation feature importance not applicable.")
-            return
-        feat_metrics_dict = {}
-        feat_cols = []
-        if "feats_list" in self.config["dataset"]["args"]:
-            # order of feats is important
-            feat_cols = self.config["dataset"]["args"]["feats_list"]
-            feat_cols.remove("timestamp")
-        else:
-            feat_cols = [f"feat_{i}" for i in range(num_feats)]
-        # randomize for each feat axis and run test n_feats+1 number of times
-        # last idx is for the original test_set
-        for feat_idx in range(num_feats + 1):
-            feat_dataset = copy.deepcopy(dataset)
-            if feat_idx < num_feats:
-                # shuffle feat_idx feature for all runs except last
-                np.random.shuffle(feat_dataset.data[:, feat_idx, :])
-            feat_imp_data_loader = init_dataloader(
-                self.config["dataloader"]["type"], dataset=feat_dataset, **data_ldr_args)
-            test_loss, y_true, y_score, y_pred = self.eval_one_epoch(
-                feat_imp_data_loader)
-
-            if feat_idx < num_feats:
-                self.logger.info(
-                    "\nTest set with feature %d (%s) randomized:", feat_idx, feat_cols[feat_idx])
-            else:
-                self.logger.info("\nTest set original:")
-            self.logger.info("\tAverage loss: %.4f", test_loss)
-
-            feat_key = feat_cols[feat_idx] if feat_idx < num_feats else "original"
-            # gather metrics for all feat. permutations
-            feat_metrics_dict[feat_key] = {}
-            feat_metrics_dict[feat_key]["average_loss"] = test_loss
-            for metric_name in self.config["metrics"]["test"]:
-                if (metric_name in {"confusion_matrix", "classification_report"}
-                        or (metric_name == "roc_auc_score" and np.unique(y_true).size > 2)):
-                    # dont calculate roc_auc_score for mult class clsf
-                    continue
-                if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
-                    # skip metric plots
-                    continue
-                metric_val = calc_metric(
-                    metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
-                feat_metrics_dict[feat_key][metric_name] = metric_val
-                self.logger.info("\t%s: %.4f", metric_name, metric_val)
-                if self.config["trainer"]["use_tensorboard"]:
-                    self.tboard_writer.add_scalar(
-                        f"{metric_name}/test/epoch", metric_val, self.current_epoch)
-        # calc diff between no perm. and all feat. perms
-        feat_metrics_diff = []
-        orig_score = feat_metrics_dict["original"][imp_metric]
-        for feat_key, feat_dict in feat_metrics_dict.items():
-            if feat_key != "original":
-                f1_score_diff = abs(feat_dict[imp_metric] - orig_score)
-                feat_metrics_diff.append([feat_key, f1_score_diff])
-        feat_metrics_diff.sort(key=lambda x: x[1], reverse=True)
-
-        test_end_tm = time.perf_counter()
-        self.logger.info("Features sorted by decreasing importance (%s diff): %s",
-                         imp_metric, [[f, round(m, 3)] for f, m in feat_metrics_diff])
-        self.logger.info("Feature importance test time: %.3fs",
-                         test_end_tm - test_start_tm)
-        self.logger.info("Finished feat. importance testing.")
