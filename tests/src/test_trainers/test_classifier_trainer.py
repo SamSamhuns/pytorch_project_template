@@ -2,6 +2,7 @@ import warnings
 
 import pytest
 import torch
+import torch.nn.functional as F
 import torchvision
 
 from src.config_parser import CustomDictConfig
@@ -90,6 +91,17 @@ def test_pretrained_weights_survive_trainer_init(clsf_trainer_and_logger):
     expected = pretrained.features.state_dict()
     actual = trainer.model.model.features.state_dict()
     assert all(torch.equal(actual[k].cpu(), v) for k, v in expected.items())
+
+
+def test_eval_loss_is_mean_over_samples(clsf_trainer_and_logger):
+    """Batches of unequal size must be weighted by their size"""
+    trainer, _ = clsf_trainer_and_logger
+    trainer.model = torch.nn.Identity()  # the batches below already hold the model's log-probabilities
+    log_probs = torch.randn(4, 5).log_softmax(dim=1)
+    target = torch.tensor([0, 1, 2, 3])
+
+    loss, _, _, _ = trainer.eval_one_epoch([(log_probs[:3], target[:3]), (log_probs[3:], target[3:])])
+    assert loss == pytest.approx(F.nll_loss(log_probs, target).item())
 
 
 def test_validate_method(mock_clsf_config: CustomDictConfig, mocker):
