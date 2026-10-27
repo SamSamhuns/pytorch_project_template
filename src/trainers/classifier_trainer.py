@@ -85,26 +85,21 @@ class ClassifierTrainer(BaseTrainer):
         train_data_len = len(self.data_set.train_set) - \
             (len(self.data_set.train_set)
              * self.config["dataloader"]["args"]["validation_split"])
-        loss_type = self.config["loss"]["type"]
 
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
             data = data.to(self.device, non_blocking=True)
             target = target.to(self.device, non_blocking=True)
-            target = target.float() if loss_type in {"BCELoss", "BCEWithLogitsLoss"} else target
             self.optimizer.zero_grad(set_to_none=True)
             train_size += data.shape[0]
 
             # Enables autocasting for the forward pass (model + loss)
             with autocast("cuda") if self.config["use_amp"] else nullcontext():
-                output = self.model(data).squeeze(-1)
+                output = self.model(data)
                 loss = self.loss(output, target)
             # loss is the batch mean, so weight it by the batch size
             cum_train_loss += loss.item() * data.size(0)
             # get the index of the max log-probability
-            if loss_type in {"BCELoss", "BCEWithLogitsLoss"}:
-                pred = (F.sigmoid(output) >= 0.5).to(int)
-            else:
-                pred = output.max(1, keepdim=True)[1]
+            pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
 
             loss.backward()
@@ -165,25 +160,19 @@ class ClassifierTrainer(BaseTrainer):
         """
         self.model.eval()
         cumu_test_loss = 0
-        loss_type = self.config["loss"]["type"]
         y_true, y_score, y_pred = [], [], []
         with torch.no_grad():
             for data, target in tqdm.tqdm(data_loader):
                 data = data.to(self.device, non_blocking=True)
                 target = target.to(self.device, non_blocking=True)
-                target = target.float() if loss_type in {"BCELoss", "BCEWithLogitsLoss"} else target
-                output = self.model(data).squeeze(-1)
+                output = self.model(data)
                 # sum up batch loss (the loss is the batch mean, so weight it by the batch size)
                 cumu_test_loss += self.loss(output, target).item() * data.size(0)
                 # get the class probabilities (proba) & the predicted class (pred)
-                if loss_type in {"BCELoss", "BCEWithLogitsLoss"}:
-                    proba = F.sigmoid(output)
-                    pred = (proba >= 0.5).to(int)
-                else:
-                    proba = F.softmax(output, dim=1)
-                    pred = proba.argmax(dim=1)
-                    if proba.shape[1] == 2:  # binary: roc/pr/calibration take P(class 1)
-                        proba = proba[:, 1]
+                proba = F.softmax(output, dim=1)
+                pred = proba.argmax(dim=1)
+                if proba.shape[1] == 2:  # binary: roc/pr/calibration take P(class 1)
+                    proba = proba[:, 1]
 
                 y_true.append(target)
                 y_score.append(proba)
