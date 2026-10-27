@@ -37,7 +37,7 @@ def get_config_from_args() -> CustomDictConfig:
         help="GPU device to use, e.g. --gpu_device 0. Only one GPU is supported.")
     parser.add_argument(
         "--mode", type=str, dest="mode", default="TEST_PYTORCH",
-        choices=["TEST_PYTORCH", "TEST_TORCHSCRIPT"],
+        choices=["TEST_PYTORCH"],
         help="Running mode. (default: %(default)s)")
     args = parser.parse_args()
 

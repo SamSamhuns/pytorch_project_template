@@ -10,5 +10,5 @@ from .common import (
     stable_sort,
 )
 from .custom_statistics import get_model_params, print_cuda_statistics
-from .export_utils import onnx_inference_check, ts_inference_check
+from .export_utils import onnx_inference_check
 from .visualization import *

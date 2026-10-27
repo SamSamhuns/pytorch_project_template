@@ -41,10 +41,7 @@ class ClassifierTrainer(BaseTrainer):
 
         # resume from a checkpoint, if given
         resume_ckpt = self.config["trainer"]["resume_checkpoint"]
-        if resume_ckpt and self.config["mode"] == "TEST_TORCHSCRIPT":
-            self.model = torch.jit.load(resume_ckpt, map_location="cpu")
-            self.logger.info("Loaded checkpoint %s", resume_ckpt)
-        elif resume_ckpt:
+        if resume_ckpt:
             self.model = self.load_checkpoint(self.model, resume_ckpt)
         else:
             self.logger.info("Training will be done from scratch")

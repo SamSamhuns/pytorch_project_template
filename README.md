@@ -109,7 +109,7 @@ python test.py --cfg CONFIG_FILE
 ## Export
 
 ```shell
-python export.py --cfg CONFIG_FILE -r MODEL_PATH --mode <"ONNX_TS"/"ONNX_DYNAMO"/"TS_TRACE"/"TS_SCRIPT">
+python export.py --cfg CONFIG_FILE -r MODEL_PATH --mode <"ONNX_TS"/"ONNX_DYNAMO">
 ```
 
 ## TensorBoard logging

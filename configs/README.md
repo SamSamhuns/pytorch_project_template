@@ -17,7 +17,6 @@ gpu_device:  # GPU device to use, as a one-item list (only one GPU is supported)
 - 0
 use_amp: true  # Use automatic mixed precision for faster training and lower memory usage
 torch_compile_model: false  # Compile the PyTorch model for optimized performance
-quant_backend: null  # Quantization mode, used only in export
 
 # Trainer configuration
 trainer:
