@@ -2,7 +2,6 @@ from .common import (
     can_be_conv_to_float,
     get_git_revision_hash,
     inherit_missing_dict_params,
-    is_port_in_use,
     recursively_flatten_config,
     reorder_trainer_cfg,
     round_to_nearest_divisor,

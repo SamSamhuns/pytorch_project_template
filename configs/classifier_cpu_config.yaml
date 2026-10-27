@@ -15,7 +15,6 @@ trainer:
   epochs: 12
   verbosity: 2
   use_tensorboard: true
-  tensorboard_port: null
 model:
   type: ClassifierModel
   args:
