@@ -10,12 +10,10 @@ from collections import OrderedDict
 import numpy as np
 import torch
 import tqdm
-from omegaconf import OmegaConf
 from tensorboard import program
 from torch import nn
 from torch.utils.data import Subset
 from torch.utils.tensorboard import SummaryWriter
-from torchvision.transforms.transforms import Normalize
 
 from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
@@ -171,19 +169,6 @@ class BaseTrainer(_BaseTrainer):
                 self.config["dataset"]["preprocess"]["test_transform"]).test,
             **self.config["dataset"]["args"]
         )
-
-        # update train+test transforms in config and save to YAML file
-        train_tfs = self.data_set.train_transform
-        test_tfs = self.data_set.test_transform
-        self.config["dataset"]["args"]["train_tfs"] = [str(tfs) for tfs in train_tfs.transforms]
-        self.config["dataset"]["args"]["test_tfs"] = [str(tfs) for tfs in test_tfs.transforms]
-        normalize = [tfs for tfs in train_tfs.transforms if isinstance(tfs, Normalize)]
-        self.config["dataset"]["args"]["mean"] = normalize[0].mean
-        self.config["dataset"]["args"]["std"] = normalize[0].std
-        _config = dict(self.config)
-        # save updated config to YAML file
-        save_root = osp.join(self.config["save_dir"], self.config["experiment_name"], self.config["run_id"])
-        OmegaConf.save(_config, osp.join(save_root, "config.yaml"))
 
         # log numerized remapped labels if present
         if self.config.verbose and hasattr(self.data_set, "labels2idx"):

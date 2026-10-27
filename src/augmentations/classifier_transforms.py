@@ -21,21 +21,3 @@ class ImagenetClassifierPreprocess:
     def __init__(self):
         """Class to store the train, test, inference transforms or augmentations
         """
-
-
-class CustomImageClassifierPreprocess:
-    """The Normalize transforms is added inside the dataset class for this preprocessor
-    after calculating the train set mean and std dev
-    """
-
-    common_transform = [
-        transforms.Resize(224),
-        transforms.ToTensor()]
-    train = transforms.Compose(common_transform.copy())
-    val = transforms.Compose(common_transform.copy())
-    test = transforms.Compose(common_transform.copy())
-    inference = transforms.Compose(common_transform.copy())
-
-    def __init__(self):
-        """Class to store the train, test, inference transforms or augmentations
-        """
