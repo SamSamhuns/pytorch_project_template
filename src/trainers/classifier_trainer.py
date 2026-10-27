@@ -199,6 +199,7 @@ class ClassifierTrainer(BaseTrainer):
     def eval_one_epoch(self, data_loader: DataLoader) -> tuple[float, np.ndarray, np.ndarray, np.ndarray]:
         """Evaluate model on one epoch with the given dataloader.
         Returns the mean loss, y_true, y_score and y_pred.
+        y_score is P(class 1) for binary models and the class probabilities otherwise.
         """
         self.model.eval()
         cumu_test_loss = 0
@@ -212,12 +213,15 @@ class ClassifierTrainer(BaseTrainer):
                 output = self.model(data).squeeze(-1)
                 # sum up batch loss (the loss is the batch mean, so weight it by the batch size)
                 cumu_test_loss += self.loss(output, target).item() * data.size(0)
-                # get the log-probability (proba) & index of the max log-probability (preds)
+                # get the class probabilities (proba) & the predicted class (pred)
                 if loss_type in {"BCELoss", "BCEWithLogitsLoss"}:
                     proba = F.sigmoid(output)
                     pred = (proba >= 0.5).to(int)
                 else:
-                    proba, pred = F.softmax(output, dim=1).max(1)
+                    proba = F.softmax(output, dim=1)
+                    pred = proba.argmax(dim=1)
+                    if proba.shape[1] == 2:  # binary: roc/pr/calibration take P(class 1)
+                        proba = proba[:, 1]
 
                 y_true.append(target)
                 y_score.append(proba)
@@ -292,12 +296,12 @@ class ClassifierTrainer(BaseTrainer):
         metric_name_val_dict = {}
         for metric_name in self.config["metrics"]["val"]:
             if (metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"}
-                    and np.unique(y_true).size > 2):
-                continue  # dont plot roc_curve / calculate roc_auc_score for mult class clsf
+                    and y_score.ndim > 1):
+                continue  # binary-only metrics; multi-class y_score holds one column per class
             if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
                 if self.config.verbose:
                     self.logger.info("\tPlotting val %s", metric_name)
-                plot_metric(metric_name, y_true=y_true,  y_score=y_score, y_pred=y_pred,
+                plot_metric(metric_name, y_true=y_true, y_score=y_score,
                             savepath=os.path.join(self.config["logs_dir"], f"val_e{self.current_epoch}_{metric_name}.png"))
                 continue
             metric_val = calc_metric(
@@ -357,11 +361,11 @@ class ClassifierTrainer(BaseTrainer):
         # add all test metrics
         for metric_name in self.config["metrics"]["test"]:
             if (metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"}
-                and np.unique(y_true).size > 2):
-                continue  # dont plot roc_curve / calculate roc_auc_score for mult class clsf
+                    and y_score.ndim > 1):
+                continue  # binary-only metrics; multi-class y_score holds one column per class
             if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
                 self.logger.info("\tPlotting %s", metric_name)
-                plot_metric(metric_name, y_true=y_true,  y_score=y_score, y_pred=y_pred,
+                plot_metric(metric_name, y_true=y_true, y_score=y_score,
                             savepath=os.path.join(self.config["logs_dir"], f"{metric_name}.png"))
                 continue
             metric_val = calc_metric(

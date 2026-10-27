@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torchvision
 
 from src.config_parser import CustomDictConfig
+from src.metrics import calc_metric
 from src.trainers import ClassifierTrainer
 
 
@@ -102,6 +103,18 @@ def test_eval_loss_is_mean_over_samples(clsf_trainer_and_logger):
 
     loss, _, _, _ = trainer.eval_one_epoch([(log_probs[:3], target[:3]), (log_probs[3:], target[3:])])
     assert loss == pytest.approx(F.nll_loss(log_probs, target).item())
+
+
+def test_binary_y_score_is_positive_class_probability(clsf_trainer_and_logger):
+    """A perfect binary classifier must get ROC-AUC 1.0"""
+    trainer, _ = clsf_trainer_and_logger
+    trainer.model = torch.nn.Identity()  # the batch below already holds the model's log-probabilities
+    p1 = torch.tensor([0.1, 0.4, 0.6, 0.9])  # P(class 1): every positive scores above every negative
+    log_probs = torch.stack([1 - p1, p1], dim=1).log()
+    target = torch.tensor([0, 0, 1, 1])
+
+    _, y_true, y_score, _ = trainer.eval_one_epoch([(log_probs, target)])
+    assert calc_metric("roc_auc_score", y_true=y_true, y_score=y_score) == 1.0
 
 
 def test_validate_method(mock_clsf_config: CustomDictConfig, mocker):
