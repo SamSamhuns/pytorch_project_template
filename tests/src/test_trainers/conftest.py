@@ -57,7 +57,7 @@ def mock_clsf_config(request, root_directory, create_and_save_dummy_imgs: Callab
             "use_tensorboard": False,
         },
         "model": {
-            "type": "ClassifierModel",
+            "type": "torchvision_classifier",
             "args": {
                 "backbone": "mobilenet_v2",
                 "feat_extract": False,

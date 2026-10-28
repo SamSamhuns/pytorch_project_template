@@ -28,7 +28,7 @@ trainer:
 
 # Model configuration
 model:
-  type: ClassifierModel  # Model type
+  type: torchvision_classifier  # MODELS in src/models: torchvision_classifier, MnistModel or CustomModel
   args:
     backbone: mobilenet_v2  # Backbone network for feature extraction
     feat_extract: false  # If true, the last Linear layer becomes Identity and the model returns features, not class scores
