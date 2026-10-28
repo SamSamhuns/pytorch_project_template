@@ -2,7 +2,7 @@
 
 [![tests](https://github.com/SamSamhuns/pytorch_project_template/actions/workflows/main.yml/badge.svg)](https://github.com/SamSamhuns/pytorch_project_template/actions/workflows/main.yml)[![Codacy Badge](https://app.codacy.com/project/badge/Grade/8d13d18c6af947329b09ed473231d36d)](https://www.codacy.com/gh/SamSamhuns/pytorch_project_template/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=SamSamhuns/pytorch_project_template&amp;utm_campaign=Badge_Grade)
 
-[![Python 3.10](https://img.shields.io/badge/python-3.10-green.svg)](https://www.python.org/downloads/release/python-3100/)[![Python 3.11](https://img.shields.io/badge/python-3.11-green.svg)](https://www.python.org/downloads/release/python-3110/)[![Python 3.12](https://img.shields.io/badge/python-3.12-green.svg)](https://www.python.org/downloads/release/python-3120/)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-green.svg)](https://www.python.org/downloads/release/python-3110/)[![Python 3.12](https://img.shields.io/badge/python-3.12-green.svg)](https://www.python.org/downloads/release/python-3120/)[![Python 3.13](https://img.shields.io/badge/python-3.13-green.svg)](https://www.python.org/downloads/release/python-3130/)[![Python 3.14](https://img.shields.io/badge/python-3.14-green.svg)](https://www.python.org/downloads/release/python-3140/)
 
 This is a template for a PyTorch Project for training, testing, inference demo, and FastAPI serving along with Docker support.
 
@@ -26,10 +26,17 @@ This is a template for a PyTorch Project for training, testing, inference demo, 
 
 ## Setup
 
-Use `poetry` or `python venv` or a `conda env` to install requirements:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then create the environment with the PyTorch build for your machine:
 
--   Poetry install full requirements: `poetry install --all-groups` (Recommended)
--   Pip install full requirements: `pip install -r requirements.txt`
+```shell
+uv sync --extra cpu    # CPU-only PyTorch (Linux, Windows and macOS)
+uv sync --extra cu130  # PyTorch with CUDA 13.0 for NVIDIA GPUs (driver >= 580)
+```
+
+Pass the same `--extra` every time you run `uv sync`; without one, uv removes PyTorch. Run commands with `uv run`, e.g. `uv run python train.py --cfg configs/mnist_config.yaml`, or activate the environment with `source .venv/bin/activate`.
+
+-   Add `--group server` to install the FastAPI server's dependencies.
+-   For a pip requirements file: `uv export --extra cpu --no-hashes > requirements.txt`
 
 ## Train
 

@@ -31,15 +31,12 @@ RUN useradd -rm --home-dir "/home/$UNAME" --shell /bin/bash -u "$UID" "$UNAME"
 # Set working directory
 WORKDIR ${WORKDIR}
 
-# Setup Python virtual environment
-RUN python3 -m venv $VIRTUAL_ENV
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.6 /uv /uvx /bin/
 
-# Install and pin pip to the latest version
-RUN pip install pip==24.0
-
-# Copy and install Python dependencies
-COPY ./server/requirements.txt "$WORKDIR/"
-RUN pip install -r "$WORKDIR/requirements.txt"
+# Install the dependencies (CPU torch and the server group) into $VIRTUAL_ENV
+COPY pyproject.toml uv.lock "$WORKDIR/"
+RUN UV_PROJECT_ENVIRONMENT="$VIRTUAL_ENV" uv sync --locked --extra cpu --group server --no-dev --no-cache
 
 # Copy application code to the working directory
 COPY . "$WORKDIR"
