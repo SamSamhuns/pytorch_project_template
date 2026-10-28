@@ -1,4 +1,5 @@
 """CLI config parsing module with OmegaConf and YAML support."""
+
 import argparse
 import os
 import os.path as osp
@@ -25,11 +26,9 @@ class CustomDictConfig(DictConfig):
 
     """
 
-    def __init__(self,
-                 config: DictConfig,
-                 run_id: str | None = None,
-                 verbose: bool = False,
-                 modification: dict | None = None):
+    def __init__(
+        self, config: DictConfig, run_id: str | None = None, verbose: bool = False, modification: dict | None = None
+    ):
         super().__init__(config)
 
         # Apply any modifications to the configuration
@@ -50,10 +49,11 @@ class CustomDictConfig(DictConfig):
 
         # Configure reproducibility settings
         if self.reproducible:
-            print(f"{BColors.WARN}Warning: " +
-                  "Setting torch.backends.cudnn.deterministic to True. " +
-                  f"This may slow down GPU training.{BColors.ENDC}"
-                  )
+            print(
+                f"{BColors.WARN}Warning: "
+                + "Setting torch.backends.cudnn.deterministic to True. "
+                + f"This may slow down GPU training.{BColors.ENDC}"
+            )
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
 
@@ -85,10 +85,7 @@ class CustomDictConfig(DictConfig):
             self.tboard_log_dir = osp.join(save_root, "tf_logs")
 
     @classmethod
-    def from_args(cls,
-                  args: argparse.Namespace,
-                  modification: dict | None = None,
-                  add_all_args: bool = True):
+    def from_args(cls, args: argparse.Namespace, modification: dict | None = None, add_all_args: bool = True):
         """Initialize this class from CLI arguments. Used in train, test.
 
         Args:
@@ -96,7 +93,7 @@ class CustomDictConfig(DictConfig):
             modification: Key-value pair to override in config.
                           Can have nested structure separated by periods(.)
                           e.g. {"key1":"val1", "key2.sub_key2":"val2"}
-            add_all_args: Add all args to modification 
+            add_all_args: Add all args to modification
                           that are not alr present as top-level keys.
 
         """
@@ -104,7 +101,7 @@ class CustomDictConfig(DictConfig):
         # Add all args to modification from args
         if add_all_args:
             # only check top-level keys
-            mod_keys = {k.rsplit('.')[0] for k in modification}
+            mod_keys = {k.rsplit(".")[0] for k in modification}
             for arg, value in vars(args).items():
                 # add new keys not present in orig yaml config
                 if arg not in mod_keys and arg not in {"override"}:
@@ -115,7 +112,7 @@ class CustomDictConfig(DictConfig):
         # Apply dotlist overrides (-o), parsed with OmegaConf's grammar, e.g. lr=1e-3 becomes a float
         if args.override:
             for override in args.override:
-                if '=' not in override:  # without "=", merge_with_dotlist would silently set the key to None
+                if "=" not in override:  # without "=", merge_with_dotlist would silently set the key to None
                     raise ValueError(f"Invalid override format: {override}. Expected format: key=value")
             OmegaConf.set_struct(config, True)  # Enable strict mode to disallow unknown keys
             config.merge_with_dotlist(args.override)

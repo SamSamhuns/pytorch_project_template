@@ -7,9 +7,11 @@ from src.loggers import get_logger
 
 def test_logger_initialization(gen_basic_config, logger_test_dir):
     """Test logger initialization"""
-    with patch('os.makedirs') as mocked_makedirs, \
-            patch('logging.FileHandler') as mocked_file_handler, \
-            patch('logging.StreamHandler') as mocked_stream_handler:
+    with (
+        patch("os.makedirs") as mocked_makedirs,
+        patch("logging.FileHandler") as mocked_file_handler,
+        patch("logging.StreamHandler") as mocked_stream_handler,
+    ):
         # Configure MagicMock to return specific values for 'level'
         mocked_file_handler.return_value.level = logging.INFO
         mocked_stream_handler.return_value.level = logging.ERROR
@@ -18,8 +20,7 @@ def test_logger_initialization(gen_basic_config, logger_test_dir):
         logger = get_logger(**basic_config)
 
         # Check directory creation
-        mocked_makedirs.assert_called_with(
-            basic_config["logger_dir"], exist_ok=True)
+        mocked_makedirs.assert_called_with(basic_config["logger_dir"], exist_ok=True)
 
         # Check that both handlers are added
         assert len(logger.handlers) == 2
@@ -33,12 +34,12 @@ def test_logger_initialization(gen_basic_config, logger_test_dir):
 
 def test_logger_file_creation(gen_basic_config, logger_test_dir):
     """Test logger file creation"""
-    with patch('os.makedirs'), \
-            patch('logging.FileHandler') as mocked_file_handler:
+    with patch("os.makedirs"), patch("logging.FileHandler") as mocked_file_handler:
         basic_config = gen_basic_config("test_logger_file_creation", logger_test_dir)
         get_logger(**basic_config)
-        mocked_file_handler.assert_called_with(os.path.join(
-            basic_config["logger_dir"], basic_config["logger_name"] + ".txt"))
+        mocked_file_handler.assert_called_with(
+            os.path.join(basic_config["logger_dir"], basic_config["logger_name"] + ".txt")
+        )
 
 
 def test_logger_logging_output(gen_basic_config, logger_test_dir, caplog):
@@ -67,9 +68,7 @@ def test_logger_logging_output(gen_basic_config, logger_test_dir, caplog):
 
 def test_logger_no_duplicate_logs(gen_basic_config, logger_test_dir):
     """Test logger output duplication"""
-    with patch('os.makedirs'), \
-            patch('logging.FileHandler'), \
-            patch('logging.StreamHandler'):
+    with patch("os.makedirs"), patch("logging.FileHandler"), patch("logging.StreamHandler"):
         basic_config = gen_basic_config("test_logger_no_duplicate_logs", logger_test_dir)
         logger1 = get_logger(**basic_config)
         # Attempt to create the same logger

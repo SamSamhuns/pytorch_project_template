@@ -1,4 +1,5 @@
 """convert dataset to tar format for fast loading with webdataset"""
+
 import argparse
 import glob
 
@@ -21,60 +22,69 @@ from tqdm import tqdm
 # ###################################################################
 
 
-def generate_tar(src_data_dir: str,
-                 tar_path: str,
-                 mapping_fname: str = "dataset_mapping.txt") -> None:
+def generate_tar(src_data_dir: str, tar_path: str, mapping_fname: str = "dataset_mapping.txt") -> None:
     """Generates a combined tar archive for loading into webdataset
     from class folder separated data from src_data_dir & a class mapping txt file
     """
     # fix path for globbing
-    if not src_data_dir.endswith(('/', '*')):
-        src_data_dir += '/'
-    dir_list = sorted(glob.glob(src_data_dir + '*'))
+    if not src_data_dir.endswith(("/", "*")):
+        src_data_dir += "/"
+    dir_list = sorted(glob.glob(src_data_dir + "*"))
     class_id = 0
     file_count = 1
 
-    with open(mapping_fname, 'w', encoding="utf-8") as map_file, wds.TarWriter(tar_path) as sink:
+    with open(mapping_fname, "w", encoding="utf-8") as map_file, wds.TarWriter(tar_path) as sink:
         for dir_name in tqdm(dir_list):
-            split_string = dir_name.split('/')
+            split_string = dir_name.split("/")
             map_file.write(str(class_id) + "\t" + split_string[-1] + "\n")
             img_list = glob.glob(dir_name + "/*")
             for img_name in img_list:
                 try:
                     img = Image.open(img_name).convert("RGB")  # drops any alpha channel
 
-                    sink.write({
-                        "__key__": f"sample{file_count:06d}",
-                        "input.jpg": img,
-                        "output.cls": class_id,
-                    })
+                    sink.write(
+                        {
+                            "__key__": f"sample{file_count:06d}",
+                            "input.jpg": img,
+                            "output.cls": class_id,
+                        }
+                    )
                     file_count += 1
                 except Exception as excep:
-                    print(
-                        f"{excep}. PIL could not read file {img_name}. Skipping...")
+                    print(f"{excep}. PIL could not read file {img_name}. Skipping...")
             class_id += 1
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sd", "--source_data_path",
-                        type=str, dest="source_data_path",
-                        required=True,
-                        help="""Source dataset path with class imgs inside folders""")
-    parser.add_argument("--td", "--target_tar_path",
-                        type=str, dest="target_tar_path",
-                        required=True,
-                        help="""Target tar path where the
-                        data is stored for fast retrieval i.e. data/custom_data.tar""")
-    parser.add_argument("--mp", "--mapping_file_path",
-                        type=str, dest="mapping_file_path",
-                        default="data/dataset_mapping.txt",
-                        help="""Mapping file txt path where
-                        class names and index ids will be present (default: %(default)s)""")
+    parser.add_argument(
+        "--sd",
+        "--source_data_path",
+        type=str,
+        dest="source_data_path",
+        required=True,
+        help="""Source dataset path with class imgs inside folders""",
+    )
+    parser.add_argument(
+        "--td",
+        "--target_tar_path",
+        type=str,
+        dest="target_tar_path",
+        required=True,
+        help="""Target tar path where the
+                        data is stored for fast retrieval i.e. data/custom_data.tar""",
+    )
+    parser.add_argument(
+        "--mp",
+        "--mapping_file_path",
+        type=str,
+        dest="mapping_file_path",
+        default="data/dataset_mapping.txt",
+        help="""Mapping file txt path where
+                        class names and index ids will be present (default: %(default)s)""",
+    )
     args = parser.parse_args()
-    generate_tar(args.source_data_path,
-                 args.target_tar_path,
-                 args.mapping_file_path)
+    generate_tar(args.source_data_path, args.target_tar_path, args.mapping_file_path)
 
 
 if __name__ == "__main__":

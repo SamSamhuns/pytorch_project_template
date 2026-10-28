@@ -1,5 +1,5 @@
-"""Image classification trainer
-"""
+"""Image classification trainer"""
+
 import glob
 import os
 import os.path as osp
@@ -28,15 +28,13 @@ from src.utils.custom_statistics import get_model_params
 
 
 class ClassifierTrainer(BaseTrainer):
-    """Main ClassifierTrainer with the train, test, validate, inference, load_checkpoint and save_checkpoint funcs
-    """
+    """Main ClassifierTrainer with the train, test, validate, inference, load_checkpoint and save_checkpoint funcs"""
 
     def __init__(self, config: CustomDictConfig, logger_name: str):
         super().__init__(config, logger_name)
 
         # define models
-        self.model = init_model(
-            self.config["model"]["type"], **self.config["model"]["args"])
+        self.model = init_model(self.config["model"]["type"], **self.config["model"]["args"])
         self.logger.info("Model info: %s", get_model_params(self.model))
 
         # resume from a checkpoint, if given
@@ -52,16 +50,15 @@ class ClassifierTrainer(BaseTrainer):
             return
 
         # define loss and instantiate it
-        self.loss = init_loss(
-            self.config["loss"]["type"], **self.config["loss"]["args"]).to(self.device)
+        self.loss = init_loss(self.config["loss"]["type"], **self.config["loss"]["args"]).to(self.device)
         # define optimizer
         self.optimizer = init_optimizer(
-            self.config["optimizer"]["type"], **self.config["optimizer"]["args"],
-            params=self.model.parameters())
+            self.config["optimizer"]["type"], **self.config["optimizer"]["args"], params=self.model.parameters()
+        )
         # define lr scheduler
         self.scheduler = init_scheduler(
-            self.config["lr_scheduler"]["type"], **self.config["lr_scheduler"]["args"],
-            optimizer=self.optimizer)
+            self.config["lr_scheduler"]["type"], **self.config["lr_scheduler"]["args"], optimizer=self.optimizer
+        )
         # best.pth is saved whenever the val accuracy beats best_val_acc
         self.best_val_acc = float("-inf")
         self.best_checkpoint_path = None  # set once this run saves a best.pth
@@ -70,8 +67,7 @@ class ClassifierTrainer(BaseTrainer):
         self.current_iteration = 0
 
     def train_one_epoch(self) -> None:
-        """One epoch of training
-        """
+        """One epoch of training"""
         if self.config.verbose:
             self.logger.info("Training set:")
         epoch_start_tm = time.perf_counter()
@@ -79,9 +75,9 @@ class ClassifierTrainer(BaseTrainer):
         cum_train_loss = 0
         train_size = 0
         correct = 0
-        train_data_len = len(self.data_set.train_set) - \
-            (len(self.data_set.train_set)
-             * self.config["dataloader"]["args"]["validation_split"])
+        train_data_len = len(self.data_set.train_set) - (
+            len(self.data_set.train_set) * self.config["dataloader"]["args"]["validation_split"]
+        )
 
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
             data = data.to(self.device, non_blocking=True)
@@ -111,25 +107,29 @@ class ClassifierTrainer(BaseTrainer):
                     batch_idx * len(data),
                     train_data_len,
                     100 * batch_idx / len(self.train_data_loader),
-                    loss.item())
+                    loss.item(),
+                )
             if self.config["trainer"]["use_tensorboard"]:
-                self.tboard_writer.add_scalar("Loss/train/iteration",
-                                              loss.item(),
-                                              self.current_iteration)
+                self.tboard_writer.add_scalar("Loss/train/iteration", loss.item(), self.current_iteration)
             self.current_iteration += 1
 
         train_loss = cum_train_loss / train_size
-        train_accuracy = 100. * correct / train_size
+        train_accuracy = 100.0 * correct / train_size
         epoch_end_tm = time.perf_counter()
         epoch_tm = epoch_end_tm - epoch_start_tm
         if self.config.verbose:
             self.logger.info("\tEpoch time: %.2fs", epoch_tm)
-            self.logger.info("\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n",
-                             train_loss, correct, train_size, train_accuracy)
+            self.logger.info(
+                "\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n", train_loss, correct, train_size, train_accuracy
+            )
         else:
             self.logger.info(
                 "\tTrain Epoch %d, time: %.2fs, Loss: %.4f, Accuracy: %.2f%%",
-                self.current_epoch, epoch_tm, train_loss, train_accuracy)
+                self.current_epoch,
+                epoch_tm,
+                train_loss,
+                train_accuracy,
+            )
 
         # if no val_data_loader, then run ReduceLROnPlateau on train_loss instead
         if self.val_data_loader is None and isinstance(self.scheduler, ReduceLROnPlateau):
@@ -137,18 +137,14 @@ class ClassifierTrainer(BaseTrainer):
             self.scheduler.step(metrics=train_loss)
 
         if self.config["trainer"]["use_tensorboard"]:
-            self.tboard_writer.add_images('preprocessed image batch',
-                                          next(iter(self.train_data_loader))[0],
-                                          self.current_epoch)
-            self.tboard_writer.add_scalar("Loss/train/epoch",
-                                          train_loss,
-                                          self.current_epoch)
-            self.tboard_writer.add_scalar("Accuracy/train/epoch",
-                                          train_accuracy,
-                                          self.current_epoch)
-            self.tboard_writer.add_scalar("Learning Rate/train/epoch",
-                                          self.optimizer.param_groups[0]["lr"],
-                                          self.current_epoch)
+            self.tboard_writer.add_images(
+                "preprocessed image batch", next(iter(self.train_data_loader))[0], self.current_epoch
+            )
+            self.tboard_writer.add_scalar("Loss/train/epoch", train_loss, self.current_epoch)
+            self.tboard_writer.add_scalar("Accuracy/train/epoch", train_accuracy, self.current_epoch)
+            self.tboard_writer.add_scalar(
+                "Learning Rate/train/epoch", self.optimizer.param_groups[0]["lr"], self.current_epoch
+            )
 
     def eval_one_epoch(self, data_loader: DataLoader) -> tuple[float, np.ndarray, np.ndarray, np.ndarray]:
         """Evaluate model on one epoch with the given dataloader.
@@ -181,8 +177,7 @@ class ClassifierTrainer(BaseTrainer):
         return cumu_test_loss / len(y_true), y_true, y_score, y_pred
 
     def train(self) -> None:
-        """Main training function with loop
-        """
+        """Main training function with loop"""
         if self.config["torch_compile_model"]:
             self.logger.info("Using torch compile mode")
             # compiles in place, so state_dict keys stay the same as the uncompiled model's
@@ -214,13 +209,11 @@ class ClassifierTrainer(BaseTrainer):
         self.logger.info("Finished training.\n")
 
     def validate(self) -> None:
-        """One epoch of model validation
-        """
+        """One epoch of model validation"""
         val_start_tm = time.perf_counter()
 
-        val_loss, y_true, y_score, y_pred = self.eval_one_epoch(
-            self.val_data_loader)
-        val_accuracy = 100. * (y_true == y_pred).mean()
+        val_loss, y_true, y_score, y_pred = self.eval_one_epoch(self.val_data_loader)
+        val_accuracy = 100.0 * (y_true == y_pred).mean()
 
         if val_accuracy > self.best_val_acc:
             self.best_val_acc = val_accuracy
@@ -233,21 +226,22 @@ class ClassifierTrainer(BaseTrainer):
         # add all val metrics
         metric_name_val_dict = {}
         for metric_name in self.config["metrics"]["val"]:
-            if (metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"}
-                    and y_score.ndim > 1):
+            if metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"} and y_score.ndim > 1:
                 continue  # binary-only metrics; multi-class y_score holds one column per class
             if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
                 if self.config.verbose:
                     self.logger.info("\tPlotting val %s", metric_name)
-                plot_metric(metric_name, y_true=y_true, y_score=y_score,
-                            savepath=os.path.join(self.config["logs_dir"], f"val_e{self.current_epoch}_{metric_name}.png"))
+                plot_metric(
+                    metric_name,
+                    y_true=y_true,
+                    y_score=y_score,
+                    savepath=os.path.join(self.config["logs_dir"], f"val_e{self.current_epoch}_{metric_name}.png"),
+                )
                 continue
-            metric_val = calc_metric(
-                metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
+            metric_val = calc_metric(metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
             if metric_name not in {"confusion_matrix", "classification_report"}:
                 if self.config["trainer"]["use_tensorboard"]:
-                    self.tboard_writer.add_scalar(
-                        f"{metric_name}/val/epoch", metric_val, self.current_epoch)
+                    self.tboard_writer.add_scalar(f"{metric_name}/val/epoch", metric_val, self.current_epoch)
             metric_name_val_dict[metric_name] = metric_val
 
         val_end_tm = time.perf_counter()
@@ -268,9 +262,7 @@ class ClassifierTrainer(BaseTrainer):
                     log_message += f" | {metric_name}: {metric_val:.4f}"
             self.logger.info(log_message)
         if self.config["trainer"]["use_tensorboard"]:
-            self.tboard_writer.add_scalar("Loss/validation/epoch",
-                                          val_loss,
-                                          self.current_epoch)
+            self.tboard_writer.add_scalar("Loss/validation/epoch", val_loss, self.current_epoch)
 
     def test(self, weight_path: str | None = None) -> None:
         """Main test function
@@ -285,42 +277,42 @@ class ClassifierTrainer(BaseTrainer):
             print(f"Loading new checkpoint from {weight_path} for testing")
             self.model = self.load_checkpoint(self.model, weight_path)
         if self.test_data_loader is None:
-            raise NotImplementedError("test_data_loader is None or missing."
-                                      "test_path might not have been set")
+            raise NotImplementedError("test_data_loader is None or missing.test_path might not have been set")
 
-        test_loss, y_true, y_score, y_pred = self.eval_one_epoch(
-            self.test_data_loader)
+        test_loss, y_true, y_score, y_pred = self.eval_one_epoch(self.test_data_loader)
 
         self.logger.info("Test set:")
         self.logger.info("\tAverage loss: %.4f", test_loss)
         if self.config["trainer"]["use_tensorboard"]:
-            self.tboard_writer.add_scalar(
-                "Loss/test/epoch", test_loss, self.current_epoch)
+            self.tboard_writer.add_scalar("Loss/test/epoch", test_loss, self.current_epoch)
         # add all test metrics
         for metric_name in self.config["metrics"]["test"]:
-            if (metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"}
-                    and y_score.ndim > 1):
+            if metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"} and y_score.ndim > 1:
                 continue  # binary-only metrics; multi-class y_score holds one column per class
             if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
                 self.logger.info("\tPlotting %s", metric_name)
-                plot_metric(metric_name, y_true=y_true, y_score=y_score,
-                            savepath=os.path.join(self.config["logs_dir"], f"{metric_name}.png"))
+                plot_metric(
+                    metric_name,
+                    y_true=y_true,
+                    y_score=y_score,
+                    savepath=os.path.join(self.config["logs_dir"], f"{metric_name}.png"),
+                )
                 continue
-            metric_val = calc_metric(
-                metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
+            metric_val = calc_metric(metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
             if metric_name in {"confusion_matrix", "classification_report"}:
                 self.logger.info("\t%s: \n%s", metric_name, metric_val)
             else:
                 self.logger.info("\t%s: %.4f", metric_name, metric_val)
                 if self.config["trainer"]["use_tensorboard"]:
-                    self.tboard_writer.add_scalar(
-                        f"{metric_name}/test/epoch", metric_val, self.current_epoch)
+                    self.tboard_writer.add_scalar(f"{metric_name}/test/epoch", metric_val, self.current_epoch)
 
         test_end_tm = time.perf_counter()
         self.logger.info("\nTest time: %.3fs", test_end_tm - test_start_tm)
         self.logger.info("Finished testing model.")
 
-    def inference(self, source_path: str, weight_path: str | None = None, log_txt_preds: bool = True) -> list[tuple[str, float]]:
+    def inference(
+        self, source_path: str, weight_path: str | None = None, log_txt_preds: bool = True
+    ) -> list[tuple[str, float]]:
         """Run inference on an image file or directory with existing model or model loaded with new weight_path
         Args:
             source_path: str
@@ -337,26 +329,23 @@ class ClassifierTrainer(BaseTrainer):
         elif osp.isfile(source_path) and is_file_ext_valid(source_path, IMG_EXTENSIONS):
             image_list = [source_path]
         else:
-            raise ValueError(
-                f"Inference source {source_path} is not an image file or dir with images")
+            raise ValueError(f"Inference source {source_path} is not an image file or dir with images")
 
         pred_file_labels = []
-        inference_transform = init_transform(
-            self.config["dataset"]["preprocess"]["inference_transform"]).inference
+        inference_transform = init_transform(self.config["dataset"]["preprocess"]["inference_transform"]).inference
         with torch.no_grad():
             for image_path in image_list:
-                image = Image.open(image_path).convert('RGB')
+                image = Image.open(image_path).convert("RGB")
                 data = inference_transform(image)
                 data = data.to(self.device).unsqueeze(0)
                 output = self.model(data)
                 # get the index of the max log-probability
                 pred = output.max(1, keepdim=True)[1].item()
 
-                self.logger.info(
-                    "Image path=%s: predicted label=%s", image_path, pred)
+                self.logger.info("Image path=%s: predicted label=%s", image_path, pred)
                 pred_file_labels.append([image_path, pred])
         if log_txt_preds:
-            with open(osp.join(self.config["logs_dir"], "pred.txt"), 'w', encoding="utf-8") as pred_ptr:
+            with open(osp.join(self.config["logs_dir"], "pred.txt"), "w", encoding="utf-8") as pred_ptr:
                 for image_path, pred in pred_file_labels:
                     pred_ptr.write(f"{image_path}, {pred}\n")
 

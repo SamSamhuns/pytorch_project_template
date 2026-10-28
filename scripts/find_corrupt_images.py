@@ -1,4 +1,5 @@
 """Find corrupt images, i.e., images that cannot be opened with PIL"""
+
 import argparse
 import glob
 import os
@@ -8,14 +9,13 @@ from tqdm import tqdm
 
 
 def validate_imgs(source_path, corrupt_flist_txt, remove) -> None:
-    """Validate imgs and optionally remove corrupt images
-    """
+    """Validate imgs and optionally remove corrupt images"""
     # fix path for globbing
-    if not source_path.endswith(('/', '*')):
-        source_path += '/'
-    dir_list = glob.glob(source_path + '*')
+    if not source_path.endswith(("/", "*")):
+        source_path += "/"
+    dir_list = glob.glob(source_path + "*")
 
-    with open(corrupt_flist_txt, 'w', encoding="utf-8") as fw:
+    with open(corrupt_flist_txt, "w", encoding="utf-8") as fw:
         for i in tqdm(range(len(dir_list))):
             dir_name = dir_list[i]
             img_list = glob.glob(dir_name + "/*")
@@ -25,7 +25,7 @@ def validate_imgs(source_path, corrupt_flist_txt, remove) -> None:
                     Image.open(img_name).convert("RGB")  # convert() decodes the whole image
                 except Exception as excep:
                     print(f"{excep}. PIL could not read file {img_name}")
-                    fw.write(img_name + '\n')
+                    fw.write(img_name + "\n")
                     if os.path.exists(img_name) and remove:
                         print(f"Removing {img_name}")
                         os.remove(img_name)
@@ -33,39 +33,41 @@ def validate_imgs(source_path, corrupt_flist_txt, remove) -> None:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s',
-                        '--source_data_path',
-                        type=str,
-                        required=True,
-                        help="""Source dataset path with
-                        class imgs inside folders""")
-    parser.add_argument('-r',
-                        '--remove',
-                        action="store_true",
-                        help="""Remove corrupt imgs. By default,
-                        the imgs are only listed and saved in a file""")
-    parser.add_argument('-t',
-                        '--corrupt_file_list_txt_path',
-                        type=str,
-                        default="corrupt_imgs.txt",
-                        required=False,
-                        help="""Source dataset path with
-                        class imgs inside folders""")
+    parser.add_argument(
+        "-s",
+        "--source_data_path",
+        type=str,
+        required=True,
+        help="""Source dataset path with
+                        class imgs inside folders""",
+    )
+    parser.add_argument(
+        "-r",
+        "--remove",
+        action="store_true",
+        help="""Remove corrupt imgs. By default,
+                        the imgs are only listed and saved in a file""",
+    )
+    parser.add_argument(
+        "-t",
+        "--corrupt_file_list_txt_path",
+        type=str,
+        default="corrupt_imgs.txt",
+        required=False,
+        help="""Source dataset path with
+                        class imgs inside folders""",
+    )
     args = parser.parse_args()
     if args.remove:
-        confirm_removal = input(
-            "Corrupt files will be removed: Continue (Y/N)?")
-        args.remove = True if confirm_removal in {
-            'Y', 'y', 'yes', 'Yes'} else False
+        confirm_removal = input("Corrupt files will be removed: Continue (Y/N)?")
+        args.remove = True if confirm_removal in {"Y", "y", "yes", "Yes"} else False
 
     if args.remove:
         print("Corrupt files will be removed")
     else:
         print("Corrupt files will NOT be removed")
 
-    validate_imgs(args.source_data_path,
-                  args.corrupt_file_list_txt_path,
-                  args.remove)
+    validate_imgs(args.source_data_path, args.corrupt_file_list_txt_path, args.remove)
 
 
 if __name__ == "__main__":

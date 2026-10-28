@@ -1,5 +1,5 @@
-"""Test configurations
-"""
+"""Test configurations"""
+
 import argparse
 import glob
 import logging
@@ -30,8 +30,10 @@ os.makedirs(PYTEST_TEMP_ROOT, exist_ok=True)
 @pytest.fixture
 def sample_pilimage():
     """Create a dummy image"""
+
     def _sample_pilimage(h: int = 256, w: int = 256, c: int = 3):
         return Image.fromarray(np.uint8(np.random.rand(h, w, c) * 255))
+
     return _sample_pilimage
 
 
@@ -48,43 +50,28 @@ def sample_config():
         "seed": 42,
         "device": "cpu",
         "gpu_device": None,
-        "trainer": {
-            "use_tensorboard": False
-        },
-        "optimizer": {
-            "type": "SGD",
-            "args": {
-                "lr": 0.01
-            }
-        },
-        "mode": "TRAIN"
+        "trainer": {"use_tensorboard": False},
+        "optimizer": {"type": "SGD", "args": {"lr": 0.01}},
+        "mode": "TRAIN",
     }
 
 
 @pytest.fixture
 def modifications():
-    return {
-        "save_dir": f"{PYTEST_TEMP_ROOT}/modified",
-        "seed": 123
-    }
+    return {"save_dir": f"{PYTEST_TEMP_ROOT}/modified", "seed": 123}
 
 
 @pytest.fixture
 def mock_parser(scope="function"):
-    """Generate a mock parser for testing based on train.py script
-    """
+    """Generate a mock parser for testing based on train.py script"""
     parser = argparse.ArgumentParser("Mock parser")
-    parser.add_argument(
-        '--cfg', '--config', type=str, dest="config", default=SAMPLE_CFG_PATH)
-    parser.add_argument(
-        '-r', '--resume', type=str, dest="resume", default=None)
-    parser.add_argument(
-        '--id', '--run_id', type=str, dest="run_id", default="train")
-    parser.add_argument(
-        '-v', '--verbose', action='store_true', dest="verbose", default=False)
-    parser.add_argument(
-        '-o', '--override', type=str, nargs='+', dest="override", default=None)
+    parser.add_argument("--cfg", "--config", type=str, dest="config", default=SAMPLE_CFG_PATH)
+    parser.add_argument("-r", "--resume", type=str, dest="resume", default=None)
+    parser.add_argument("--id", "--run_id", type=str, dest="run_id", default="train")
+    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False)
+    parser.add_argument("-o", "--override", type=str, nargs="+", dest="override", default=None)
     return parser
+
 
 ####################################
 ###### setup for loggers test ######
@@ -98,18 +85,20 @@ def logger_test_dir():
 @pytest.fixture
 def gen_basic_config() -> Callable:
     """Fixture to generate data. It uses dynamic dimensions provided by test cases."""
+
     def _gen_basic_config(logger_name: str, logger_dir: str, **kwargs):
         cfg = {
             "logger_name": logger_name,
             "logger_dir": logger_dir,
-            "file_fmt": '%(asctime)s %(levelname)-8s: %(message)s',
-            "console_fmt": '%(message)s',
+            "file_fmt": "%(asctime)s %(levelname)-8s: %(message)s",
+            "console_fmt": "%(message)s",
             "logger_level": logging.WARN,
             "file_level": logging.INFO,
             "console_level": logging.ERROR,
-            "propagate": True
+            "propagate": True,
         }
         return cfg | kwargs
+
     return _gen_basic_config
 
 
@@ -144,12 +133,14 @@ def dummy_webdataset(mock_webdataset_path):
     """Return a mock webdataset"""
     tar_path = mock_webdataset_path
     data_len = _get_webdataset_len(tar_path)
-    return (wds.WebDataset(tar_path)
-            .shuffle(100)
-            .decode("pil")
-            .to_tuple("input.jpg", "output.cls")
-            .map_tuple(None, identity)
-            .with_length(data_len))
+    return (
+        wds.WebDataset(tar_path)
+        .shuffle(100)
+        .decode("pil")
+        .to_tuple("input.jpg", "output.cls")
+        .map_tuple(None, identity)
+        .with_length(data_len)
+    )
 
 
 ####################################
@@ -157,8 +148,7 @@ def dummy_webdataset(mock_webdataset_path):
 
 
 class Simple2DConvModel(nn.Module):
-    """Inputs must be of shape [bsize, 3, H, W] where H and W are the height and width of the input images.
-    """
+    """Inputs must be of shape [bsize, 3, H, W] where H and W are the height and width of the input images."""
 
     def __init__(self, height=100, width=100):
         super().__init__()
@@ -207,9 +197,13 @@ def onnx_session(simple_2d_conv_model, sample_tensor):
     # Export the model to ONNX format temporarily
     export_path = PYTEST_TEMP_ROOT + "/temp_model.onnx"
     torch.onnx.export(
-        simple_2d_conv_model, sample_tensor, export_path,
-        export_params=True, opset_version=17,
-        input_names=['input'], output_names=['output']
+        simple_2d_conv_model,
+        sample_tensor,
+        export_path,
+        export_params=True,
+        opset_version=17,
+        input_names=["input"],
+        output_names=["output"],
     )
     session = ort.InferenceSession(str(export_path))
     return session
@@ -229,7 +223,9 @@ def root_directory():
     return f"{PYTEST_TEMP_ROOT}/dataset/mock_imgs"
 
 
-def _create_and_save_dummy_imgs(dir_path: str, n_cls: int = 5, n_imgs_p_cls: int = 30, size: tuple[int, int] = (100, 100)) -> str:
+def _create_and_save_dummy_imgs(
+    dir_path: str, n_cls: int = 5, n_imgs_p_cls: int = 30, size: tuple[int, int] = (100, 100)
+) -> str:
     """Create and save dummy images to dir_path with image pixels separated by class.
 
     Parameters
@@ -250,8 +246,8 @@ def _create_and_save_dummy_imgs(dir_path: str, n_cls: int = 5, n_imgs_p_cls: int
         os.makedirs(cls_dir, exist_ok=True)
 
         for i in range(n_imgs_p_cls):
-            img = Image.new('RGB', size, color=colorlist[ci])
-            img.save(osp.join(cls_dir, f'{cls}_{i:03d}.jpg'))
+            img = Image.new("RGB", size, color=colorlist[ci])
+            img.save(osp.join(cls_dir, f"{cls}_{i:03d}.jpg"))
 
 
 @pytest.fixture
@@ -264,53 +260,49 @@ def create_and_save_dummy_imgs() -> Callable:
 def dump_mock_img_data_dir(root_directory, create_and_save_dummy_imgs) -> str:
     """Setup a directory with mocked image data"""
     img_dir = osp.join(root_directory, "imgs")
-    create_and_save_dummy_imgs(
-        img_dir, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
+    create_and_save_dummy_imgs(img_dir, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
     return img_dir
 
 
-def generate_tar(src_data_dir: str,
-                 tar_path: str,
-                 mapping_fname: str = "dataset_mapping.txt") -> None:
+def generate_tar(src_data_dir: str, tar_path: str, mapping_fname: str = "dataset_mapping.txt") -> None:
     """Generates a combined tar archive for loading into webdataset
     from class folder separated data from src_data_dir & a class mapping txt file
     """
     # fix path for globbing
-    if not src_data_dir.endswith(('/', '*')):
-        src_data_dir += '/'
-    dir_list = glob.glob(src_data_dir + '*')
+    if not src_data_dir.endswith(("/", "*")):
+        src_data_dir += "/"
+    dir_list = glob.glob(src_data_dir + "*")
     class_id = 0
     file_count = 1
 
-    with open(mapping_fname, 'w', encoding="utf-8") as map_file, wds.TarWriter(tar_path) as sink:
+    with open(mapping_fname, "w", encoding="utf-8") as map_file, wds.TarWriter(tar_path) as sink:
         for dir_name in dir_list:
-            split_string = dir_name.split('/')
+            split_string = dir_name.split("/")
             map_file.write(str(class_id) + "\t" + split_string[-1] + "\n")
             img_list = glob.glob(dir_name + "/*")
             for img_name in img_list:
                 try:
                     img = Image.open(img_name).convert("RGB")  # drops any alpha channel
 
-                    sink.write({
-                        "__key__": f"sample{file_count:06d}",
-                        "input.jpg": img,
-                        "output.cls": class_id,
-                    })
+                    sink.write(
+                        {
+                            "__key__": f"sample{file_count:06d}",
+                            "input.jpg": img,
+                            "output.cls": class_id,
+                        }
+                    )
                     file_count += 1
                 except Exception as excep:
-                    print(
-                        f"{excep}. PIL could not read file {img_name}. Skipping...")
+                    print(f"{excep}. PIL could not read file {img_name}. Skipping...")
             class_id += 1
 
 
 @pytest.fixture()
 def mock_webdataset_path(root_directory, create_and_save_dummy_imgs) -> str:
     """Setup a directory with mocked image data"""
-    create_and_save_dummy_imgs(
-        root_directory, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
+    create_and_save_dummy_imgs(root_directory, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
     tar_path = f"{root_directory}/mock_imgs.tar"
-    generate_tar(root_directory, tar_path=tar_path,
-                 mapping_fname=f"{root_directory}/dataset_mapping.txt")
+    generate_tar(root_directory, tar_path=tar_path, mapping_fname=f"{root_directory}/dataset_mapping.txt")
     return tar_path
 
 

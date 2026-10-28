@@ -8,12 +8,15 @@ from src.datasets.base_dataset import ImageFolderDataset
 
 # ######### Fixtures for BaseDataset #########
 
+
 @pytest.fixture()
 def image_dataset(dump_mock_img_data_dir):
     """Initialize the dataset"""
-    transforms_ = transforms.Compose([
-        transforms.ToTensor(),
-    ])
+    transforms_ = transforms.Compose(
+        [
+            transforms.ToTensor(),
+        ]
+    )
     return ImageFolderDataset(str(dump_mock_img_data_dir), transforms=transforms_)
 
 
@@ -30,16 +33,20 @@ def basic_params(root_directory, create_and_save_dummy_imgs):
         "root": root_directory,
         "train_path": "train",
         "val_path": "val",
-        "test_path": "test"
+        "test_path": "test",
     }
 
+
 # ######### Fixtures for ClassifierDataset #########
+
 
 @pytest.fixture
 def mock_classifierdataset(basic_params):
     return ClassifierDataset(data_mode="imgs", **basic_params)
 
+
 # ######### Fixtures for MnistDataset #########
+
 
 @pytest.fixture
 def mnist_dir():

@@ -1,5 +1,5 @@
-"""Base customized dataloader
-"""
+"""Base customized dataloader"""
+
 import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
@@ -15,42 +15,42 @@ def default_collate_fn(batch):
 
 
 class CustomDataLoader(DataLoader):
-    """Base class for all data loaders
-    """
+    """Base class for all data loaders"""
 
-    def __init__(self,
-                 dataset,
-                 batch_size,
-                 shuffle,
-                 num_workers,
-                 validation_split=0.,
-                 collate_fn=default_collate_fn,
-                 timeout=0,
-                 drop_last=False,
-                 pin_memory=False,
-                 generator=None,
-                 worker_init_fn=None,
-                 persistent_workers=False):
+    def __init__(
+        self,
+        dataset,
+        batch_size,
+        shuffle,
+        num_workers,
+        validation_split=0.0,
+        collate_fn=default_collate_fn,
+        timeout=0,
+        drop_last=False,
+        pin_memory=False,
+        generator=None,
+        worker_init_fn=None,
+        persistent_workers=False,
+    ):
         self.validation_split = validation_split
         self.shuffle = shuffle
         self.batch_idx = 0
         self.n_samples = len(dataset)
 
-        self.train_sampler, self.valid_sampler = self._split_sampler(
-            self.validation_split)
+        self.train_sampler, self.valid_sampler = self._split_sampler(self.validation_split)
 
         self.init_kwargs = {
-            'dataset': dataset,
-            'batch_size': batch_size,
-            'shuffle': self.shuffle,
-            'collate_fn': collate_fn,
-            'num_workers': num_workers,
-            'timeout': timeout,
-            'drop_last': drop_last,
-            'pin_memory': pin_memory,  # setting to True will use some gpu mem
-            'generator': generator,
-            'worker_init_fn': worker_init_fn,
-            'persistent_workers': persistent_workers
+            "dataset": dataset,
+            "batch_size": batch_size,
+            "shuffle": self.shuffle,
+            "collate_fn": collate_fn,
+            "num_workers": num_workers,
+            "timeout": timeout,
+            "drop_last": drop_last,
+            "pin_memory": pin_memory,  # setting to True will use some gpu mem
+            "generator": generator,
+            "worker_init_fn": worker_init_fn,
+            "persistent_workers": persistent_workers,
         }
         super().__init__(sampler=self.train_sampler, **self.init_kwargs)
 

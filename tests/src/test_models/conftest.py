@@ -4,9 +4,14 @@ import torch
 from src.models import CustomModel, MnistModel
 
 
-@pytest.fixture(params=[
-    torch.device('cpu'),
-    pytest.param(torch.device('cuda'), marks=pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available"))])
+@pytest.fixture(
+    params=[
+        torch.device("cpu"),
+        pytest.param(
+            torch.device("cuda"), marks=pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
+        ),
+    ]
+)
 def device(request):
     return request.param
 
@@ -29,7 +34,7 @@ def classifier_model_params():
         "backbone": "mobilenet_v2",
         "num_classes": 10,
         "feat_extract": False,
-        "pretrained_weights": "MobileNet_V2_Weights.IMAGENET1K_V1"
+        "pretrained_weights": "MobileNet_V2_Weights.IMAGENET1K_V1",
     }
 
 

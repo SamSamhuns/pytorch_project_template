@@ -11,41 +11,41 @@ def collate_fn(batch):
 
 
 class WebDatasetDataLoader(DataLoader):
-    """Base class for all data loaders
-    """
+    """Base class for all data loaders"""
 
-    def __init__(self,
-                 dataset,
-                 batch_size,
-                 num_workers,
-                 validation_split=0.,
-                 collate_fn=collate_fn,
-                 timeout=0,
-                 drop_last=False,
-                 pin_memory=False,
-                 generator=None,
-                 worker_init_fn=None,
-                 persistent_workers=False):
+    def __init__(
+        self,
+        dataset,
+        batch_size,
+        num_workers,
+        validation_split=0.0,
+        collate_fn=collate_fn,
+        timeout=0,
+        drop_last=False,
+        pin_memory=False,
+        generator=None,
+        worker_init_fn=None,
+        persistent_workers=False,
+    ):
         self.validation_split = validation_split
         self.batch_idx = 0
         self.n_samples = len(dataset)
 
-        self.train_sampler, self.valid_sampler = self._split_sampler(
-            self.validation_split)
+        self.train_sampler, self.valid_sampler = self._split_sampler(self.validation_split)
 
         # Note: Recommended to do batching explicitely with WebDataset dataset along with collation
         # instead of using the DataLoader
         self.init_kwargs = {
-            'dataset': dataset.batched(batch_size, collation_fn=collate_fn),
-            'batch_size': None,
-            'collate_fn': None,
-            'num_workers': num_workers,
-            'timeout': timeout,
-            'drop_last': drop_last,
-            'pin_memory': pin_memory,
-            'generator': generator,
-            'worker_init_fn': worker_init_fn,
-            'persistent_workers': persistent_workers
+            "dataset": dataset.batched(batch_size, collation_fn=collate_fn),
+            "batch_size": None,
+            "collate_fn": None,
+            "num_workers": num_workers,
+            "timeout": timeout,
+            "drop_last": drop_last,
+            "pin_memory": pin_memory,
+            "generator": generator,
+            "worker_init_fn": worker_init_fn,
+            "persistent_workers": persistent_workers,
         }
         super().__init__(sampler=self.train_sampler, **self.init_kwargs)
 

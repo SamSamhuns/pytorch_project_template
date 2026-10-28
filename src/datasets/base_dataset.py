@@ -1,17 +1,16 @@
-"""Base Dataset Class
-"""
+"""Base Dataset Class"""
+
 import os
 import os.path as osp
 
 from PIL import Image
 from torch.utils import data
 
-IMG_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.webp'}
+IMG_EXTENSIONS = {".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".webp"}
 
 
 def is_file_ext_valid(filepath: str, extensions: list[str]):
-    """Check if a filepath has allowed extensions
-    """
+    """Check if a filepath has allowed extensions"""
     filepath_lower = filepath.lower()
     return any(filepath_lower.endswith(ext) for ext in extensions)
 
@@ -28,19 +27,15 @@ def _find_classes(root_dir: str):
                       |_ y2.ext
     """
     # list of classes or subfolders under root_dir
-    classes = [d for d in sorted(os.listdir(root_dir))
-               if osp.isdir(osp.join(root_dir, d))]
+    classes = [d for d in sorted(os.listdir(root_dir)) if osp.isdir(osp.join(root_dir, d))]
 
     # class_name to index dict, order is alphabetical sorting of class names
     class_to_idx = {classes[i]: i for i in range(len(classes))}
     return classes, class_to_idx
 
 
-def _make_dataset(directory: str,
-                  class_to_idx: dict[str, int],
-                  extensions: list[str]):
-    """Returns a list of img_path, class index tuples
-    """
+def _make_dataset(directory: str, class_to_idx: dict[str, int], extensions: list[str]):
+    """Returns a list of img_path, class index tuples"""
     images = []
     directory = osp.expanduser(directory)
     for target in sorted(os.listdir(directory)):
@@ -58,20 +53,18 @@ def _make_dataset(directory: str,
 
 
 def get_pil_img(path):
-    """Open path as file to avoid ResourceWarning
-    """
+    """Open path as file to avoid ResourceWarning"""
     # (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as fread:
+    with open(path, "rb") as fread:
         img = Image.open(fread)
-        return img.convert('RGB')
+        return img.convert("RGB")
 
 
 def write_class_mapping_to_file(mapping, fpath) -> None:
-    """Mapping must be one level deep dict of class_names to index
-    """
-    with open(fpath, 'w', encoding="utf-8") as fw:
+    """Mapping must be one level deep dict of class_names to index"""
+    with open(fpath, "w", encoding="utf-8") as fw:
         for class_name, class_idx in mapping.items():
-            fw.write(''.join([class_name, ' ', str(class_idx), '\n']))
+            fw.write("".join([class_name, " ", str(class_idx), "\n"]))
 
 
 class BaseDataset(data.Dataset):
@@ -103,18 +96,15 @@ class BaseDataset(data.Dataset):
 
     """
 
-    def __init__(self,
-                 root,
-                 loader,
-                 extensions,
-                 transforms=None,
-                 target_transforms=None):
+    def __init__(self, root, loader, extensions, transforms=None, target_transforms=None):
         classes, class_to_idx = _find_classes(root)
         data = _make_dataset(root, class_to_idx, extensions)
         if len(data) == 0:
-            raise (RuntimeError(
-                f"Found 0 files in subfolders of: {root}"
-                f"\nSupported extensions are: {','.join(extensions)}"))
+            raise (
+                RuntimeError(
+                    f"Found 0 files in subfolders of: {root}\nSupported extensions are: {','.join(extensions)}"
+                )
+            )
 
         self.root = root
         self.loader = loader
@@ -157,16 +147,14 @@ class BaseDataset(data.Dataset):
         return len(self.data)
 
     def __repr__(self):
-        fmt_str = 'Dataset ' + self.__class__.__name__ + '\n'
-        fmt_str += f'    Root Location: {self.root}\n'
-        fmt_str += f'    Number of datapoints: {self.__len__()}\n'
-        fmt_str += f'    Number of classes: {len(self.classes)}\n'
-        tmp = '    Transforms (if any): '
-        fmt_str += '{0}{1}\n'.format(
-            tmp, self.transforms.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
-        tmp = '    Target Transforms (if any): '
-        fmt_str += '{0}{1}'.format(
-            tmp, self.target_transforms.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
+        fmt_str = "Dataset " + self.__class__.__name__ + "\n"
+        fmt_str += f"    Root Location: {self.root}\n"
+        fmt_str += f"    Number of datapoints: {self.__len__()}\n"
+        fmt_str += f"    Number of classes: {len(self.classes)}\n"
+        tmp = "    Transforms (if any): "
+        fmt_str += "{0}{1}\n".format(tmp, self.transforms.__repr__().replace("\n", "\n" + " " * len(tmp)))
+        tmp = "    Target Transforms (if any): "
+        fmt_str += "{0}{1}".format(tmp, self.target_transforms.__repr__().replace("\n", "\n" + " " * len(tmp)))
         return fmt_str
 
 
@@ -199,16 +187,8 @@ class ImageFolderDataset(BaseDataset):
 
     """
 
-    def __init__(self,
-                 root,
-                 file_extensions=IMG_EXTENSIONS,
-                 transforms=None,
-                 target_transforms=None,
-                 loader=get_pil_img):
-        super().__init__(
-            root,
-            loader,
-            file_extensions,
-            transforms=transforms,
-            target_transforms=target_transforms)
+    def __init__(
+        self, root, file_extensions=IMG_EXTENSIONS, transforms=None, target_transforms=None, loader=get_pil_img
+    ):
+        super().__init__(root, loader, file_extensions, transforms=transforms, target_transforms=target_transforms)
         self.imgs = self.data
