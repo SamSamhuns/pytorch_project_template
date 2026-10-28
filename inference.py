@@ -1,19 +1,29 @@
-"""Script for running inference with trained .pt torch models
-
-Note: The inference script can be ported for use without a config file as well.
-Use the torch checkpoint file and the necessary transforms that are used for porting
+"""Inference on an image file or a dir of images,
+run with: python inference.py --cfg YAML_CONFIG_PATH -r .../models/best.pth -s IMAGE_OR_DIR
+Logs the most likely class of each image with its probability, and writes them to the run's logs/pred.txt
 """
 
 import argparse
+import glob
+import logging
 import os.path as osp
 from datetime import datetime
 
+import torch
+from PIL import Image
+from torchvision.datasets.folder import is_image_file
+
+from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
 from src.loggers import setup_logging
-from src.trainers import init_trainer
+from src.models import init_model
+from src.utils.common import get_device
+
+logger = logging.getLogger(__name__)
 
 
-def get_config_from_args():
+def get_config_from_args() -> CustomDictConfig:
+    """Get CustomDictConfig obj from argparse"""
     parser = argparse.ArgumentParser(description="PyTorch Inference. Currently only supports image classification")
     # primary cli args
     parser.add_argument("--cfg", "--config", type=str, dest="config", required=True, help="YAML config file path.")
@@ -23,7 +33,7 @@ def get_config_from_args():
         type=str,
         dest="resume_checkpoint",
         required=True,
-        help="Path to resume checkpoint. Overrides `trainer.resume_checkpoint` in config.",
+        help="Checkpoint to run, e.g. .../models/best.pth",
     )
     parser.add_argument(
         "--id",
@@ -49,19 +59,11 @@ def get_config_from_args():
         action="store_true",
         dest="verbose",
         default=False,
-        help="Run testing in verbose mode (default: %(default)s)",
+        help="Run inference in verbose mode (default: %(default)s)",
     )
 
     # additional arguments (Overrides YAML configs)
     parser.add_argument("--dev", "--device", dest="device", help="Device to run on, e.g. cpu, cuda or cuda:1.")
-    parser.add_argument(
-        "--mode",
-        type=str,
-        dest="mode",
-        default="INFERENCE",
-        choices=["INFERENCE"],
-        help="Running mode. (default: %(default)s)",
-    )
     parser.add_argument(
         "-s",
         "--source_path",
@@ -71,25 +73,41 @@ def get_config_from_args():
         help="Path to source image file or directory for running inference.",
     )
     args = parser.parse_args()
-
-    # To override key-value params from YAML file,
-    # match the YAML kv structure for any additional args above
-    # keys-val pairs can have nested structure separated by colons
-    yaml_modification = {
-        "trainer.resume_checkpoint": args.resume_checkpoint,
-        "device": args.device,
-        "mode": args.mode,
-    }
-    return CustomDictConfig.from_args(args, yaml_modification)
+    return CustomDictConfig.from_args(args, {"device": args.device})
 
 
 def main():
     config = get_config_from_args()
     setup_logging(osp.join(config.logs_dir, "inference.log"))
-    config["trainer"]["use_tensorboard"] = False
-    trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="inference")
+    device = get_device(config["device"])
 
-    trainer.inference(config["source_path"])
+    # inference needs only the model and the eval transform, not the trainer or the datasets
+    model = init_model(config["model"]["type"], **config["model"]["args"])
+    checkpoint = torch.load(config["resume_checkpoint"], map_location="cpu", weights_only=True)
+    model.load_state_dict(checkpoint["model"])
+    model = model.to(device).eval()
+    classes = checkpoint["classes"]
+    preprocess_cfg = config["dataset"]["preprocess"]
+    eval_transform = init_transform(preprocess_cfg["type"], **preprocess_cfg["args"]).eval_transform
+
+    # is_image_file compares lower-cased extensions, so .JPG and .PNG files count too
+    source_path = config["source_path"]
+    if osp.isdir(source_path):
+        image_paths = sorted(path for path in glob.glob(osp.join(source_path, "*")) if is_image_file(path))
+    elif osp.isfile(source_path) and is_image_file(source_path):
+        image_paths = [source_path]
+    else:
+        raise ValueError(f"Inference source {source_path} is not an image file or dir with images")
+
+    with torch.inference_mode(), open(osp.join(config["logs_dir"], "pred.txt"), "w", encoding="utf-8") as pred_file:
+        for image_path in image_paths:
+            image = Image.open(image_path).convert("RGB")
+            probs = model(eval_transform(image).unsqueeze(0).to(device)).softmax(dim=1)[0]
+            prob, pred = probs.max(dim=0)
+            class_name, prob = classes[pred.item()], prob.item()
+            logger.info("%s: %s (probability %.3f)", image_path, class_name, prob)
+            pred_file.write(f"{image_path}, {class_name}, {prob:.4f}\n")
+    logger.info("Inference complete for %s", source_path)
 
 
 if __name__ == "__main__":

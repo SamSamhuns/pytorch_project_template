@@ -5,12 +5,9 @@ import os
 import os.path as osp
 import shutil
 from collections.abc import Callable
-from unittest.mock import MagicMock
 
 import numpy as np
-import onnxruntime as ort
 import pytest
-import torch
 from PIL import Image
 from torch import nn
 
@@ -101,37 +98,6 @@ class Simple2DConvModel(nn.Module):
 def simple_2d_conv_model():
     """Get simple model"""
     return Simple2DConvModel()
-
-
-@pytest.fixture
-def sample_tensor():
-    """Sample tensor for Simple1DConvModel"""
-    return torch.randn(32, 3, 100, 100)
-
-
-@pytest.fixture
-def setup_model_and_logger(simple_2d_conv_model):
-    """Get simple model and logger"""
-    logger = MagicMock()
-    return simple_2d_conv_model, logger
-
-
-@pytest.fixture
-def onnx_session(simple_2d_conv_model, sample_tensor):
-    """Export pt model and return an ONNX Runtime session"""
-    # Export the model to ONNX format temporarily
-    export_path = PYTEST_TEMP_ROOT + "/temp_model.onnx"
-    torch.onnx.export(
-        simple_2d_conv_model,
-        sample_tensor,
-        export_path,
-        export_params=True,
-        opset_version=17,
-        input_names=["input"],
-        output_names=["output"],
-    )
-    session = ort.InferenceSession(str(export_path))
-    return session
 
 
 ####################################

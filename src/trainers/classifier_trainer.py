@@ -1,6 +1,5 @@
 """Image classification trainer"""
 
-import glob
 import os
 import os.path as osp
 import time
@@ -9,10 +8,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import tqdm
-from PIL import Image
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
-from torchvision.datasets.folder import is_image_file
 from torchvision.utils import make_grid
 
 from src.config_parser import CustomDictConfig
@@ -26,7 +23,7 @@ from src.utils.custom_statistics import get_model_params
 
 
 class ClassifierTrainer(BaseTrainer):
-    """Main ClassifierTrainer with the train, test, validate, inference, load_checkpoint and save_checkpoint funcs"""
+    """Main ClassifierTrainer with the train, test, validate, load_checkpoint and save_checkpoint funcs"""
 
     def __init__(self, config: CustomDictConfig, logger_name: str):
         super().__init__(config, logger_name)
@@ -43,10 +40,6 @@ class ClassifierTrainer(BaseTrainer):
         else:
             self.logger.info("Training will be done from scratch")
         self.model = self.model.to(self.device)
-
-        # do not progress beyond for INFERENCE mode
-        if config["mode"] in {"INFERENCE"}:
-            return
 
         # define loss and instantiate it
         self.loss = init_loss(self.config["loss"]["type"], **self.config["loss"]["args"]).to(self.device)
@@ -75,6 +68,7 @@ class ClassifierTrainer(BaseTrainer):
             "scheduler": self.scheduler.state_dict(),
             "epoch": self.current_epoch,
             "best_val_acc": self.best_val_acc,
+            "classes": self.data_set.classes,  # for inference.py and export.py, which name the predicted classes
         }
         save_path = osp.join(self.config["models_dir"], file_name)
         torch.save(checkpoint, save_path)
@@ -326,43 +320,3 @@ class ClassifierTrainer(BaseTrainer):
         test_end_tm = time.perf_counter()
         self.logger.info("\nTest time: %.3fs", test_end_tm - test_start_tm)
         self.logger.info("Finished testing model.")
-
-    def inference(
-        self, source_path: str, weight_path: str | None = None, log_txt_preds: bool = True
-    ) -> list[tuple[str, float]]:
-        """Run inference on an image file or directory with existing model or model loaded with new weight_path
-        Args:
-            source_path: str
-        """
-        if weight_path is not None:
-            self.model.load_state_dict(self.load_checkpoint(weight_path)["model"])
-        self.model.eval()
-
-        image_list = []
-        if osp.isdir(source_path):
-            fpaths = glob.glob(osp.join(source_path, "*"))
-            image_list = [path for path in fpaths if is_image_file(path)]
-        elif osp.isfile(source_path) and is_image_file(source_path):
-            image_list = [source_path]
-        else:
-            raise ValueError(f"Inference source {source_path} is not an image file or dir with images")
-
-        pred_file_labels = []
-        with torch.inference_mode():
-            for image_path in image_list:
-                image = Image.open(image_path).convert("RGB")
-                data = self.preprocess.eval_transform(image)
-                data = data.to(self.device).unsqueeze(0)
-                output = self.model(data)
-                # the predicted class has the largest logit
-                pred = output.max(1, keepdim=True)[1].item()
-
-                self.logger.info("Image path=%s: predicted label=%s", image_path, pred)
-                pred_file_labels.append([image_path, pred])
-        if log_txt_preds:
-            with open(osp.join(self.config["logs_dir"], "pred.txt"), "w", encoding="utf-8") as pred_ptr:
-                for image_path, pred in pred_file_labels:
-                    pred_ptr.write(f"{image_path}, {pred}\n")
-
-        self.logger.info("Inference complete for %s", source_path)
-        return pred_file_labels

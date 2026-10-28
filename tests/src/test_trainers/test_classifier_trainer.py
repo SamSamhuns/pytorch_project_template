@@ -10,6 +10,7 @@ from src.config_parser import CustomDictConfig
 from src.metrics import calc_metric
 from src.models import init_model
 from src.trainers import ClassifierTrainer
+from tests.conftest import NUM_CLS
 
 
 def test_init_trainer(clsf_trainer_and_logger):
@@ -62,7 +63,8 @@ def test_train_method(clsf_trainer_and_logger):
     trainer.train()
 
     assert trainer.current_epoch > initial_epoch, "No epochs were completed."
-    assert osp.isfile(osp.join(trainer.config["models_dir"], "last.pth"))
+    checkpoint = torch.load(osp.join(trainer.config["models_dir"], "last.pth"), weights_only=True)
+    assert checkpoint["classes"] == [f"class_{i}" for i in range(NUM_CLS)]  # the mock image dirs
     logger_instance = mocked_logger.return_value
     assert logger_instance.info.call_count > 0, "No logging occurred during training."
 

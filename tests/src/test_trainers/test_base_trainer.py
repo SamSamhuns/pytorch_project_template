@@ -92,26 +92,3 @@ def test_full_training_cycle(base_trainer_and_logger, mocker):
         trainer.validate()
     except Exception as e:
         pytest.fail(f"Training cycle failed with unexpected exception: {e}")
-
-
-@pytest.mark.parametrize(
-    "mode, file_suffix",
-    [
-        ("ONNX_TS", "_ts.onnx"),
-        ("ONNX_DYNAMO", "_dynamo.onnx"),
-    ],
-)
-def test_export_function(mode, file_suffix, base_trainer_and_logger, simple_2d_conv_model):
-    """Test trainer export modes"""
-    trainer, logger = base_trainer_and_logger
-    trainer.model = simple_2d_conv_model
-    trainer.model = trainer.model.to(torch.device(trainer.device.type))
-    trainer.export(mode)
-
-    # Check if paths and files are correctly constructed
-    model_name = "model_gpu" if trainer.device.type == "cuda" else "model_cpu"
-    export_path = os.path.join(trainer.config["models_dir"], model_name)
-    export_path = export_path + file_suffix
-
-    info_calls = [call.args for call in logger.return_value.info.call_args_list]
-    assert ("%s export complete", mode) in info_calls

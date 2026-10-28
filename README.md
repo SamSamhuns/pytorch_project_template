@@ -35,7 +35,7 @@ uv sync --extra cu130  # PyTorch with CUDA 13.0 for NVIDIA GPUs (driver >= 580)
 
 Pass the same `--extra` every time you run `uv sync`; without one, uv removes PyTorch. Run commands with `uv run`, e.g. `uv run python train.py --cfg configs/mnist_config.yaml`, or activate the environment with `source .venv/bin/activate`.
 
--   Add `--group server` to install the FastAPI server's dependencies.
+-   This also installs the FastAPI server's dependencies, the `server` group, which the default `dev` group includes.
 -   For a pip requirements file: `uv export --extra cpu --no-hashes > requirements.txt`
 
 ## Train
@@ -125,8 +125,10 @@ python test.py --cfg CONFIG_FILE
 ## Export
 
 ```shell
-python export.py --cfg CONFIG_FILE -r MODEL_PATH --mode <"ONNX_TS"/"ONNX_DYNAMO">
+python export.py --cfg CONFIG_FILE -r checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth
 ```
+
+This writes `model.onnx` to the export run's `models` dir, e.g. `checkpoints/EXPERIMENT_NAME/export_DATE_TIME/models/model.onnx`, and checks that ONNX Runtime's outputs match the PyTorch model's. The ONNX model takes any batch size, and holds the class names and the settings of the eval transform, which the server reads.
 
 ## TensorBoard logging
 
@@ -139,6 +141,12 @@ tensorboard --logdir=TF_LOG_DIR --port=6006
 ```
 
 ## Inference
+
+```shell
+python inference.py --cfg CONFIG_FILE -r checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth -s IMAGE_FILE_OR_DIR
+```
+
+This logs the most likely class of each image with its probability, and writes them to the run's `logs/pred.txt`.
 
 ## Docker
 
@@ -157,10 +165,17 @@ The container runs on CPU unless you pass GPUs with `-g`, e.g. `bash scripts/run
 
 ### For serving the model with FastAPI
 
+The server runs a `model.onnx` from `export.py` with ONNX Runtime, so its image has no PyTorch.
+
 ```shell
-bash server/build_server_docker.sh -m pytorch/onnx
-bash server/run_server_docker.sh -h/--http 8080
+bash server/build_server_docker.sh
+mkdir -p checkpoints_server && cp checkpoints/EXPERIMENT_NAME/export_DATE_TIME/models/model.onnx checkpoints_server/
+bash server/run_server_docker.sh -p 8080
+# the 5 most likely classes of an image, with their probabilities
+curl -F file=@IMAGE_FILE "localhost:8080/predict?top_k=5"
 ```
+
+Without Docker, run `MODEL_PATH=path/to/model.onnx uvicorn server.app:app --port 8080` from the repo root.
 
 ## Utility functions
 
