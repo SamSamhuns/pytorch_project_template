@@ -19,7 +19,7 @@ torch_compile_model: false  # Compile the PyTorch model for optimized performanc
 # Trainer configuration
 trainer:
   type: ClassifierTrainer  # Trainer type (classification tasks)
-  resume_checkpoint: null  # Path to checkpoint for resuming training
+  resume_checkpoint: null  # Checkpoint to resume from, e.g. .../models/last.pth; restores the optimizer, LR schedule and epoch too
   batch_log_freq: 5  # Logging frequency within an epoch
   valid_freq: 2  # Validate every N epochs; best.pth is saved when val accuracy improves, last.pth every epoch
   epochs: 12  # Number of training epochs
