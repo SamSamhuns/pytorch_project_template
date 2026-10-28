@@ -94,8 +94,8 @@ metrics:
 
 # Learning rate scheduler configuration
 lr_scheduler:
-  type: ReduceLROnPlateau  # Scheduler type (reduces LR when a metric stops improving)
+  type: CosineAnnealingLR  # Any scheduler in torch.optim.lr_scheduler, stepped once per epoch
   args:
-    factor: 0.1  # Factor by which the learning rate is reduced
-    patience: 8  # Number of epochs with no improvement before reducing LR
+    T_max: ${trainer.epochs}  # Epochs to decay the LR over; ${trainer.epochs} copies that value
+  warmup_epochs: 0  # Epochs of linear warmup from 10% of the LR; not supported with ReduceLROnPlateau
 ```

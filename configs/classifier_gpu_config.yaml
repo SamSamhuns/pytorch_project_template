@@ -69,7 +69,7 @@ metrics:
   - confusion_matrix
   - classification_report
 lr_scheduler:
-  type: ReduceLROnPlateau
+  type: CosineAnnealingLR
   args:
-    factor: 0.1
-    patience: 8
+    T_max: ${trainer.epochs}
+  warmup_epochs: 0

@@ -22,7 +22,6 @@ def test_init_trainer(clsf_trainer_and_logger):
     assert isinstance(trainer.loss, torch.nn.Module)
     assert isinstance(trainer.optimizer, torch.optim.Optimizer)
     assert isinstance(trainer.optimizer, torch.optim.SGD)
-    assert isinstance(trainer.scheduler, torch.optim.lr_scheduler.LRScheduler)
     assert isinstance(trainer.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
 
 
