@@ -13,6 +13,7 @@ from PIL import Image
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torchvision.datasets.folder import is_image_file
+from torchvision.utils import make_grid
 
 from src.config_parser import CustomDictConfig
 from src.losses import init_loss
@@ -148,8 +149,11 @@ class ClassifierTrainer(BaseTrainer):
             self.scheduler.step(metrics=train_loss)
 
         if self.config["trainer"]["use_tensorboard"]:
-            # data still holds the epoch's last batch, so the loader isn't read again just for this
-            self.tboard_writer.add_images("preprocessed image batch", data, self.current_epoch)
+            # data still holds the epoch's last batch, so the loader isn't read again just for this;
+            # the images are normalized, so make_grid rescales them to the [0, 1] range TensorBoard shows
+            self.tboard_writer.add_image(
+                "preprocessed image batch", make_grid(data, normalize=True), self.current_epoch
+            )
             self.tboard_writer.add_scalar("Loss/train/epoch", train_loss, self.current_epoch)
             self.tboard_writer.add_scalar("Accuracy/train/epoch", train_accuracy, self.current_epoch)
             self.tboard_writer.add_scalar(
