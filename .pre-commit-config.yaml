@@ -1,13 +1,13 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v6.0.0
     hooks:
     -   id: check-yaml
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.8  # latest tag
+    rev: v0.17.3  # keep in sync with the ruff version in pyproject.toml
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]     # auto-fix lint issues
       - id: ruff-format   # auto-format code

@@ -60,7 +60,7 @@ def main():
     args = parser.parse_args()
     if args.remove:
         confirm_removal = input("Corrupt files will be removed: Continue (Y/N)?")
-        args.remove = True if confirm_removal in {"Y", "y", "yes", "Yes"} else False
+        args.remove = confirm_removal in {"Y", "y", "yes", "Yes"}
 
     if args.remove:
         print("Corrupt files will be removed")

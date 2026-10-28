@@ -18,7 +18,7 @@ def init_detectors(models_param_dict: dict, device: str | None = "0"):
     """
     print(f"Initializing models {models_param_dict.keys()} in device {device}")
 
-    models_dict = dict()
+    models_dict = {}
     for model_name, model_info in models_param_dict.items():
         f_checkpoint, f_config = model_info
         agent = init_single_detector(f_config, f_checkpoint, device=device)

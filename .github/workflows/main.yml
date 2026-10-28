@@ -30,5 +30,10 @@ jobs:
     - name: Install dependencies with CPU-only torch
       run: uv sync --locked --extra cpu
 
+    - name: Lint and check formatting
+      run: |
+        uv run ruff check .
+        uv run ruff format --check .
+
     - name: Run all tests
       run: uv run pytest -v tests

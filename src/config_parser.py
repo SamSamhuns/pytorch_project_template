@@ -97,7 +97,7 @@ class CustomDictConfig(DictConfig):
                           that are not alr present as top-level keys.
 
         """
-        modification = {} if not modification else modification
+        modification = modification or {}
         # Add all args to modification from args
         if add_all_args:
             # only check top-level keys

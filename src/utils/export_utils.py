@@ -17,7 +17,7 @@ class ExportStrategy(ABC):
     logger: Optional logger object to log instead of printing
     """
 
-    def __init__(self, logger: Logger = None) -> None:
+    def __init__(self, logger: Logger | None = None) -> None:
         super().__init__()
         self.logger = logger
 
@@ -43,7 +43,9 @@ def onnx_inference(ort_sess, sample_in):
     return ort_outs
 
 
-def onnx_inference_check(model: Module, onnx_model_path: str, sample_in: torch.Tensor, logger: Logger = None) -> None:
+def onnx_inference_check(
+    model: Module, onnx_model_path: str, sample_in: torch.Tensor, logger: Logger | None = None
+) -> None:
     """Test exported ONNX model and inference.
 
     Currently only supports CPU based export check

@@ -152,9 +152,9 @@ class BaseDataset(data.Dataset):
         fmt_str += f"    Number of datapoints: {self.__len__()}\n"
         fmt_str += f"    Number of classes: {len(self.classes)}\n"
         tmp = "    Transforms (if any): "
-        fmt_str += "{0}{1}\n".format(tmp, self.transforms.__repr__().replace("\n", "\n" + " " * len(tmp)))
+        fmt_str += "{}{}\n".format(tmp, self.transforms.__repr__().replace("\n", "\n" + " " * len(tmp)))
         tmp = "    Target Transforms (if any): "
-        fmt_str += "{0}{1}".format(tmp, self.target_transforms.__repr__().replace("\n", "\n" + " " * len(tmp)))
+        fmt_str += "{}{}".format(tmp, self.target_transforms.__repr__().replace("\n", "\n" + " " * len(tmp)))
         return fmt_str
 
 
