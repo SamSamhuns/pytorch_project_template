@@ -69,6 +69,9 @@ Set training data inside `data` directory in the following format:
     Note: ImageNet style class_dir->subdirs->subdirs->images... is also supported
 
 ```shell
+# list the images PIL can't read, which would stop training; add -r to remove them
+python scripts/find_corrupt_images.py -s data/SOURCE_DATASET
+
 # generate an id to name classmap
 python scripts/generate_classmap_from_dataset.py --sd data/SOURCE_DATASET --mp data/ID_2_CLASSNAME_MAP_TXT_FILE
 
@@ -93,13 +96,16 @@ python train.py --cfg custom_classifier_cpu_config.yaml
 
 ### WebDataset for large scale training
 
-Convert existing dataset to a `tar` archive format used by WebDataset. The data directory must match the structure above.
+WebDataset streams the images from tar shards, which suits large datasets on network or slow storage better than many small files. Convert each split of a dataset in the structure above to its own dir of shards. The images are stored as they are, without re-encoding, and an `info.json` next to the shards holds the class names and the image count.
 
 ```shell
-# ID_2_CLASSNAME_MAP_TXT_FILE is generated using the scripts/train_val_test_split.py file
-# convert train/val/test splits into tar archives
-python scripts/convert_dataset_to_tar.py --sd data/SOURCE_DATA_SPLIT --td data/TARGET_TAR_SPLIT.tar --mp ID_2_CLASSNAME_MAP_TXT_FILE
+# writes e.g. data/birds_webdataset/train/000000.tar, 000001.tar, ... and info.json
+for split in train valid test; do
+  python scripts/convert_dataset_to_tar.py --sd data/birds_dataset/$split --td data/birds_webdataset/$split
+done
 ```
+
+Each DataLoader worker reads its own shards, so write at least as many shards as `dataloader.num_workers`. `--maxcount` sets the images per shard (default 1000).
 
 An example configuration for training with the WebDataset format is provided in `configs/classifier_webdataset_cpu_config.yaml`.
 

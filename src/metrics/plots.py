@@ -1,4 +1,7 @@
-import matplotlib.pyplot as plt
+"""Binary classification plots. Each function imports pyplot itself, as importing it at the top
+would add about 0.3 s to the startup of every script, even the ones that never plot
+"""
+
 from numpy.typing import ArrayLike
 from sklearn.calibration import CalibrationDisplay
 from sklearn.metrics import PrecisionRecallDisplay, RocCurveDisplay
@@ -6,6 +9,8 @@ from sklearn.metrics import PrecisionRecallDisplay, RocCurveDisplay
 
 def plot_roc_curve(y_true: ArrayLike, y_score: ArrayLike, savepath: str = "roc_curve.png", **kwargs):
     """Plot the ROC curve for a binary classification problem. y_score is P(class 1)."""
+    import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots(figsize=(15, 15))
     RocCurveDisplay.from_predictions(y_true, y_score, ax=ax, **kwargs)
 
@@ -15,6 +20,8 @@ def plot_roc_curve(y_true: ArrayLike, y_score: ArrayLike, savepath: str = "roc_c
 
 def plot_pr_curve(y_true: ArrayLike, y_score: ArrayLike, savepath: str = "precision_recall_curve.png", **kwargs):
     """Plot the Precision-Recall curve for a binary classification problem. y_score is P(class 1)."""
+    import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots(figsize=(15, 15))
     PrecisionRecallDisplay.from_predictions(y_true, y_score, ax=ax, **kwargs)
 
@@ -24,6 +31,8 @@ def plot_pr_curve(y_true: ArrayLike, y_score: ArrayLike, savepath: str = "precis
 
 def plot_calibration_curve(y_true: ArrayLike, y_score: ArrayLike, savepath: str = "calibration_curve.png", **kwargs):
     """Plot the Calibration curve for a binary classification problem. y_score is P(class 1)."""
+    import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots(figsize=(15, 15))
     CalibrationDisplay.from_predictions(y_true, y_prob=y_score, n_bins=10, ax=ax, **kwargs)
 

@@ -32,21 +32,15 @@ dataset:
     train_path: train
     val_path: valid
     test_path: test
+    validation_split: 0.0
   num_classes: 20
   preprocess:
     type: ImagenetClassifierPreprocess
     args:
       weights: ${model.args.pretrained_weights}
 dataloader:
-  type: CustomDataLoader
-  args:
-    batch_size: 32
-    num_workers: 4
-    shuffle: true
-    validation_split: 0.0
-    drop_last: false
-    pin_memory: false
-    worker_init_fn: null
+  batch_size: 32
+  num_workers: 4
 optimizer:
   type: SGD
   args:

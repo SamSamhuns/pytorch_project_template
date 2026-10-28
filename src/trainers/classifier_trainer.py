@@ -12,9 +12,10 @@ import tqdm
 from PIL import Image
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
+from torchvision.datasets.folder import is_image_file
+from torchvision.utils import make_grid
 
 from src.config_parser import CustomDictConfig
-from src.datasets.base_dataset import IMG_EXTENSIONS, is_file_ext_valid
 from src.losses import init_loss
 from src.metrics import calc_metric, plot_metric
 from src.models import init_model
@@ -85,12 +86,11 @@ class ClassifierTrainer(BaseTrainer):
             self.logger.info("Training set:")
         epoch_start_tm = time.perf_counter()
         self.model.train()
-        cum_train_loss = 0
+        # summed on the device and read once per epoch, as .item() makes the CPU wait for the GPU
+        cum_train_loss = torch.zeros((), device=self.device)
+        correct = torch.zeros((), dtype=torch.long, device=self.device)
         train_size = 0
-        correct = 0
-        train_data_len = len(self.data_set.train_set) - (
-            len(self.data_set.train_set) * self.config["dataloader"]["args"]["validation_split"]
-        )
+        train_data_len = len(self.train_data_loader.dataset)
 
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
             data = data.to(self.device, non_blocking=True)
@@ -103,17 +103,16 @@ class ClassifierTrainer(BaseTrainer):
                 output = self.model(data)
                 loss = self.loss(output, target)
             # loss is the batch mean, so weight it by the batch size
-            cum_train_loss += loss.item() * data.size(0)
+            cum_train_loss += loss.detach() * data.size(0)
             # the predicted class has the largest logit
-            pred = output.max(1, keepdim=True)[1]
-            correct += pred.eq(target.view_as(pred)).sum().item()
+            correct += (output.argmax(dim=1) == target).sum()
 
             loss.backward()
             self.optimizer.step()
             if batch_idx % self.config["trainer"]["batch_log_freq"] == 0:
                 if self.config.verbose:
                     self.logger.info(
-                        "\tTrain Epoch: %s [%6d/%.0f (%.1f%%)] Loss: %.6f",
+                        "\tTrain Epoch: %s [%6d/%d (%.1f%%)] Loss: %.6f",
                         self.current_epoch,
                         batch_idx * len(data),
                         train_data_len,
@@ -125,7 +124,8 @@ class ClassifierTrainer(BaseTrainer):
                     step = (self.current_epoch - 1) * len(self.train_data_loader) + batch_idx
                     self.tboard_writer.add_scalar("Loss/train/iteration", loss.item(), step)
 
-        train_loss = cum_train_loss / train_size
+        train_loss = cum_train_loss.item() / train_size
+        correct = correct.item()
         train_accuracy = 100.0 * correct / train_size
         epoch_end_tm = time.perf_counter()
         epoch_tm = epoch_end_tm - epoch_start_tm
@@ -149,8 +149,11 @@ class ClassifierTrainer(BaseTrainer):
             self.scheduler.step(metrics=train_loss)
 
         if self.config["trainer"]["use_tensorboard"]:
-            # data still holds the epoch's last batch, so the loader isn't read again just for this
-            self.tboard_writer.add_images("preprocessed image batch", data, self.current_epoch)
+            # data still holds the epoch's last batch, so the loader isn't read again just for this;
+            # the images are normalized, so make_grid rescales them to the [0, 1] range TensorBoard shows
+            self.tboard_writer.add_image(
+                "preprocessed image batch", make_grid(data, normalize=True), self.current_epoch
+            )
             self.tboard_writer.add_scalar("Loss/train/epoch", train_loss, self.current_epoch)
             self.tboard_writer.add_scalar("Accuracy/train/epoch", train_accuracy, self.current_epoch)
             self.tboard_writer.add_scalar(
@@ -163,7 +166,7 @@ class ClassifierTrainer(BaseTrainer):
         y_score is P(class 1) for binary models and the class probabilities otherwise.
         """
         self.model.eval()
-        cumu_test_loss = 0
+        cumu_test_loss = torch.zeros((), device=self.device)  # read once at the end; .item() would sync every step
         y_true, y_score, y_pred = [], [], []
         with torch.inference_mode():
             for data, target in tqdm.tqdm(data_loader):
@@ -173,7 +176,7 @@ class ClassifierTrainer(BaseTrainer):
                     output = self.model(data)
                     loss = self.loss(output, target)
                 # sum up batch loss (the loss is the batch mean, so weight it by the batch size)
-                cumu_test_loss += loss.item() * data.size(0)
+                cumu_test_loss += loss * data.size(0)
                 # get the class probabilities (proba) & the predicted class (pred); float() as numpy has no bfloat16
                 proba = F.softmax(output.float(), dim=1)
                 pred = proba.argmax(dim=1)
@@ -187,7 +190,7 @@ class ClassifierTrainer(BaseTrainer):
         y_score = torch.concat(y_score).cpu().numpy()
         y_pred = torch.concat(y_pred).cpu().numpy()
 
-        return cumu_test_loss / len(y_true), y_true, y_score, y_pred
+        return cumu_test_loss.item() / len(y_true), y_true, y_score, y_pred
 
     def train(self) -> None:
         """Main training function with loop"""
@@ -338,8 +341,8 @@ class ClassifierTrainer(BaseTrainer):
         image_list = []
         if osp.isdir(source_path):
             fpaths = glob.glob(osp.join(source_path, "*"))
-            image_list = [path for path in fpaths if is_file_ext_valid(path, IMG_EXTENSIONS)]
-        elif osp.isfile(source_path) and is_file_ext_valid(source_path, IMG_EXTENSIONS):
+            image_list = [path for path in fpaths if is_image_file(path)]
+        elif osp.isfile(source_path) and is_image_file(source_path):
             image_list = [source_path]
         else:
             raise ValueError(f"Inference source {source_path} is not an image file or dir with images")

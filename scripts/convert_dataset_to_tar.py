@@ -1,15 +1,21 @@
-"""convert dataset to tar format for fast loading with webdataset"""
+"""Convert one split of an image folder dataset to WebDataset tar shards for streaming large datasets.
+The images are stored as they are, without re-encoding, and in shuffled order so that each shard mixes the classes.
+info.json next to the shards holds the class names and the image count, which training reads.
+"""
 
 import argparse
-import glob
+import json
+import os
+import os.path as osp
+import random
 
 import webdataset as wds
-from PIL import Image
+from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 
 # #################### Raw Data Organization ########################
 #   raw_data
-#          |_ dataset
+#          |_ dataset_split
 #                   |_ class_1
 #                             |_ img1
 #                             |_ img2
@@ -22,69 +28,53 @@ from tqdm import tqdm
 # ###################################################################
 
 
-def generate_tar(src_data_dir: str, tar_path: str, mapping_fname: str = "dataset_mapping.txt") -> None:
-    """Generates a combined tar archive for loading into webdataset
-    from class folder separated data from src_data_dir & a class mapping txt file
+def write_shards(src_data_dir: str, target_dir: str, maxcount: int = 1000) -> None:
+    """Write the images of src_data_dir to target_dir/000000.tar, 000001.tar, ... with maxcount images each,
+    and their class names and count to target_dir/info.json
     """
-    # fix path for globbing
-    if not src_data_dir.endswith(("/", "*")):
-        src_data_dir += "/"
-    dir_list = sorted(glob.glob(src_data_dir + "*"))
-    class_id = 0
-    file_count = 1
+    dataset = ImageFolder(src_data_dir)  # the same classes and labels as data_mode: imgs
+    samples = dataset.samples.copy()
+    random.Random(42).shuffle(samples)  # a fixed seed, so the same images always give the same shards
+    os.makedirs(target_dir)  # raises if it exists, as old shards there would be read too
 
-    with open(mapping_fname, "w", encoding="utf-8") as map_file, wds.TarWriter(tar_path) as sink:
-        for dir_name in tqdm(dir_list):
-            split_string = dir_name.split("/")
-            map_file.write(str(class_id) + "\t" + split_string[-1] + "\n")
-            img_list = glob.glob(dir_name + "/*")
-            for img_name in img_list:
-                try:
-                    img = Image.open(img_name).convert("RGB")  # drops any alpha channel
+    with wds.ShardWriter(osp.join(target_dir, "%06d.tar"), maxcount=maxcount) as sink:
+        for index, (path, class_idx) in enumerate(tqdm(samples)):
+            # the file extension, e.g. jpg or png, tells the loader how to decode the bytes
+            extension = osp.splitext(path)[1][1:].lower()
+            with open(path, "rb") as image_file:
+                sink.write({"__key__": f"{index:08d}", extension: image_file.read(), "cls": class_idx})
 
-                    sink.write(
-                        {
-                            "__key__": f"sample{file_count:06d}",
-                            "input.jpg": img,
-                            "output.cls": class_id,
-                        }
-                    )
-                    file_count += 1
-                except Exception as excep:
-                    print(f"{excep}. PIL could not read file {img_name}. Skipping...")
-            class_id += 1
+    with open(osp.join(target_dir, "info.json"), "w", encoding="utf-8") as info_file:
+        json.dump({"classes": dataset.classes, "num_samples": len(samples)}, info_file, indent=2)
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--sd",
         "--source_data_path",
         type=str,
         dest="source_data_path",
         required=True,
-        help="""Source dataset path with class imgs inside folders""",
+        help="Source split with one sub-folder of images per class, e.g. data/birds_dataset/train",
     )
     parser.add_argument(
         "--td",
-        "--target_tar_path",
+        "--target_dir",
         type=str,
-        dest="target_tar_path",
+        dest="target_dir",
         required=True,
-        help="""Target tar path where the
-                        data is stored for fast retrieval i.e. data/custom_data.tar""",
+        help="New dir for the shards and info.json, e.g. data/birds_webdataset/train",
     )
     parser.add_argument(
-        "--mp",
-        "--mapping_file_path",
-        type=str,
-        dest="mapping_file_path",
-        default="data/dataset_mapping.txt",
-        help="""Mapping file txt path where
-                        class names and index ids will be present (default: %(default)s)""",
+        "--maxcount",
+        type=int,
+        default=1000,
+        help="Images per shard. Each DataLoader worker reads its own shards, so write at least as many shards "
+        "as dataloader.num_workers (default: %(default)s)",
     )
     args = parser.parse_args()
-    generate_tar(args.source_data_path, args.target_tar_path, args.mapping_file_path)
+    write_shards(args.source_data_path, args.target_dir, args.maxcount)
 
 
 if __name__ == "__main__":

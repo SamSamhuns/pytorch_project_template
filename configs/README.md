@@ -47,6 +47,7 @@ dataset:
     train_path: train  # Subdirectory for training data
     val_path: valid  # Subdirectory for validation data
     test_path: test  # Subdirectory for test data
+    validation_split: 0.0  # Without a val_path, the fraction of the train data to validate on
   num_classes: 20  # Number of classes in the dataset
   preprocess:
     type: ImagenetClassifierPreprocess  # Random crops and flips for training; one eval transform for val, test and inference
@@ -54,16 +55,9 @@ dataset:
       weights: ${model.args.pretrained_weights}  # The eval resize, crop and normalization come from these weights
 
 # DataLoader configuration
-dataloader:
-  type: CustomDataLoader  # DataLoader type
-  args:
-    batch_size: 32  # Number of samples per batch
-    num_workers: 4  # Number of worker processes for data loading
-    shuffle: true  # Shuffle the dataset during training
-    validation_split: 0.0  # Fraction of data to use for validation
-    drop_last: false  # Drop the last incomplete batch
-    pin_memory: true  # Enable pinned memory for faster data transfer to GPU
-    worker_init_fn: null  # Custom initialization function for workers
+dataloader:  # torch DataLoaders; the train loader shuffles, the val and test loaders don't
+  batch_size: 32  # Number of samples per batch; the train loader drops its last, smaller batch
+  num_workers: 4  # Worker processes for data loading, kept between epochs; memory is pinned when training on CUDA
 
 # Optimizer configuration
 optimizer:
