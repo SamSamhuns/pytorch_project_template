@@ -10,7 +10,7 @@ import torch
 import torch.nn.functional as F
 import tqdm
 from PIL import Image
-from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
 from src.augmentations import init_transform
@@ -54,9 +54,7 @@ class ClassifierTrainer(BaseTrainer):
             self.config["optimizer"]["type"], **self.config["optimizer"]["args"], params=self.model.parameters()
         )
         # define lr scheduler
-        self.scheduler = init_scheduler(
-            self.config["lr_scheduler"]["type"], **self.config["lr_scheduler"]["args"], optimizer=self.optimizer
-        )
+        self.scheduler = init_scheduler(self.optimizer, self.config["lr_scheduler"])
         # best.pth is saved whenever the val accuracy beats best_val_acc
         self.best_val_acc = float("-inf")
         self.best_checkpoint_path = None  # set once this run saves a best.pth
@@ -95,9 +93,6 @@ class ClassifierTrainer(BaseTrainer):
 
             loss.backward()
             self.optimizer.step()
-            # OneCycleLR scheduler step is called on each batch instead
-            if isinstance(self.scheduler, OneCycleLR):
-                self.scheduler.step()
             if self.config.verbose and batch_idx % self.config["trainer"]["batch_log_freq"] == 0:
                 self.logger.info(
                     "\tTrain Epoch: %s [%6d/%.0f (%.1f%%)] Loss: %.6f",
@@ -189,13 +184,8 @@ class ClassifierTrainer(BaseTrainer):
             self.train_one_epoch()
             if epoch % self.config["trainer"]["valid_freq"] == 0 and self.val_data_loader is not None:
                 self.validate()  # also saves best.pth when the val accuracy improves
-            # scheduler.step should be called after validate()
-            if isinstance(self.scheduler, (ReduceLROnPlateau, OneCycleLR)):
-                # ReduceLROnPlateau takes metrics during its step call (inside validate())
-                # if no val, ReduceLROnPlateau takes train loss as metric (inside train_one_epoch())
-                # OneCycleLR is called on each batch instead (inside train_one_epoch())
-                pass
-            else:
+            # ReduceLROnPlateau steps on a loss instead: the val loss in validate(), or the train loss without a val set
+            if not isinstance(self.scheduler, ReduceLROnPlateau):
                 self.scheduler.step()
 
             self.save_checkpoint(self.model, "last.pth")

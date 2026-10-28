@@ -1,61 +1,29 @@
-import math
-
 import pytest
 import torch
+from omegaconf import OmegaConf
 from torch.optim import SGD
 
-from src.schedulers import WarmupCosineAnnealingScheduler
+from src.schedulers import init_scheduler
 
 
-def test_lr_warmup():
-    model = torch.nn.Linear(10, 2)
-    # Initial LR doesn't matter as LambdaLR overrides it.
-    optimizer = SGD(model.parameters(), lr=1)
-    total_epochs = 30
-    warmup_epochs = 5
-    scheduler = WarmupCosineAnnealingScheduler(optimizer, total_epochs, warmup_epochs)
-
-    # Testing warmup
-    expected_warmup_lrs = [i / warmup_epochs for i in range(1, warmup_epochs + 1)]
-    for epoch in range(warmup_epochs):
+def lrs_per_epoch(scheduler_cfg: dict, epochs: int) -> list[float]:
+    """The LR each epoch trains with, for a base LR of 1"""
+    optimizer = SGD(torch.nn.Linear(2, 2).parameters(), lr=1.0)
+    scheduler = init_scheduler(optimizer, OmegaConf.create(scheduler_cfg))
+    lrs = []
+    for _ in range(epochs):
+        lrs.append(optimizer.param_groups[0]["lr"])
         optimizer.step()
         scheduler.step()
-        actual_lr = optimizer.param_groups[0]["lr"]
-        assert pytest.approx(actual_lr, 0.01) == expected_warmup_lrs[epoch], f"LR mismatch at warmup epoch {epoch}"
+    return lrs
 
 
 def test_cosine_annealing():
-    model = torch.nn.Linear(10, 2)
-    optimizer = SGD(model.parameters(), lr=1)
-    total_epochs = 100
-    warmup_epochs = 5
-    scheduler = WarmupCosineAnnealingScheduler(optimizer, total_epochs, warmup_epochs)
-
-    # Skip warmup
-    for _ in range(warmup_epochs):
-        optimizer.step()
-        scheduler.step()
-
-    # Testing cosine annealing post-warmup
-    for epoch in range(warmup_epochs + 1, total_epochs):
-        optimizer.step()
-        scheduler.step()
-        actual_lr = optimizer.param_groups[0]["lr"]
-        expected_lr = 0.5 * (1 + math.cos((epoch - warmup_epochs) / (total_epochs - warmup_epochs) * math.pi))
-        assert pytest.approx(actual_lr, 0.01) == expected_lr, f"LR mismatch at epoch {epoch}"
+    lrs = lrs_per_epoch({"type": "CosineAnnealingLR", "args": {"T_max": 4}}, epochs=5)
+    assert lrs == pytest.approx([1.0, 0.854, 0.5, 0.146, 0.0], abs=1e-3)
 
 
-def test_lr_ends_correctly():
-    model = torch.nn.Linear(10, 2)
-    optimizer = SGD(model.parameters(), lr=1)
-    total_epochs = 30
-    warmup_epochs = 5
-    scheduler = WarmupCosineAnnealingScheduler(optimizer, total_epochs, warmup_epochs)
-
-    # Testing the last epoch LR
-    for _ in range(total_epochs):
-        optimizer.step()
-        scheduler.step()
-
-    actual_final_lr = optimizer.param_groups[0]["lr"]
-    assert pytest.approx(actual_final_lr, 0.0001) == 0, "Final LR should be close to 0"
+def test_warmup_then_cosine():
+    """The first epoch trains at 10% of the LR, not at 0, and the cosine starts after the warmup"""
+    lrs = lrs_per_epoch({"type": "CosineAnnealingLR", "args": {"T_max": 2}, "warmup_epochs": 2}, epochs=5)
+    assert lrs == pytest.approx([0.1, 0.55, 1.0, 0.5, 0.0], abs=1e-3)
