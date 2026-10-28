@@ -1,9 +1,11 @@
 """Testing script, run with: python test.py --cfg YAML_CONFIG_PATH -r TRAINED_PT_MODEL_PATH"""
 
 import argparse
+import os.path as osp
 from datetime import datetime
 
 from src.config_parser import CustomDictConfig
+from src.loggers import setup_logging
 from src.trainers import init_trainer
 
 
@@ -71,6 +73,7 @@ def get_config_from_args() -> CustomDictConfig:
 
 def main():
     config = get_config_from_args()
+    setup_logging(osp.join(config.logs_dir, "test.log"))
     trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="test")
 
     trainer.test()

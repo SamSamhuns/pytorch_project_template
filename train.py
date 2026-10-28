@@ -1,11 +1,13 @@
 """Training script, run with: python train.py --cfg YAML_CONFIG_PATH"""
 
 import argparse
+import os.path as osp
 from datetime import datetime
 
 import torch
 
 from src.config_parser import CustomDictConfig
+from src.loggers import setup_logging
 from src.trainers import init_trainer
 from src.utils.common import seed_everything
 
@@ -83,6 +85,7 @@ def get_config_from_args() -> CustomDictConfig:
 
 def main():
     config = get_config_from_args()
+    setup_logging(osp.join(config.logs_dir, "train.log"))
     if config.seed is not None:
         seed_everything(config.seed)
     # reproducible runs trade speed for determinism; otherwise cuDNN benchmarks and picks the fastest algorithms

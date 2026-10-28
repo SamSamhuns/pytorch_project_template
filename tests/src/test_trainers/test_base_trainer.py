@@ -57,17 +57,14 @@ def test_validation_data_loader_setup(base_trainer_and_logger):
     "val_path, val_split, expected_excep",
     [(None, 0.1, None), ("/fake/val/path", 0, FileNotFoundError), ("/fake/val/path", 0.1, ValueError)],
 )
-def test_validation_split_configuration(mock_clsf_config, mock_logger, val_path, val_split, expected_excep, mocker):
+def test_validation_split_configuration(mock_clsf_config, val_path, val_split, expected_excep):
     """Test val split config with variations of val path and val split"""
     mock_clsf_config["dataset"]["args"]["val_path"] = val_path
     mock_clsf_config["dataloader"]["args"]["validation_split"] = val_split
     if expected_excep:
         with pytest.raises(expected_excep):
-            # Patch the logger to use the mocked logger for capturing outputs
-            mocker.patch("src.loggers.get_logger", return_value=mock_logger)
             PatchedBaseTrainer(config=mock_clsf_config)
     else:
-        mocker.patch("src.loggers.get_logger", return_value=mock_logger)
         trainer = PatchedBaseTrainer(config=mock_clsf_config)
         assert trainer  # Check if the trainer is correctly instantiated without errors
 

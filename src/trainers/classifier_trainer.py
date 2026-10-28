@@ -60,7 +60,6 @@ class ClassifierTrainer(BaseTrainer):
         self.best_checkpoint_path = None  # set once this run saves a best.pth
         # initialize counter
         self.current_epoch = 1
-        self.current_iteration = 0
         if checkpoint:  # continue training where the checkpoint left off
             self.optimizer.load_state_dict(checkpoint["optimizer"])
             self.scheduler.load_state_dict(checkpoint["scheduler"])
@@ -111,18 +110,20 @@ class ClassifierTrainer(BaseTrainer):
 
             loss.backward()
             self.optimizer.step()
-            if self.config.verbose and batch_idx % self.config["trainer"]["batch_log_freq"] == 0:
-                self.logger.info(
-                    "\tTrain Epoch: %s [%6d/%.0f (%.1f%%)] Loss: %.6f",
-                    self.current_epoch,
-                    batch_idx * len(data),
-                    train_data_len,
-                    100 * batch_idx / len(self.train_data_loader),
-                    loss.item(),
-                )
-            if self.config["trainer"]["use_tensorboard"]:
-                self.tboard_writer.add_scalar("Loss/train/iteration", loss.item(), self.current_iteration)
-            self.current_iteration += 1
+            if batch_idx % self.config["trainer"]["batch_log_freq"] == 0:
+                if self.config.verbose:
+                    self.logger.info(
+                        "\tTrain Epoch: %s [%6d/%.0f (%.1f%%)] Loss: %.6f",
+                        self.current_epoch,
+                        batch_idx * len(data),
+                        train_data_len,
+                        100 * batch_idx / len(self.train_data_loader),
+                        loss.item(),
+                    )
+                if self.config["trainer"]["use_tensorboard"]:
+                    # counts batches since the start of training, so it continues after a resume
+                    step = (self.current_epoch - 1) * len(self.train_data_loader) + batch_idx
+                    self.tboard_writer.add_scalar("Loss/train/iteration", loss.item(), step)
 
         train_loss = cum_train_loss / train_size
         train_accuracy = 100.0 * correct / train_size
@@ -148,9 +149,8 @@ class ClassifierTrainer(BaseTrainer):
             self.scheduler.step(metrics=train_loss)
 
         if self.config["trainer"]["use_tensorboard"]:
-            self.tboard_writer.add_images(
-                "preprocessed image batch", next(iter(self.train_data_loader))[0], self.current_epoch
-            )
+            # data still holds the epoch's last batch, so the loader isn't read again just for this
+            self.tboard_writer.add_images("preprocessed image batch", data, self.current_epoch)
             self.tboard_writer.add_scalar("Loss/train/epoch", train_loss, self.current_epoch)
             self.tboard_writer.add_scalar("Accuracy/train/epoch", train_accuracy, self.current_epoch)
             self.tboard_writer.add_scalar(

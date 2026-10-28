@@ -3,11 +3,14 @@ Implements logging torch device setup, checkpoint loading,
 tensorboard logging, dataset and dataloader inits
 """
 
+import logging
 import os.path as osp
+import textwrap
 from abc import ABC, abstractmethod
 
 import numpy as np
 import torch
+from omegaconf import OmegaConf
 from torch.utils.data import Subset
 from torch.utils.tensorboard import SummaryWriter
 
@@ -15,8 +18,6 @@ from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
 from src.dataloaders import init_dataloader
 from src.datasets import init_dataset
-from src.loggers import get_logger
-from src.utils.common import recursively_flatten_config
 from src.utils.export_utils import ONNXDynamoExportStrategy, ONNXTSExportStrategy
 
 
@@ -25,8 +26,8 @@ class _BaseTrainer(ABC):
 
     def __init__(self, config: CustomDictConfig, logger_name: str = "logger") -> None:
         self.config = config
-        # General logger
-        self.logger = get_logger(logger_name=logger_name, logger_dir=self.config["logs_dir"])
+        # the entry script sets up the console and file handlers once, with src.loggers.setup_logging
+        self.logger = logging.getLogger(logger_name)
 
         # one device, e.g. cpu, cuda or cuda:1
         device = self.config["device"]
@@ -179,10 +180,8 @@ class BaseTrainer(_BaseTrainer):
             tb_logdir = self.config.tboard_log_dir
             tboard_writer = SummaryWriter(log_dir=tb_logdir, filename_suffix=_suffix)
             self.tboard_writer = tboard_writer
-
-            flat_cfg = recursively_flatten_config(self.config)
-            for cfg_key, cfg_val in flat_cfg.items():
-                self.tboard_writer.add_text(cfg_key, str(cfg_val))
+            # the whole config as YAML, indented so TensorBoard's markdown shows it as a code block
+            self.tboard_writer.add_text("config", textwrap.indent(OmegaConf.to_yaml(self.config), "    "))
         # #############################################################
 
     def export(self, mode: str = "ONNX_TS"):
