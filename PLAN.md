@@ -342,7 +342,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - `torchinfo` (Phase 2)
   - `opencv-python` and `aiofiles` (unused)
   - `imageio` (after Phase 2; the two scripts can use PIL)
-  - `requests` (server-only; it goes away with 6.4)
+  - `requests` (server-only; it goes away with 6.4) (Done in Phase 6.)
 - **Security floors:** keep the `urllib3`, `fonttools` and `filelock` floors only if they were added for advisories, and drop the `filelock <4` cap. (Done: they came with a February dependency update, so they are kept as uv `constraint-dependencies` rather than direct dependencies.)
 - **Pin policy:**
   - Fast-moving ML libraries get `>=X.Y,<X.(Y+1)`.
@@ -350,8 +350,8 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - Exact versions live only in the lockfile.
 - **New warnings to clean up after the bump:**
   - webdataset `shardshuffle`/`with_length` (5.5)
-  - `dynamic_axes` (6.1)
-  - TorchScript FutureWarnings (6.1)
+  - `dynamic_axes` (6.1) (Done in Phase 6.)
+  - TorchScript FutureWarnings (6.1) (Done in Phase 6.)
   - pytest 9 `PytestRemovedIn10Warning` (tests/src/test_augmentations.py:74,78)
 
 ### 3.3 One source of truth for dependencies (M, R+; decided: uv)
@@ -460,7 +460,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - `best.pth` has the same full-state format as `last.pth`. Test, inference and export load its `"model"` entry.
   - The WebDataset CPU config sets `use_amp: false`, since AMP now applies on CPU too.
   - Until 5.1, a val split carved from the train set (`validation_split > 0`) gets the train augmentation. The shipped classifier configs use a separate val dir, and MNIST has no augmentation. (Fixed in Phase 5.)
-  - The server still passes `gpu_device`; it is rebuilt in Phase 6.
+  - The server still passes `gpu_device`; it is rebuilt in Phase 6. (Done in Phase 6.)
   - Five nitpicks in touched files are done; see [Nitpicks](#nitpicks-segregated).
 
 ### 4.1 Models return logits and use `CrossEntropyLoss` (S, R+)
@@ -561,7 +561,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - Configure logging once in each entry script: `logging.basicConfig(handlers=[StreamHandler(), FileHandler(run_dir / "train.log")], ...)`.
   - Modules use `logging.getLogger(__name__)`.
   - No prints or colors in `src/`.
-  - (Done with a short `setup_logging(log_path)` that each entry script calls; runs log to `logs/train.log`, `test.log`, `inference.log` or `export.log`. The trainers keep `logging.getLogger(logger_name)` until 7.4. `export_utils` still prints when it gets no logger; Phase 6 rewrites it.)
+  - (Done with a short `setup_logging(log_path)` that each entry script calls; runs log to `logs/train.log`, `test.log`, `inference.log` or `export.log`. The trainers keep `logging.getLogger(logger_name)` until 7.4. `export_utils` still prints when it gets no logger; Phase 6 rewrote it without prints.)
 - **TensorBoard:**
   - Log the config once as YAML text. Today it is one `add_text` per key ([base_trainer.py:273-275](src/trainers/base_trainer.py#L273-L275)).
   - Write per-iteration scalars every `batch_log_freq` steps.
@@ -687,6 +687,29 @@ These are pure deletions with no behavior change on the main path. Their tests g
 
 ## Phase 6: Export, inference and serving
 
+**Status (2026-10-28): done.**
+
+- **Tests:** 66 passed, 25 skipped (CUDA-only), on Python 3.11 and 3.14.
+  - New tests cover an ONNX export that runs another batch size and keeps its metadata, and a server whose probabilities equal PyTorch's for both preprocessings and that answers 400 to a file that isn't an image. The trainer test now also checks the class names in `last.pth`.
+  - The server test fails on three mutants: a resize that squashes, a missing normalization, and MNIST's old squashing transform ✅.
+  - The count is below Phase 5's 71 because the 9 tests of the export strategies and of the trainer's export went with them; 4 new tests replace them.
+- **`src/`** is 1,228 lines, down from 1,392 after Phase 5. The server is 50 lines, down from 287.
+- **Measured on CPU ✅:**
+  - Export, wall time of the CLI: MNIST 3.8 → 2.9 s, MobileNetV2 8.2 → 6.2 s. It no longer builds the datasets and the trainer, or runs the 32-run benchmark.
+  - ONNX Runtime fp32 vs eager PyTorch, MobileNetV2 on 6 threads: 2.9 vs 11.5 ms at batch 1 (4.0×), and 16.3 vs 93.7 ms at batch 8 (5.7×).
+  - Server image: 113 MB compressed and 450 MB unpacked, vs 409 MB and 1.86 GB for the Phase 5 image with CPU torch.
+- **Smoke runs on CPU:**
+  - MNIST: after 2 epochs, `test.py` scored 96.5% on `best.pth`. `inference.py` named 4 RGB digits correctly (`.png`, `.PNG`, `.jpg`, `.JPG`). `export.py` matched PyTorch. The server, run with uvicorn and from its image through `run_server_docker.sh`, returned the same classes and probabilities as `inference.py` ✅.
+  - MobileNetV2 with ImageNet weights, trained on synthetic non-square JPEGs: the same chain, and the server's probabilities equal `inference.py`'s ✅.
+- **Not verified here:** inference on a GPU. The machine's shared GPUs were busy.
+- **Changes beyond the items below:**
+  - The class names are saved in the checkpoints rather than the run's `config.yaml`. `config.yaml` is written before the datasets are read, and a second write is what Phase 1 removed. In the checkpoint, the names stay with the weights they label, so export and inference work with any config. `export.py` copies them into the ONNX file.
+  - MNIST's eval transform resizes the shorter side to 28 and center-crops 28, as the transforms of pretrained weights do, instead of squashing images to 28×28. MNIST's 28×28 digits are unchanged, and the server repeats both preprocessings with one function.
+  - The `dev` group includes the `server` group, so CI tests the server. `requests` left with the old server, `pytest-order` with the ordered export tests (7.9), and `onnx` is only a transitive dependency now that `onnx.checker` is gone.
+  - The CUDA-to-CPU fallback moved from the trainer to `get_device()` in `src/utils/common.py`, as `inference.py` needs it too.
+  - `export.py` sets the `onnx_ir` and `onnxscript` loggers to WARNING. The graph optimizer logged 79 INFO lines per MobileNetV2 export.
+  - `server/.dockerignore` was deleted: with the repo root as the build context, Docker never read it. The image copies only `pyproject.toml`, `uv.lock` and `server/app.py`.
+
 ### 6.1 One export path: ONNX through the dynamo exporter (S, R+, about −120 lines)
 
 - **Where:** [export_utils.py:13-175](src/utils/export_utils.py#L13-L175), [base_trainer.py:291-327](src/trainers/base_trainer.py#L291-L327)
@@ -707,6 +730,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
 - **Also:**
   - Delete the `TEST_TORCHSCRIPT` mode of `test.py`. (Done in Phase 2, with `TS_TRACE` and `TS_SCRIPT`; `ONNX_TS` and `ONNX_DYNAMO` remain.)
   - Requires onnxscript ≥0.7 (3.2).
+- (Done. `export_onnx(model, sample, path, metadata)` in `src/utils/export_utils.py` replaces the strategy classes, in 23 lines instead of 129. `export.py` has no `--mode` and writes `model.onnx`. The parity check runs a random batch of 2, and `onnx.checker` went with the benchmark. The optional `.pt2` artifact was skipped.)
 
 ### 6.2 Quantization: delete the `torch.ao` path (S, R+, about −60 lines; deletion done in Phase 2)
 
@@ -719,6 +743,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - Delete `-q`, `quant_backend`, `QuantizedModelWrapper` and `quantize_model`.
   - If INT8 CPU serving is ever needed, run `onnxruntime.quantization.quantize_static` on the exported ONNX. onnxruntime is already a dependency and it's about 15 lines.
   - That gave 2.1× throughput on the default model ✅; accuracy has not yet been checked on real data.
+- (Nothing left after Phase 2. `quantize_static` was not added.)
 
 ### 6.3 Export and inference without the Trainer (S–M, R+)
 
@@ -732,6 +757,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
     - lower-case extensions (1.11)
     - use `torch.inference_mode()`
     - report softmax probabilities
+- (Done. `export.py` and `inference.py` build the model with `init_model`, load the checkpoint's `"model"` and take the eval transform from the preprocess class. The trainers' `INFERENCE` mode, `inference()` and `export()` are gone. The class names come from the checkpoints instead of `config.yaml`; see the status above. `inference.py` logs each image's class name and probability and writes them to `logs/pred.txt`. `is_image_file` already compared lower-cased extensions.)
 
 ### 6.4 Server: rebuild a minimal one on ONNX Runtime (M, R+; decided: keep the server)
 
@@ -749,6 +775,10 @@ These are pure deletions with no behavior change on the main path. Their tests g
 - **Result:**
   - ONNX Runtime fp32 ran 2.7× faster than eager PyTorch on CPU ✅.
   - The server no longer imports the training stack.
+- (Done. `server/app.py` loads `MODEL_PATH`, by default `checkpoints_server/model.onnx`, with ONNX Runtime. Its sync `POST /predict` returns the `top_k` class names and probabilities, or 400 for a file that isn't an image.
+  - `export.py` stores the class names and the preprocess class's `eval_settings` as ONNX metadata: the image mode, resize and crop sizes, mean, std and interpolation.
+  - The server repeats the eval transform with PIL and numpy. Its tensors are bit-identical to torchvision's for bilinear and bicubic weights, and for RGB, RGBA, palette and grayscale inputs ✅.
+  - Normalization stays out of the graph, so the ONNX model takes the same input as the PyTorch model.)
 
 ### 6.5 Server image and scripts (S, R+)
 
@@ -756,6 +786,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
 - **Scripts:**
   - [run_server_docker.sh](server/run_server_docker.sh) starts `bash` instead of the server; fix it.
   - Fix the README usage for both server scripts (7.10).
+- (Done. The image is `python:3.13-slim` with `uv sync --locked --only-group server`, and runs uvicorn; its size is in the status above. `run_server_docker.sh` starts the server, and exits with a message when `checkpoints_server/model.onnx` is missing. The README's export, inference and server commands work.)
 
 ---
 
@@ -844,7 +875,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - `prefetch_factor` (done in Phase 1)
 - **Duplicates:**
   - `dataset.num_classes` vs `model.args.num_classes`: use `${model.args.num_classes}` interpolation or delete one.
-  - `model.info` input sizes vs the transforms.
+  - `model.info` input sizes vs the transforms. (Since Phase 6, only `export.py` reads `model.info`, for the shape of its sample batch.)
 - **Contradictions:**
   - The webdataset config sets `device: cpu` together with `use_amp: true`, `pin_memory: true` and `gpu_device: [0]`. (`use_amp` and `gpu_device` done in Phase 4, `pin_memory` in Phase 5.)
   - `configs/README.md` says `feat_extract` freezes the backbone; it actually swaps the head for Identity. (Done in Phase 1.)
@@ -858,7 +889,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
 - **Offline and fast:**
   - Problem: trainer tests download MobileNetV2 weights and train it at 224 px for 4 epochs, and MNIST tests download MNIST.
   - Fix: use `pretrained_weights: null`, a tiny model and `torchvision.datasets.FakeData`.
-- **No ordering dependency:** `pytest-order` exists only because `test_inference` consumes `test_export`'s output file ([test_export_utils.py:65](tests/src/test_utils/test_export_utils.py#L65)). Merge them into one test and drop the dependency.
+- **No ordering dependency:** `pytest-order` exists only because `test_inference` consumes `test_export`'s output file ([test_export_utils.py:65](tests/src/test_utils/test_export_utils.py#L65)). Merge them into one test and drop the dependency. (Done in Phase 6.)
 - **Global monkeypatch:** `test_get_git_revision_hash` patches `subprocess.check_output` globally and never restores it; use the `monkeypatch` fixture. (Done in Phase 1, with `mocker`.)
 - **Cleanup:** delete the tests for deleted code.
 
@@ -870,11 +901,11 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - The split script doesn't write the class map the README promises.
   - `duplicate_data.py --rd/--td`: the script defines `-rd/-td`.
   - `--cfg custom_classifier_cpu_config.yaml` is missing the `configs/` prefix.
-  - The server scripts' `-m` and `-h/--http` flags don't exist.
+  - The server scripts' `-m` and `-h/--http` flags don't exist. (Done in Phase 6.)
 - **Other doc errors:**
   - The TensorBoard port is given as both 6007 and 6006.
   - It claims graph logging, but no graph is logged.
-  - The "Inference" section is empty.
+  - The "Inference" section is empty. (Done in Phase 6.)
   - The Python badges are out of date.
 - **Add** a 10-line "How a training run flows" section: `train.py` → `load_config` → build data and model → `Trainer.fit` → evaluate `best.pth`.
 
@@ -895,17 +926,17 @@ These are low impact. Fold each into whichever PR touches the file. Many become 
 - [base_trainer.py:281-282](src/trainers/base_trainer.py#L281-L282): the second string lacks its `f` prefix and a space, so it prints a literal `{tboard_port}`. (Moot: deleted in Phase 2.)
 - `eval_one_epoch` is annotated as returning lists but returns numpy arrays. (Done in Phase 1.)
 - [config_parser.py:122](src/config_parser.py#L122): `k.rsplit('.')[0]` should be `k.split('.', 1)[0]`. (Done in Phase 4.)
-- [server.py:167,193](server/server.py#L167): `print(traceback.print_exc())` prints `None`.
+- [server.py:167,193](server/server.py#L167): `print(traceback.print_exc())` prints `None`. (Moot: deleted in Phase 6.)
 - [base_trainer.py:91](src/trainers/base_trainer.py#L91) calls `len(gpu_dev)` when `gpu_device` may be an int in YAML. (Moot: 4.4 removed `gpu_device`.)
 - [base_trainer.py:233-236](src/trainers/base_trainer.py#L233-L236): the verbose block reads `test_set.data` even when there is no test set. (Done in Phase 4.)
 - `torch.jit.load` is called without `map_location`. (Done in Phase 1.)
 - `torchvision.transforms.transforms` (a private module) is imported in base_trainer.py:18, classifier_dataset.py:8 and common.py:15. (Done in Phase 1.)
 - `zero_grad(set_to_none=True)` is the default since torch 2.0. (Done in Phase 4.)
-- Use `torch.inference_mode()` instead of `torch.no_grad()` in eval and inference. (Done in Phase 4 in the trainer; export and the server change in Phase 6.)
+- Use `torch.inference_mode()` instead of `torch.no_grad()` in eval and inference. (Done in Phase 4 in the trainer, and in Phase 6 in export and inference. The new server doesn't use torch.)
 - `find_latest_file_in_dir` uses ctime; `max(Path(d).glob("*.pth"), key=os.path.getmtime)` does it in one line. (Moot: deleted in Phase 1.)
 - [generate_classmap_from_dataset.py](scripts/generate_classmap_from_dataset.py): the docstring says "convert dataset to tar format" and the function is named `generate_tar`.
 - [duplicate_data.py:78-83](scripts/duplicate_data.py#L78-L83) copies N+1 files, and its main function is named `split_train_test`.
-- [export_utils.py:140](src/utils/export_utils.py#L140): a comment contradicts the code below it.
+- [export_utils.py:140](src/utils/export_utils.py#L140): a comment contradicts the code below it. (Moot: deleted in Phase 6.)
 - The export tests expect a `.pt` suffix while the code writes `.ptc`. (Moot: deleted in Phase 2.)
 - The `comprehensive_clsf_metrics` docstring promises tp/tn/fp/fn keys it doesn't return. (Moot: deleted in Phase 2.)
 - `ClassifierModel` (all three done in Phase 1 by the 1.7 rewrite):
@@ -915,9 +946,9 @@ These are low impact. Fold each into whichever PR touches the file. Many become 
 - `_get_webdataset_len` leaves tar handles open (ResourceWarning). (Moot: deleted in Phase 5.)
 - [inference.py:24](inference.py#L24): the default run id is prefixed `test_` (copied from test.py). (Done in Phase 4.)
 - [mnist_dataset.py:33](src/datasets/mnist_dataset.py#L33) raises a bare `Exception`. (Done in Phase 2.)
-- `InputModel.back_url: str = None` should be `str | None`.
+- `InputModel.back_url: str = None` should be `str | None`. (Moot: deleted in Phase 6.)
 - [cleanup.sh](scripts/cleanup.sh) deletes `experiments*` and `logs*`, but runs are saved under `checkpoints/`.
-- `.dockerignore` is padded with entries for Django, PyInstaller and Travis that don't apply here.
+- `.dockerignore` is padded with entries for Django, PyInstaller and Travis that don't apply here. (Phase 6 deleted `server/.dockerignore`, which Docker never read; the root one is unchanged.)
 
 ---
 
@@ -927,7 +958,7 @@ These are low impact. Fold each into whichever PR touches the file. Many become 
 | --- | --- | --- |
 | Dependency tool: uv or Poetry | **Decided: uv.** One lockfile, CPU/CUDA extras, faster CI and Docker, and three requirements files plus a script deleted. | 3.3 |
 | Keep WebDataset? | **Decided: keep it,** and fix it per 5.5 (done in Phase 5). | 5.5 |
-| Keep the server? | **Decided: keep it,** rebuilt as the minimal ONNX Runtime app. | 6.4 |
+| Keep the server? | **Decided: keep it,** rebuilt as the minimal ONNX Runtime app (done in Phase 6). | 6.4 |
 | Old checkpoints | **Decided: they don't need to load.** 1.7 and 4.1 rename the classifier head's state-dict keys; no key map. 4.2's full-state checkpoints don't load bare state dicts either. | 4.1 |
 | Multi-GPU? | Open. Recommendation: single device; add DDP with `torchrun` if and when it's needed. Phase 1 already removed DataParallel (1.5). | 4.4 |
 | Flatten the layout? | Open. Recommendation: yes, but last. | 7.11 |
@@ -988,7 +1019,7 @@ A smoke test (train 2 epochs → test → all 4 export modes) passes on both the
 | torchvision | 0.23.0 | 0.29.1 | Needs torch 2.14. v1 transforms and string weight names still work. The current `torch <3` range is misleading, because `torchvision <0.24` pins torch to 2.8. | `>=0.29,<0.30` |
 | onnxscript | 0.4.0 | 0.7.2 | 0.4.0 with onnx-ir 1.x breaks dynamo export ✅ | `>=0.7,<0.8` |
 | onnxruntime | 1.21.1 | 1.31.1 (Oct 26) | Needs Python ≥3.11 | `>=1.31,<1.32` |
-| onnx | 1.17.0 | 1.23.2 | Already transitive through onnxscript; keep it direct only if you call `onnx.checker` | transitive |
+| onnx | 1.17.0 | 1.23.2 | Already transitive through onnxscript; keep it direct only if you call `onnx.checker` | transitive (done in Phase 6) |
 | webdataset | 0.2.100 | 1.0.2 (2025-06) | `shardshuffle=True`/None and `with_length` warn; `with_length` can't be pickled for spawn or forkserver workers | `>=1.0,<1.1` (or remove) |
 | omegaconf | 2.3.0 | 2.4.0 (Oct 9) | Drops the antlr4 4.9.3 pin; current code works | `>=2.4,<2.5` |
 | scikit-learn | 1.6.1 | 1.9.1 | Needs Python ≥3.11 | `>=1.9,<2` |
@@ -1001,9 +1032,9 @@ A smoke test (train 2 epochs → test → all 4 export modes) passes on both the
 | urllib3, fonttools, filelock | security floors | 2.8.0, 4.67.0, 4.2.4 | The `filelock <4` cap blocks 4.x | floors only, or rely on the lock |
 | fastapi | 0.129.0 | 0.162.0 | Routes work on latest | `>=0.162,<0.163` (server group) |
 | uvicorn, python-multipart | 0.35.0, 0.0.22 | 0.54.0, 0.0.32 | No issues | latest minor (server group) |
-| requests | 2.32.4 | 2.34.2 | Server only | remove after 6.4 |
+| requests | 2.32.4 | 2.34.2 | Server only | remove after 6.4 (done in Phase 6) |
 | opencv-python, aiofiles | 4.12, 24.1 | 5.0, 25.1 | Unused | remove |
-| pytest (+cov, mock) | 8.4.1 | 9.1.1 | `PytestRemovedIn10Warning` | `>=9.1,<10`; drop pytest-order (7.9) |
+| pytest (+cov, mock) | 8.4.1 | 9.1.1 | `PytestRemovedIn10Warning` | `>=9.1,<10`; drop pytest-order (7.9; done in Phase 6) |
 
 **Python:** `>=3.11,<3.15`.
 
