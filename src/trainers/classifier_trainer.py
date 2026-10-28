@@ -85,9 +85,10 @@ class ClassifierTrainer(BaseTrainer):
             self.logger.info("Training set:")
         epoch_start_tm = time.perf_counter()
         self.model.train()
-        cum_train_loss = 0
+        # summed on the device and read once per epoch, as .item() makes the CPU wait for the GPU
+        cum_train_loss = torch.zeros((), device=self.device)
+        correct = torch.zeros((), dtype=torch.long, device=self.device)
         train_size = 0
-        correct = 0
         train_data_len = len(self.train_data_loader.dataset)
 
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
@@ -101,10 +102,9 @@ class ClassifierTrainer(BaseTrainer):
                 output = self.model(data)
                 loss = self.loss(output, target)
             # loss is the batch mean, so weight it by the batch size
-            cum_train_loss += loss.item() * data.size(0)
+            cum_train_loss += loss.detach() * data.size(0)
             # the predicted class has the largest logit
-            pred = output.max(1, keepdim=True)[1]
-            correct += pred.eq(target.view_as(pred)).sum().item()
+            correct += (output.argmax(dim=1) == target).sum()
 
             loss.backward()
             self.optimizer.step()
@@ -123,7 +123,8 @@ class ClassifierTrainer(BaseTrainer):
                     step = (self.current_epoch - 1) * len(self.train_data_loader) + batch_idx
                     self.tboard_writer.add_scalar("Loss/train/iteration", loss.item(), step)
 
-        train_loss = cum_train_loss / train_size
+        train_loss = cum_train_loss.item() / train_size
+        correct = correct.item()
         train_accuracy = 100.0 * correct / train_size
         epoch_end_tm = time.perf_counter()
         epoch_tm = epoch_end_tm - epoch_start_tm
@@ -161,7 +162,7 @@ class ClassifierTrainer(BaseTrainer):
         y_score is P(class 1) for binary models and the class probabilities otherwise.
         """
         self.model.eval()
-        cumu_test_loss = 0
+        cumu_test_loss = torch.zeros((), device=self.device)  # read once at the end; .item() would sync every step
         y_true, y_score, y_pred = [], [], []
         with torch.inference_mode():
             for data, target in tqdm.tqdm(data_loader):
@@ -171,7 +172,7 @@ class ClassifierTrainer(BaseTrainer):
                     output = self.model(data)
                     loss = self.loss(output, target)
                 # sum up batch loss (the loss is the batch mean, so weight it by the batch size)
-                cumu_test_loss += loss.item() * data.size(0)
+                cumu_test_loss += loss * data.size(0)
                 # get the class probabilities (proba) & the predicted class (pred); float() as numpy has no bfloat16
                 proba = F.softmax(output.float(), dim=1)
                 pred = proba.argmax(dim=1)
@@ -185,7 +186,7 @@ class ClassifierTrainer(BaseTrainer):
         y_score = torch.concat(y_score).cpu().numpy()
         y_pred = torch.concat(y_pred).cpu().numpy()
 
-        return cumu_test_loss / len(y_true), y_true, y_score, y_pred
+        return cumu_test_loss.item() / len(y_true), y_true, y_score, y_pred
 
     def train(self) -> None:
         """Main training function with loop"""
