@@ -1,0 +1,270 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "From checkpoint to served predictions",
+    "output": ".archify/checkpoint-to-server.html",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "git@github.com:SamSamhuns/pytorch_project_template.git",
+      "revision": "db057b4da0cf8f7d350c15ea75963c72d2868d4f",
+      "link_mode": "local-only"
+    }
+  },
+  "stages": [
+    {
+      "label": "Checkpoint"
+    },
+    {
+      "label": "Scripts"
+    },
+    {
+      "label": "Outputs"
+    },
+    {
+      "label": "Serving"
+    },
+    {
+      "label": "Clients"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "best",
+      "type": "database",
+      "label": "best.pth",
+      "sublabel": "weights, classes",
+      "stage": 0,
+      "row": 1,
+      "sources": [
+        {
+          "path": "src/trainers/classifier_trainer.py",
+          "line": 73,
+          "end_line": 85
+        }
+      ]
+    },
+    {
+      "id": "test",
+      "type": "backend",
+      "label": "test.py",
+      "sublabel": "test split",
+      "stage": 1,
+      "row": 0,
+      "sources": [
+        {
+          "path": "test.py",
+          "line": 23,
+          "end_line": 39
+        }
+      ]
+    },
+    {
+      "id": "inference",
+      "type": "backend",
+      "label": "inference.py",
+      "sublabel": "image files",
+      "stage": 1,
+      "row": 1,
+      "sources": [
+        {
+          "path": "inference.py",
+          "line": 38,
+          "end_line": 62
+        }
+      ]
+    },
+    {
+      "id": "export",
+      "type": "backend",
+      "label": "export.py",
+      "sublabel": "dynamo export",
+      "stage": 1,
+      "row": 2,
+      "sources": [
+        {
+          "path": "export.py",
+          "line": 36,
+          "end_line": 48
+        },
+        {
+          "path": "src/utils/export_utils.py",
+          "line": 9,
+          "end_line": 23
+        }
+      ]
+    },
+    {
+      "id": "metrics",
+      "type": "database",
+      "label": "logs/test.log",
+      "sublabel": "test metrics",
+      "stage": 2,
+      "row": 0,
+      "sources": [
+        {
+          "path": "test.py",
+          "line": 25,
+          "end_line": 25
+        },
+        {
+          "path": "src/trainers/classifier_trainer.py",
+          "line": 243,
+          "end_line": 263
+        }
+      ]
+    },
+    {
+      "id": "preds",
+      "type": "database",
+      "label": "logs/pred.txt",
+      "sublabel": "class, probability",
+      "stage": 2,
+      "row": 1,
+      "sources": [
+        {
+          "path": "inference.py",
+          "line": 55,
+          "end_line": 62
+        }
+      ]
+    },
+    {
+      "id": "onnx",
+      "type": "database",
+      "label": "model.onnx",
+      "sublabel": "any batch size",
+      "tag": "classes + settings",
+      "stage": 2,
+      "row": 2,
+      "sources": [
+        {
+          "path": "export.py",
+          "line": 42,
+          "end_line": 47
+        }
+      ]
+    },
+    {
+      "id": "server",
+      "type": "backend",
+      "label": "server/app.py",
+      "sublabel": "ONNX Runtime",
+      "tag": "no torch",
+      "stage": 3,
+      "row": 2,
+      "sources": [
+        {
+          "path": "server/app.py",
+          "line": 13,
+          "end_line": 50
+        }
+      ]
+    },
+    {
+      "id": "client",
+      "type": "external",
+      "label": "HTTP client",
+      "sublabel": "POST /predict",
+      "stage": 4,
+      "row": 2,
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 186,
+          "end_line": 195
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "id": "best-to-test",
+      "from": "best",
+      "to": "test",
+      "label": "weights",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "best-to-inference",
+      "from": "best",
+      "to": "inference",
+      "label": "weights, classes"
+    },
+    {
+      "id": "best-to-export",
+      "from": "best",
+      "to": "export",
+      "label": "weights, classes",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "test-to-metrics",
+      "from": "test",
+      "to": "metrics",
+      "label": "metrics"
+    },
+    {
+      "id": "inference-to-preds",
+      "from": "inference",
+      "to": "preds",
+      "label": "predictions"
+    },
+    {
+      "id": "export-to-onnx",
+      "from": "export",
+      "to": "onnx",
+      "label": "graph, metadata",
+      "variant": "emphasis"
+    },
+    {
+      "id": "onnx-to-server",
+      "from": "onnx",
+      "to": "server",
+      "label": "loaded at start",
+      "variant": "emphasis"
+    },
+    {
+      "id": "client-request",
+      "from": "client",
+      "to": "server",
+      "label": "image"
+    },
+    {
+      "id": "server-reply",
+      "from": "server",
+      "to": "client",
+      "label": "top_k classes"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Inputs",
+      "items": [
+        "Each script also takes the run's YAML config, which names the model and the eval transform",
+        "Checkpoints hold the class names, so predictions are named, not numbered"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Export",
+      "items": [
+        "export_onnx checks ONNX Runtime's outputs against PyTorch's",
+        "model.onnx stores the class names and the eval transform's settings as metadata"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Serving",
+      "items": [
+        "The server repeats the eval transform with PIL and numpy, as its image has no torchvision",
+        "A test checks that its probabilities equal PyTorch's"
+      ]
+    }
+  ]
+}
