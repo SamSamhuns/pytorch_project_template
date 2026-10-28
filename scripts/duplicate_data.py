@@ -89,7 +89,7 @@ def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-rd",
+        "--rd",
         "--raw_data_path",
         type=str,
         dest="raw_data_path",
@@ -97,7 +97,7 @@ def main():
         help="""Raw dataset path with class imgs inside folders""",
     )
     parser.add_argument(
-        "-td",
+        "--td",
         "--target_data_path",
         type=str,
         dest="target_data_path",
