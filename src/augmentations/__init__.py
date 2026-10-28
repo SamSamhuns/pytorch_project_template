@@ -3,7 +3,7 @@ from .mnist_transforms import MnistPreprocess
 
 IMPLEMENTED_TRANSFORMS = {
     "ImagenetClassifierPreprocess": ImagenetClassifierPreprocess,
-    "MnistPreprocess": MnistPreprocess
+    "MnistPreprocess": MnistPreprocess,
 }
 
 
@@ -13,6 +13,6 @@ def init_transform(transform_name: str, **kwargs):
         transform = IMPLEMENTED_TRANSFORMS[transform_name](**kwargs)
     except KeyError as exc:
         raise NotImplementedError(
-            f"{transform_name} is not implemented. " +
-            f"Available Transforms: {IMPLEMENTED_TRANSFORMS.keys()}") from exc
+            f"{transform_name} is not implemented. " + f"Available Transforms: {IMPLEMENTED_TRANSFORMS.keys()}"
+        ) from exc
     return transform

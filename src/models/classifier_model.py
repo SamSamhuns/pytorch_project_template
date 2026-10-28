@@ -20,6 +20,7 @@ The input images are in the range [0, 1]
          std=[0.229, 0.224, 0.225]
      )])
 """
+
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
@@ -35,16 +36,17 @@ class ClassifierModel(BaseModel):
     pretrained_weights: torchvision weights name, e.g. "MobileNet_V2_Weights.IMAGENET1K_V1", or None
     """
 
-    def __init__(self,
-                 backbone: str = "mobilenet_v2",
-                 num_classes: int = 10,
-                 feat_extract: bool = False,
-                 pretrained_weights: str = "MobileNet_V2_Weights.IMAGENET1K_V1",
-                 **kwargs):
+    def __init__(
+        self,
+        backbone: str = "mobilenet_v2",
+        num_classes: int = 10,
+        feat_extract: bool = False,
+        pretrained_weights: str = "MobileNet_V2_Weights.IMAGENET1K_V1",
+        **kwargs,
+    ):
         super().__init__()
         if feat_extract and num_classes:
-            raise RuntimeError(
-                "feat_extract mode is not compatible when num_classes greater than 0")
+            raise RuntimeError("feat_extract mode is not compatible when num_classes greater than 0")
         self.feat_extract = feat_extract
         self.model = models.get_model(backbone, weights=pretrained_weights)
 

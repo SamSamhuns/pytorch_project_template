@@ -1,14 +1,9 @@
-# Use PyTorch base image
-FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel
+# Slim Python base; the server runs on CPU torch
+FROM python:3.13-slim
 
 # Define build arguments with defaults
 ARG UNAME=user1
 ARG UID=1000
-ARG CUDA="12.4"
-ARG CUDNN="9.0"
-
-# Metadata
-LABEL maintainer="fname.lname@domain.com"
 
 # Set environment variables
 ENV WORKDIR="/home/$UNAME/app"
@@ -16,30 +11,20 @@ ENV VIRTUAL_ENV="/home/$UNAME/venv"
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-
-# Install basic dependencies
-RUN apt-get update -y --no-install-recommends \
-    && apt-get install -y --no-install-recommends \
-    apt-utils git curl ca-certificates bzip2 cmake tree htop bmon iotop g++ vim \
-    libglib2.0-0 libsm6 libxext6 libxrender-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+ENV UV_PYTHON_DOWNLOADS=never
 
 # Create non-root user
-RUN useradd -rm --home-dir "/home/$UNAME" --shell /bin/bash -u "$UID" "$UNAME"
+RUN useradd -m --shell /bin/bash -u "$UID" "$UNAME"
 
 # Set working directory
 WORKDIR ${WORKDIR}
 
-# Setup Python virtual environment
-RUN python3 -m venv $VIRTUAL_ENV
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.6 /uv /uvx /bin/
 
-# Install and pin pip to the latest version
-RUN pip install pip==24.0
-
-# Copy and install Python dependencies
-COPY ./server/requirements.txt "$WORKDIR/"
-RUN pip install -r "$WORKDIR/requirements.txt"
+# Install the dependencies (CPU torch and the server group) into $VIRTUAL_ENV
+COPY pyproject.toml uv.lock "$WORKDIR/"
+RUN UV_PROJECT_ENVIRONMENT="$VIRTUAL_ENV" uv sync --locked --extra cpu --group server --no-dev --no-cache
 
 # Copy application code to the working directory
 COPY . "$WORKDIR"

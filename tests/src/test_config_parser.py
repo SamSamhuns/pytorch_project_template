@@ -1,3 +1,4 @@
+import argparse
 import os
 import tempfile
 from unittest.mock import patch
@@ -16,7 +17,7 @@ def test_CustomDictConfig_initialization():
         "seed": 42,
         "reproducible": True,
         "device": "cpu",
-        "trainer": {"use_tensorboard": True}
+        "trainer": {"use_tensorboard": True},
     }
     config = OmegaConf.create(config_dict)
 
@@ -29,8 +30,7 @@ def test_CustomDictConfig_initialization():
         assert os.path.exists(cfg["models_dir"])
         assert os.path.exists(cfg["logs_dir"])
         assert os.path.exists(cfg["metrics_dir"])
-        assert os.path.isfile(os.path.join(
-            tmpdir, "test_run", cfg.run_id, "config.yaml"))
+        assert os.path.isfile(os.path.join(tmpdir, "test_run", cfg.run_id, "config.yaml"))
 
 
 def test_CustomDictConfig_from_args():
@@ -40,19 +40,13 @@ def test_CustomDictConfig_from_args():
         "seed": 42,
         "reproducible": True,
         "device": "cpu",
-        "trainer": {"use_tensorboard": True}
+        "trainer": {"use_tensorboard": True},
     }
     with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as temp_config:
         OmegaConf.save(OmegaConf.create(config_dict), temp_config.name)
         temp_config_path = temp_config.name
 
-    class MockArgs:
-        config = temp_config_path
-        run_id = None
-        verbose = True
-        override = ["name.new_name=bar"]
-
-    args = MockArgs()
+    args = argparse.Namespace(config=temp_config_path, run_id=None, verbose=True, override=["name.new_name=bar"])
     with pytest.raises(omegaconf.errors.ConfigKeyError, match="Key 'name' is not in struct"):
         _ = CustomDictConfig.from_args(args)
 
@@ -68,17 +62,14 @@ def test_override_parses_scientific_notation(tmp_path):
         "reproducible": False,
         "device": "cpu",
         "trainer": {"use_tensorboard": False},
-        "optimizer": {"args": {"lr": 0.01}}
+        "optimizer": {"args": {"lr": 0.01}},
     }
     OmegaConf.save(OmegaConf.create(config_dict), tmp_path / "config.yaml")
 
-    class MockArgs:
-        config = str(tmp_path / "config.yaml")
-        run_id = None
-        verbose = False
-        override = ["optimizer.args.lr=1e-3"]
-
-    cfg = CustomDictConfig.from_args(MockArgs())
+    args = argparse.Namespace(
+        config=str(tmp_path / "config.yaml"), run_id=None, verbose=False, override=["optimizer.args.lr=1e-3"]
+    )
+    cfg = CustomDictConfig.from_args(args)
     assert cfg.optimizer.args.lr == 0.001
 
 
@@ -89,7 +80,7 @@ def test_CustomDictConfig_get_set_item():
         "seed": 42,
         "reproducible": True,
         "device": "cpu",
-        "trainer": {"use_tensorboard": True}
+        "trainer": {"use_tensorboard": True},
     }
     config = OmegaConf.create(config_dict)
     parser = CustomDictConfig(config)
@@ -108,7 +99,7 @@ def test_CustomDictConfig_str():
         "seed": 42,
         "reproducible": True,
         "device": "cpu",
-        "trainer": {"use_tensorboard": True}
+        "trainer": {"use_tensorboard": True},
     }
     config = OmegaConf.create(config_dict)
     parser = CustomDictConfig(config)
@@ -128,15 +119,17 @@ def test_CustomDictConfig_iter():
         "seed": 42,
         "reproducible": True,
         "device": "cpu",
-        "trainer": {"use_tensorboard": True}
+        "trainer": {"use_tensorboard": True},
     }
     config = OmegaConf.create(config_dict)
     parser = CustomDictConfig(config, run_id="bar")
     config_dict.pop("save_dir")
 
     items = {
-        k: v for k, v in parser.items()
-        if k not in {"git_hash", "save_dir", "models_dir", "logs_dir", "metrics_dir", "verbose", "tboard_log_dir"}}
+        k: v
+        for k, v in parser.items()
+        if k not in {"git_hash", "save_dir", "models_dir", "logs_dir", "metrics_dir", "verbose", "tboard_log_dir"}
+    }
 
     assert items == config_dict
 
@@ -149,7 +142,7 @@ def test_git_hash_in_config(mock_get_git_revision_hash):
         "seed": 42,
         "reproducible": True,
         "device": "cpu",
-        "trainer": {"use_tensorboard": True}
+        "trainer": {"use_tensorboard": True},
     }
     config = OmegaConf.create(config_dict)
     parser = CustomDictConfig(config)

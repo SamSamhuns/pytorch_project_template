@@ -21,7 +21,7 @@ def test_init_trainer(clsf_trainer_and_logger):
 
     gpu_dev = trainer.config["gpu_device"]
     if gpu_dev and not torch.cuda.is_available():
-        warnings.warn("CUDA device not found, GPU testing has been skipped")
+        warnings.warn("CUDA device not found, GPU testing has been skipped", stacklevel=2)
         assert ("Program will run on CPU",) in info_calls
     elif gpu_dev is None:
         assert ("Program will run on CPU",) in info_calls
@@ -35,8 +35,7 @@ def test_init_trainer(clsf_trainer_and_logger):
     assert isinstance(trainer.optimizer, torch.optim.Optimizer)
     assert isinstance(trainer.optimizer, torch.optim.SGD)
     assert isinstance(trainer.scheduler, torch.optim.lr_scheduler.LRScheduler)
-    assert isinstance(trainer.scheduler,
-                      torch.optim.lr_scheduler.ReduceLROnPlateau)
+    assert isinstance(trainer.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
 
 
 def test_train_one_epoch_method(clsf_trainer_and_logger):
@@ -46,33 +45,27 @@ def test_train_one_epoch_method(clsf_trainer_and_logger):
     trainer.train_one_epoch()
 
     final_params = list(trainer.model.parameters())
-    param_changes = any(not torch.equal(ip, fp)
-                        for ip, fp in zip(initial_params, final_params, strict=True))
+    param_changes = any(not torch.equal(ip, fp) for ip, fp in zip(initial_params, final_params, strict=True))
     assert param_changes, "Model parameters did not change after training epoch."
 
     logger_instance = mocked_logger.return_value
     info_calls = [call.args for call in logger_instance.info.call_args_list]
-    assert any("Train Epoch" in str(call)
-               for call in info_calls), "Training log entry missing"
-    assert any("Loss:" in str(call)
-               for call in info_calls), "No logging for Loss"
+    assert any("Train Epoch" in str(call) for call in info_calls), "Training log entry missing"
+    assert any("Loss:" in str(call) for call in info_calls), "No logging for Loss"
 
 
 def test_eval_one_epoch_method(mock_clsf_config: CustomDictConfig):
     """Test eval_one_epoch"""
     mock_clsf_config["dataloader"]["args"]["validation_split"] = 0.1
     mock_clsf_config["dataset"]["args"]["val_path"] = None
-    trainer = ClassifierTrainer(config=mock_clsf_config,
-                                logger_name="time_series_clsf_logger")
+    trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="time_series_clsf_logger")
     trainer.model.eval()
     loader = trainer.val_data_loader
 
     test_loss, y_true, y_score, y_pred = trainer.eval_one_epoch(loader)
 
-    assert isinstance(test_loss, float), \
-        "Loss is not calculated as a float."
-    assert len(y_true) == len(y_score) == len(y_pred), \
-        "Mismatch in output lengths of targets and predictions."
+    assert isinstance(test_loss, float), "Loss is not calculated as a float."
+    assert len(y_true) == len(y_score) == len(y_pred), "Mismatch in output lengths of targets and predictions."
 
 
 def test_train_method(clsf_trainer_and_logger):
@@ -90,8 +83,7 @@ def test_train_method(clsf_trainer_and_logger):
 def test_pretrained_weights_survive_trainer_init(clsf_trainer_and_logger):
     """The trainer must not re-initialize a pretrained backbone"""
     trainer, _ = clsf_trainer_and_logger
-    pretrained = torchvision.models.get_model(
-        "mobilenet_v2", weights="MobileNet_V2_Weights.IMAGENET1K_V1")
+    pretrained = torchvision.models.get_model("mobilenet_v2", weights="MobileNet_V2_Weights.IMAGENET1K_V1")
 
     expected = pretrained.features.state_dict()
     actual = trainer.model.model.features.state_dict()
@@ -136,7 +128,7 @@ def test_binary_y_score_is_positive_class_probability(clsf_trainer_and_logger):
 
 def test_compiled_checkpoint_loads_into_plain_model(mock_clsf_config: CustomDictConfig, mocker):
     """torch_compile_model must not add the "_orig_mod." prefix to saved keys"""
-    mocker.patch('logging.getLogger')
+    mocker.patch("logging.getLogger")
     mock_clsf_config["torch_compile_model"] = True
     mock_clsf_config["trainer"]["epochs"] = 1
     trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="compile_logger")
@@ -144,25 +136,20 @@ def test_compiled_checkpoint_loads_into_plain_model(mock_clsf_config: CustomDict
     trainer.train()
 
     plain_model = init_model("ClassifierModel", **mock_clsf_config["model"]["args"])
-    plain_model.load_state_dict(torch.load(
-        osp.join(mock_clsf_config["models_dir"], "last.pth"), weights_only=True))
+    plain_model.load_state_dict(torch.load(osp.join(mock_clsf_config["models_dir"], "last.pth"), weights_only=True))
 
 
 def test_validate_method(mock_clsf_config: CustomDictConfig, mocker):
-    mocked_logger = mocker.patch('logging.getLogger')
+    mocked_logger = mocker.patch("logging.getLogger")
     mock_clsf_config["dataset"]["args"]["val_path"] = None
     mock_clsf_config["dataloader"]["args"]["validation_split"] = 0.1
-    trainer = ClassifierTrainer(config=mock_clsf_config,
-                                logger_name="time_series_clsf_logger")
+    trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="time_series_clsf_logger")
     if trainer.val_data_loader is not None:
         trainer.validate()
         logger_instance = mocked_logger.return_value
-        info_calls = [
-            call.args for call in logger_instance.info.call_args_list]
-        assert any("Validation" in str(call)
-                   for call in info_calls), "Validation log entry missing"
-        assert any("loss" in str(call)
-                   for call in info_calls), "No logging for validation loss"
+        info_calls = [call.args for call in logger_instance.info.call_args_list]
+        assert any("Validation" in str(call) for call in info_calls), "Validation log entry missing"
+        assert any("loss" in str(call) for call in info_calls), "No logging for validation loss"
     else:
         pytest.skip("No validation data loader configured for this test.")
 
@@ -173,5 +160,4 @@ def test_test_method(clsf_trainer_and_logger):
 
     logger_instance = mocked_logger.return_value
     info_calls = [call.args for call in logger_instance.info.call_args_list]
-    assert any("Test set:" in str(call)
-               for call in info_calls), "Test log entry missing"
+    assert any("Test set:" in str(call) for call in info_calls), "Test log entry missing"

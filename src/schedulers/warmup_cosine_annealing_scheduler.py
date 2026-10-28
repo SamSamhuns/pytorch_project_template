@@ -6,13 +6,11 @@ from torch.optim.optimizer import Optimizer
 
 
 def lr_warmup_cosine_annealing(epoch: int, total_epochs: int, warmup_epochs: int = 5) -> float:
-    """Returns lr for given epoch after combining lr warmup and cosine annealing
-    """
+    """Returns lr for given epoch after combining lr warmup and cosine annealing"""
     if epoch < warmup_epochs:
         return epoch / warmup_epochs
     else:
-        return 0.5 * (1 + math.cos((epoch - warmup_epochs) /
-                                   (total_epochs - warmup_epochs) * math.pi))
+        return 0.5 * (1 + math.cos((epoch - warmup_epochs) / (total_epochs - warmup_epochs) * math.pi))
 
 
 class WarmupCosineAnnealingScheduler(LambdaLR):
@@ -26,8 +24,6 @@ class WarmupCosineAnnealingScheduler(LambdaLR):
 
     """
 
-    def __init__(self, optimizer: Optimizer,
-                 total_epochs: int, warmup_epochs: int = 5, **kwargs) -> None:
-        lr_func = partial(lr_warmup_cosine_annealing,
-                          total_epochs=total_epochs, warmup_epochs=warmup_epochs)
+    def __init__(self, optimizer: Optimizer, total_epochs: int, warmup_epochs: int = 5, **kwargs) -> None:
+        lr_func = partial(lr_warmup_cosine_annealing, total_epochs=total_epochs, warmup_epochs=warmup_epochs)
         super().__init__(optimizer, lr_lambda=lr_func, **kwargs)

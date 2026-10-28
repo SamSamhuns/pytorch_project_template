@@ -2,6 +2,7 @@
 Implements logging torch device setup, save & load checkpoint,
 tensorboard logging, dataset and dataloader inits
 """
+
 import os
 import os.path as osp
 from abc import ABC, abstractmethod
@@ -22,14 +23,12 @@ from src.utils.export_utils import ONNXDynamoExportStrategy, ONNXTSExportStrateg
 
 
 class _BaseTrainer(ABC):
-    """base functions which will be overloaded
-    """
+    """base functions which will be overloaded"""
 
     def __init__(self, config: CustomDictConfig, logger_name: str = "logger") -> None:
         self.config = config
         # General logger
-        self.logger = get_logger(
-            logger_name=logger_name, logger_dir=self.config["logs_dir"])
+        self.logger = get_logger(logger_name=logger_name, logger_dir=self.config["logs_dir"])
 
         # ###################### set cuda vars ########################
         is_cuda = torch.cuda.is_available() and self.config["device"] == "cuda"
@@ -81,30 +80,25 @@ class _BaseTrainer(ABC):
 
     @abstractmethod
     def train(self):
-        """Main train function
-        """
+        """Main train function"""
         raise NotImplementedError()
 
     @abstractmethod
     def test(self):
-        """Main test function
-        """
+        """Main test function"""
         raise NotImplementedError()
 
     def validate(self):
-        """Main validate function
-        """
+        """Main validate function"""
         raise NotImplementedError()
 
     def export(self):
-        """Main export function
-        """
+        """Main export function"""
         raise NotImplementedError()
 
 
 class BaseTrainer(_BaseTrainer):
-    """Inherits from _BaseTrainer class with dataset, dataloader, and tboard logging initialized
-    """
+    """Inherits from _BaseTrainer class with dataset, dataloader, and tboard logging initialized"""
 
     def __init__(self, config: CustomDictConfig, logger_name: str = "logger") -> None:
         super().__init__(config, logger_name)
@@ -118,7 +112,7 @@ class BaseTrainer(_BaseTrainer):
 
         # ############# check exclusive config parameters #############
         val_split = self.config["dataloader"]["args"]["validation_split"]
-        if (val_path is not None and val_split > 0):
+        if val_path is not None and val_split > 0:
             msg = f"If val_path {val_path} is not None, val_split({val_split}) must be 0"
             self.logger.error(msg)
             raise ValueError(msg)
@@ -126,13 +120,10 @@ class BaseTrainer(_BaseTrainer):
         # ############### define dataset & dataloaders ################
         self.data_set = init_dataset(
             self.config["dataset"]["type"],
-            train_transform=init_transform(
-                self.config["dataset"]["preprocess"]["train_transform"]).train,
-            val_transform=init_transform(
-                self.config["dataset"]["preprocess"]["val_transform"]).val,
-            test_transform=init_transform(
-                self.config["dataset"]["preprocess"]["test_transform"]).test,
-            **self.config["dataset"]["args"]
+            train_transform=init_transform(self.config["dataset"]["preprocess"]["train_transform"]).train,
+            val_transform=init_transform(self.config["dataset"]["preprocess"]["val_transform"]).val,
+            test_transform=init_transform(self.config["dataset"]["preprocess"]["test_transform"]).test,
+            **self.config["dataset"]["args"],
         )
 
         # log numerized remapped labels if present
@@ -152,8 +143,7 @@ class BaseTrainer(_BaseTrainer):
             generator.manual_seed(self.config["seed"])
         data_ldr_args["generator"] = generator
 
-        self.train_data_loader = init_dataloader(
-            dldr_type, dataset=self.data_set.train_set, **data_ldr_args)
+        self.train_data_loader = init_dataloader(dldr_type, dataset=self.data_set.train_set, **data_ldr_args)
 
         # if val_path is not None then dataloader.args.validation_split is assumed to be 0.0
         # if no val dir is provided, take val split from training data
@@ -161,8 +151,7 @@ class BaseTrainer(_BaseTrainer):
             self.val_data_loader = self.train_data_loader.get_validation_split()
         # if val dir is provided, use all data inside val dir for validation
         elif self.data_set.val_set is not None:
-            self.val_data_loader = init_dataloader(
-                dldr_type, dataset=self.data_set.val_set, **data_ldr_args)
+            self.val_data_loader = init_dataloader(dldr_type, dataset=self.data_set.val_set, **data_ldr_args)
         # if an invalid val_path is provided
         elif val_path is not None and not self.data_set.val_set:
             msg = f"val_path: {val_path} in config is invalid."
@@ -173,8 +162,7 @@ class BaseTrainer(_BaseTrainer):
             data_ldr_args["validation_split"] = 0.0
             if dldr_type != "WebDatasetDataLoader":
                 data_ldr_args["shuffle"] = False
-            self.test_data_loader = init_dataloader(
-                dldr_type, dataset=self.data_set.test_set, **data_ldr_args)
+            self.test_data_loader = init_dataloader(dldr_type, dataset=self.data_set.test_set, **data_ldr_args)
 
         # log dataset data count, uniq labels and counts
         if self.config.verbose:
@@ -186,18 +174,17 @@ class BaseTrainer(_BaseTrainer):
                 test_set = self.data_set.test_set.data
 
             self.logger.info(
-                "TRAIN: Loaded %d data points from %s",
-                len(train_set), self.config["dataset"]["args"]["root"])
+                "TRAIN: Loaded %d data points from %s", len(train_set), self.config["dataset"]["args"]["root"]
+            )
             self.logger.info(
-                "TEST: Loaded %d data points from %s",
-                len(test_set), self.config["dataset"]["args"]["root"])
+                "TEST: Loaded %d data points from %s", len(test_set), self.config["dataset"]["args"]["root"]
+            )
 
             def _log_unique_label_counts(data_loader, label_type):
                 """Extracts targets, flattens them, and logs unique counts."""
                 targets = np.concatenate([t.numpy() for _, t in data_loader])
                 uniq_elem, counts = np.unique(targets, return_counts=True)
-                self.logger.info(
-                    "%s dataset labels: %s, counts: %s", label_type, uniq_elem, counts)
+                self.logger.info("%s dataset labels: %s, counts: %s", label_type, uniq_elem, counts)
 
             _log_unique_label_counts(self.train_data_loader, "Train")
             if self.val_data_loader:
@@ -216,8 +203,7 @@ class BaseTrainer(_BaseTrainer):
             _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}"
 
             tb_logdir = self.config.tboard_log_dir
-            tboard_writer = SummaryWriter(
-                log_dir=tb_logdir, filename_suffix=_suffix)
+            tboard_writer = SummaryWriter(log_dir=tb_logdir, filename_suffix=_suffix)
             self.tboard_writer = tboard_writer
 
             flat_cfg = recursively_flatten_config(self.config)
@@ -226,8 +212,7 @@ class BaseTrainer(_BaseTrainer):
         # #############################################################
 
     def export(self, mode: str = "ONNX_TS"):
-        """Export pytorch model to onnx
-        """
+        """Export pytorch model to onnx"""
         # dict with export path suffix & export strategy
         exporter_dict = {
             "ONNX_TS": ("_ts.onnx", ONNXTSExportStrategy),

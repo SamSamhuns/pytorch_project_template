@@ -40,17 +40,15 @@ def plot_metric(metric_name: str, **kwargs) -> None:
         IMPLEMENTED_METRICS_PLOTS[metric_name](**kwargs)
     except KeyError as exc:
         raise NotImplementedError(
-            f"{metric_name} is not implemented. " +
-            f"Available metrics for plotting are {IMPLEMENTED_METRICS_PLOTS.keys()}") from exc
+            f"{metric_name} is not implemented. "
+            + f"Available metrics for plotting are {IMPLEMENTED_METRICS_PLOTS.keys()}"
+        ) from exc
 
 
 def calc_metric(metric_name: str, **kwargs):
     """Initialize and calculate the metric."""
     try:
-        if metric_name in {
-                "roc_auc_score",
-                "average_precision_score",
-                "top_k_accuracy_score"}:
+        if metric_name in {"roc_auc_score", "average_precision_score", "top_k_accuracy_score"}:
             kwargs = {k: v for k, v in kwargs.items() if k != "y_pred"}
         else:
             kwargs = {k: v for k, v in kwargs.items() if k != "y_score"}
@@ -60,6 +58,6 @@ def calc_metric(metric_name: str, **kwargs):
         metric = IMPLEMENTED_METRICS[metric_name](**kwargs)
     except KeyError as exc:
         raise NotImplementedError(
-            f"{metric_name} is not implemented. " +
-            f"Available Metrics: {IMPLEMENTED_METRICS.keys()}") from exc
+            f"{metric_name} is not implemented. " + f"Available Metrics: {IMPLEMENTED_METRICS.keys()}"
+        ) from exc
     return metric

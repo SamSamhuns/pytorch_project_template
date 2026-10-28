@@ -15,7 +15,7 @@ def test_init_trainer(base_trainer_and_logger):
 
     gpu_dev = trainer.config["gpu_device"]
     if gpu_dev and not torch.cuda.is_available():
-        warnings.warn("CUDA device not found, GPU testing has been skipped")
+        warnings.warn("CUDA device not found, GPU testing has been skipped", stacklevel=2)
         assert ("Program will run on CPU",) in info_calls
     elif gpu_dev is None:
         assert ("Program will run on CPU",) in info_calls
@@ -35,7 +35,7 @@ def test_load_checkpoint_not_found(base_trainer_and_logger, mock_logger):
 
 def test_save_checkpoint(base_trainer_and_logger, mocker):
     """Test successful save checkpoint"""
-    mock_torch_save = mocker.patch('torch.save')
+    mock_torch_save = mocker.patch("torch.save")
     model_mock = mocker.Mock()
     trainer, _ = base_trainer_and_logger
     trainer.save_checkpoint(model_mock)
@@ -45,8 +45,8 @@ def test_save_checkpoint(base_trainer_and_logger, mocker):
 def test_load_checkpoint_success(base_trainer_and_logger, mocker):
     """Test successful load checkpoint"""
     trainer, m = base_trainer_and_logger
-    mocker.patch('os.path.isfile', return_value=True)
-    mocker.patch('torch.load', return_value={'state_dict': mocker.Mock()})
+    mocker.patch("os.path.isfile", return_value=True)
+    mocker.patch("torch.load", return_value={"state_dict": mocker.Mock()})
     model_mock = mocker.Mock()
 
     trainer.load_checkpoint(model_mock, "fake_checkpoint_path.pth")
@@ -59,18 +59,16 @@ def test_load_checkpoint_success(base_trainer_and_logger, mocker):
 def test_validation_data_loader_setup(base_trainer_and_logger):
     """Test val dataloader"""
     trainer, _ = base_trainer_and_logger
-    if (trainer.config["dataset"]["args"]["val_path"] or 
-            trainer.train_data_loader.validation_split > 0):
+    if trainer.config["dataset"]["args"]["val_path"] or trainer.train_data_loader.validation_split > 0:
         assert trainer.val_data_loader is not None
     else:
         assert trainer.val_data_loader is None
 
 
-@pytest.mark.parametrize("val_path, val_split, expected_excep", [
-    (None, 0.1, None),
-    ("/fake/val/path", 0, FileNotFoundError),
-    ("/fake/val/path", 0.1, ValueError)
-])
+@pytest.mark.parametrize(
+    "val_path, val_split, expected_excep",
+    [(None, 0.1, None), ("/fake/val/path", 0, FileNotFoundError), ("/fake/val/path", 0.1, ValueError)],
+)
 def test_validation_split_configuration(mock_clsf_config, mock_logger, val_path, val_split, expected_excep, mocker):
     """Test val split config with variations of val path and val split"""
     mock_clsf_config["dataset"]["args"]["val_path"] = val_path
@@ -78,10 +76,10 @@ def test_validation_split_configuration(mock_clsf_config, mock_logger, val_path,
     if expected_excep:
         with pytest.raises(expected_excep):
             # Patch the logger to use the mocked logger for capturing outputs
-            mocker.patch('src.loggers.get_logger', return_value=mock_logger)
+            mocker.patch("src.loggers.get_logger", return_value=mock_logger)
             PatchedBaseTrainer(config=mock_clsf_config)
     else:
-        mocker.patch('src.loggers.get_logger', return_value=mock_logger)
+        mocker.patch("src.loggers.get_logger", return_value=mock_logger)
         trainer = PatchedBaseTrainer(config=mock_clsf_config)
         assert trainer  # Check if the trainer is correctly instantiated without errors
 
@@ -106,8 +104,8 @@ def test_full_training_cycle(base_trainer_and_logger, mocker):
     and that basic calls are made.
     """
     trainer, _ = base_trainer_and_logger
-    mocker.patch.object(trainer, 'train', return_value=None)
-    mocker.patch.object(trainer, 'validate', return_value=None)
+    mocker.patch.object(trainer, "train", return_value=None)
+    mocker.patch.object(trainer, "validate", return_value=None)
     try:
         trainer.train()
         trainer.validate()
@@ -115,10 +113,13 @@ def test_full_training_cycle(base_trainer_and_logger, mocker):
         pytest.fail(f"Training cycle failed with unexpected exception: {e}")
 
 
-@pytest.mark.parametrize("mode, file_suffix", [
-    ("ONNX_TS", "_ts.onnx"),
-    ("ONNX_DYNAMO", "_dynamo.onnx"),
-])
+@pytest.mark.parametrize(
+    "mode, file_suffix",
+    [
+        ("ONNX_TS", "_ts.onnx"),
+        ("ONNX_DYNAMO", "_dynamo.onnx"),
+    ],
+)
 def test_export_function(mode, file_suffix, base_trainer_and_logger, simple_2d_conv_model):
     """Test trainer export modes"""
     trainer, logger = base_trainer_and_logger
@@ -132,4 +133,4 @@ def test_export_function(mode, file_suffix, base_trainer_and_logger, simple_2d_c
     export_path = export_path + file_suffix
 
     info_calls = [call.args for call in logger.return_value.info.call_args_list]
-    assert ('%s export complete', mode) in info_calls
+    assert ("%s export complete", mode) in info_calls

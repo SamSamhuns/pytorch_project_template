@@ -303,12 +303,27 @@ These are pure deletions with no behavior change on the main path. Their tests g
 
 ## Phase 3: Dependencies, Python and tooling
 
+**Status (2026-10-28): done.**
+
+- **Tests:** 93 passed, 25 skipped (CUDA-only), on Python 3.11.18 and 3.14.10. Both environments were installed from `uv.lock` with `uv sync --locked --extra cpu`, as CI does.
+- **Lint:** `ruff check` and `ruff format --check` pass with ruff 0.17.3, and so do all pre-commit hooks.
+- **Docker:** both training images (CUDA and CPU) and the server image build.
+  - The CPU image trains MNIST end to end: 96.5% val, 96.7% test.
+  - The CUDA image ships torch 2.14.1+cu130 with CUDA 13.0 and cuDNN 9.24.
+  - It wasn't run on a GPU: the build machine's GPUs were busy with other workloads.
+- **Not verified here:** GitHub Actions itself, since nothing was pushed. Every workflow step was run locally.
+- **Changes beyond the items below:**
+  - `numpy` and `pillow` became direct dependencies because the code imports them.
+  - The two data-prep scripts and the test tar helper use PIL instead of `imageio`.
+  - uv 0.13.6 is pinned in CI and in both Dockerfiles; `uv.lock` was written with it. uv 0.11 can read it too.
+  - The Docker images use Python 3.13 rather than 3.12. 3.14 runs DataLoader workers through forkserver, which made the test suite 1.7× slower; 5.4's persistent workers address that.
+
 ### 3.1 Python `>=3.11,<3.15`, with CI on 3.11 and 3.14 (S, R0)
 
 - **Why move off 3.10:**
   - Python 3.10 reached end-of-life in October 2026.
   - The latest onnxruntime, scikit-learn, matplotlib, imageio and pillow all require ≥3.11.
-- **Why stop below 3.15:** torch 2.14 ships no Python 3.15 wheels yet.
+- **Why stop below 3.15:** onnxruntime 1.31 and the PyPI torch 2.14 wheels have no Python 3.15 builds yet. (Corrected in Phase 3: the PyTorch index does have cp315 torch wheels.)
 - **Evidence:** the suite passes on 3.13 and 3.14 with the latest dependencies ✅.
 - **CI:** test only the bounds, 3.11 and 3.14. That is one fewer leg than today and covers the currently untested top end.
 - **Also update:**
@@ -328,7 +343,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - `opencv-python` and `aiofiles` (unused)
   - `imageio` (after Phase 2; the two scripts can use PIL)
   - `requests` (server-only; it goes away with 6.4)
-- **Security floors:** keep the `urllib3`, `fonttools` and `filelock` floors only if they were added for advisories, and drop the `filelock <4` cap.
+- **Security floors:** keep the `urllib3`, `fonttools` and `filelock` floors only if they were added for advisories, and drop the `filelock <4` cap. (Done: they came with a February dependency update, so they are kept as uv `constraint-dependencies` rather than direct dependencies.)
 - **Pin policy:**
   - Fast-moving ML libraries get `>=X.Y,<X.(Y+1)`.
   - Everything else gets `<next major`.
@@ -393,7 +408,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - Drop `snok/install-poetry` (`version: latest` is unpinned) and `actions/cache@v3`.
   - With uv, use `astral-sh/setup-uv` with its built-in cache.
   - Bump `actions/checkout` and `actions/setup-python` to their current majors.
-- **Downloads:** stop downloading MobileNetV2 weights and MNIST in tests (7.9).
+- **Downloads:** stop downloading MobileNetV2 weights and MNIST in tests (7.9). (Still open; CI downloads them.)
 
 ### 3.5 Docker: one CUDA stack on a slim base (S–M, R+)
 
@@ -403,7 +418,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - Poetry installs torch 2.8 plus about 3.9 GB of CUDA wheels into `.venv` on top, so the image carries two CUDA stacks (est. ~11 GB).
 - **Fix:**
   - PyPI torch wheels already bundle the CUDA runtime and cuDNN; the driver comes from the host through the NVIDIA Container Toolkit.
-  - Use `FROM python:3.12-slim` with `uv sync --locked --extra cu130 --no-dev` (est. ~4 GB).
+  - Use `FROM python:3.12-slim` with `uv sync --locked --extra cu130 --no-dev` (est. ~4 GB). (Done with `python:3.13-slim`. Measured: 3.23 GB compressed, about 6.2 GB unpacked, vs about 11.3 GB compressed before. A `TORCH_EXTRA=cpu` build arg gives a 0.41 GB CPU image. git was dropped, since `.dockerignore` excludes `.git`.)
   - Drop:
     - the apt dev tools (cmake, g++, vim, htop, bmon, iotop, tree, wget, bzip2, apt-utils)
     - the X11 libs for OpenCV, which isn't a training dependency
@@ -420,7 +435,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - About 1,200 of the violations come from the `D` (docstring style) and `ANN` (annotation) rules.
   - `ANN101`/`ANN102` no longer exist.
 - **Fix:**
-  - Keep `E, F, B, UP, I, SIM, RUF` (plus `N` if you like). Drop `D`, `ANN` and `T20`; logging cleanup (4.8) removes the prints from `src/` anyway.
+  - Keep `E, F, B, UP, I, SIM, RUF` (plus `N` if you like). Drop `D`, `ANN` and `T20`; logging cleanup (4.8) removes the prints from `src/` anyway. (Done, also keeping `C4` and `A` from the old config at the cost of one fix. `N` was dropped: most of its hits are PyTorch conventions such as `import torch.nn.functional as F`. `fix = true` was removed so `ruff check` fails in CI instead of rewriting files.)
   - Run `ruff format` once in its own commit, and list that commit in `.git-blame-ignore-revs`.
   - Bump `.pre-commit-config.yaml`. `pre-commit-hooks` is at v2.3.0 from 2019, and the ruff hook should match the dev-dependency version.
   - Run ruff in CI (3.4).
@@ -905,7 +920,7 @@ A smoke test (train 2 epochs → test → all 4 export modes) passes on both the
 
 ## Appendix B: dependencies
 
-"Latest" is from PyPI on 2026-10-27; dates are 2026 unless noted. Exact versions belong in the lockfile.
+"Latest" is from PyPI on 2026-10-27; dates are 2026 unless noted. Exact versions belong in the lockfile. Phase 3 locked these ranges in `uv.lock` on 2026-10-28; pytest 9.2.0 and ruff 0.17.3 had been released by then.
 
 | Package | Locked | Latest | Notes for this repo | Suggested range |
 | --- | --- | --- | --- | --- |
