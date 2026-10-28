@@ -3,9 +3,11 @@ Run with: python export.py --cfg YAML_CONFIG_PATH -r PTH_MODEL_PATH --mode ONNX_
 """
 
 import argparse
+import os.path as osp
 from datetime import datetime
 
 from src.config_parser import CustomDictConfig
+from src.loggers import setup_logging
 from src.trainers import init_trainer
 
 
@@ -69,6 +71,7 @@ def get_config_from_args() -> CustomDictConfig:
 
 def main():
     config = get_config_from_args()
+    setup_logging(osp.join(config.logs_dir, "export.log"))
     trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="export")
 
     trainer.export(config["mode"])

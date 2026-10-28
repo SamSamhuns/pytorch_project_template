@@ -2,7 +2,6 @@
 
 import argparse
 import glob
-import logging
 import os
 import os.path as osp
 from collections.abc import Callable
@@ -70,35 +69,6 @@ def mock_parser(scope="function"):
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False)
     parser.add_argument("-o", "--override", type=str, nargs="+", dest="override", default=None)
     return parser
-
-
-####################################
-###### setup for loggers test ######
-
-
-@pytest.fixture
-def logger_test_dir():
-    return f"{PYTEST_TEMP_ROOT}/test_logs"
-
-
-@pytest.fixture
-def gen_basic_config() -> Callable:
-    """Fixture to generate data. It uses dynamic dimensions provided by test cases."""
-
-    def _gen_basic_config(logger_name: str, logger_dir: str, **kwargs):
-        cfg = {
-            "logger_name": logger_name,
-            "logger_dir": logger_dir,
-            "file_fmt": "%(asctime)s %(levelname)-8s: %(message)s",
-            "console_fmt": "%(message)s",
-            "logger_level": logging.WARN,
-            "file_level": logging.INFO,
-            "console_level": logging.ERROR,
-            "propagate": True,
-        }
-        return cfg | kwargs
-
-    return _gen_basic_config
 
 
 #######################################

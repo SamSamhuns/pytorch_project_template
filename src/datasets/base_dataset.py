@@ -1,10 +1,13 @@
 """Base Dataset Class"""
 
+import logging
 import os
 import os.path as osp
 
 from PIL import Image
 from torch.utils import data
+
+logger = logging.getLogger(__name__)
 
 IMG_EXTENSIONS = {".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".webp"}
 
@@ -140,7 +143,7 @@ class BaseDataset(data.Dataset):
 
             return sample, target
         except Exception as excep:
-            print(excep)
+            logger.warning("Skipping sample %d: %s", index, excep)
             return None
 
     def __len__(self):
