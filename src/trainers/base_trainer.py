@@ -14,7 +14,7 @@ from omegaconf import OmegaConf
 from torch.utils.data import DataLoader, IterableDataset, Subset
 from torch.utils.tensorboard import SummaryWriter
 
-from src.augmentations import init_transform
+from src.augmentations import build_transforms
 from src.config_parser import CustomDictConfig
 from src.datasets import init_dataset
 from src.utils.common import get_device
@@ -66,8 +66,7 @@ class BaseTrainer(_BaseTrainer):
         super().__init__(config, logger_name)
         self.model = None  # placeholder model attrb. Must be init later
         # train_transform augments; eval_transform is shared by val, test and inference
-        preprocess_cfg = self.config["dataset"]["preprocess"]
-        self.preprocess = init_transform(preprocess_cfg["type"], **preprocess_cfg["args"])
+        train_transform, eval_transform, _ = build_transforms(self.config["dataset"]["preprocess"])
 
         # ############### define dataset & dataloaders ################
         # a seeded generator makes the val split and the train shuffle reproducible
@@ -77,8 +76,8 @@ class BaseTrainer(_BaseTrainer):
         # the val set comes from val_path, or validation_split carves it out of the train data
         self.data_set = init_dataset(
             self.config["dataset"]["type"],
-            train_transform=self.preprocess.train_transform,
-            eval_transform=self.preprocess.eval_transform,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
             generator=generator,
             **self.config["dataset"]["args"],
         )
