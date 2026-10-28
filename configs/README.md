@@ -9,7 +9,6 @@ An example Configuration file is provided at `classifier_cpu_config.yaml`
 # General settings
 experiment_name: image_classifier  # Name of experiment, name of the dir for saving logs, metrics & models
 save_dir: checkpoints  # Directory to save checkpoints and logs
-git_hash: null  # Git hash for version control, set during runs
 seed: 42  # Random seed for reproducibility
 reproducible: false  # true trades speed for determinism: no cuDNN benchmarking, deterministic algorithms where they exist
 device: cuda  # Device to run on: cpu, cuda or cuda:1. Falls back to cpu when CUDA is unavailable
@@ -18,7 +17,6 @@ torch_compile_model: false  # Compile the PyTorch model for optimized performanc
 
 # Trainer configuration
 trainer:
-  resume_checkpoint: null  # Checkpoint to resume from, e.g. .../models/last.pth; restores the optimizer, LR schedule and epoch too
   batch_log_freq: 5  # Logging frequency within an epoch
   valid_freq: 2  # Validate every N epochs; best.pth is saved when val accuracy improves, last.pth every epoch
   epochs: 12  # Number of training epochs

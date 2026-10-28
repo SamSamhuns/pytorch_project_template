@@ -1,13 +1,11 @@
 experiment_name: image_classifier
 save_dir: checkpoints
-git_hash: null
 seed: 42
 reproducible: false
 device: cpu
 use_amp: false
 torch_compile_model: false
 trainer:
-  resume_checkpoint: null
   batch_log_freq: 5
   valid_freq: 2
   epochs: 12

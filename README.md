@@ -119,13 +119,13 @@ python train.py --cfg configs/classifier_webdataset_cpu_config.yaml
 Test based on CONFIG_FILE. By default testing is done for mnist classification.
 
 ```shell
-python test.py --cfg CONFIG_FILE
+python test.py --cfg CONFIG_FILE -w checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth
 ```
 
 ## Export
 
 ```shell
-python export.py --cfg CONFIG_FILE -r checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth
+python export.py --cfg CONFIG_FILE -w checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth
 ```
 
 This writes `model.onnx` to the export run's `models` dir, e.g. `checkpoints/EXPERIMENT_NAME/export_DATE_TIME/models/model.onnx`, and checks that ONNX Runtime's outputs match the PyTorch model's. The ONNX model takes any batch size, and holds the class names and the settings of the eval transform, which the server reads.
@@ -143,7 +143,7 @@ tensorboard --logdir=TF_LOG_DIR --port=6006
 ## Inference
 
 ```shell
-python inference.py --cfg CONFIG_FILE -r checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth -s IMAGE_FILE_OR_DIR
+python inference.py --cfg CONFIG_FILE -w checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth -s IMAGE_FILE_OR_DIR
 ```
 
 This logs the most likely class of each image with its probability, and writes them to the run's `logs/pred.txt`.
@@ -158,7 +158,7 @@ Install docker in the system first:
 bash scripts/build_docker.sh  # builds the CUDA image; add --build-arg TORCH_EXTRA=cpu for a CPU-only image
 bash scripts/run_docker.sh    # runs the image with a shared checkpoints_docker volume outside the container
 # inside the docker container
-python train.py
+python train.py --cfg configs/classifier_gpu_config.yaml
 ```
 
 The container runs on CPU unless you pass GPUs with `-g`, e.g. `bash scripts/run_docker.sh -g all` or `-g device=0`. GPUs need the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) and an NVIDIA driver >= 580 on the host.

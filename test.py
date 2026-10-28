@@ -1,11 +1,12 @@
-"""Testing script, run with: python test.py --cfg YAML_CONFIG_PATH -r TRAINED_PT_MODEL_PATH"""
+"""Test a trained model on the test split, run with: python test.py --cfg CONFIG -w .../models/best.pth"""
 
 import argparse
 import os.path as osp
-from datetime import datetime
+
+from omegaconf import OmegaConf
 
 from src.augmentations import build_transforms
-from src.config_parser import CustomDictConfig
+from src.config_parser import add_common_args, load_config, make_run_dir
 from src.datasets import DATASETS, build_dataloaders
 from src.loggers import setup_logging
 from src.models import MODELS
@@ -13,71 +14,16 @@ from src.trainers import ClassifierTrainer
 from src.utils.common import get_device
 
 
-def get_config_from_args() -> CustomDictConfig:
-    """Get CustomDictConfig obj from argparse"""
-    parser = argparse.ArgumentParser(description="PyTorch Test supports classification eval")
-    parser.add_argument("--cfg", "--config", type=str, dest="config", required=True, help="YAML config file path.")
-    parser.add_argument(
-        "-r",
-        "--resume_checkpoint",
-        type=str,
-        dest="resume_checkpoint",
-        required=True,
-        help="Path to resume checkpoint. Overrides `trainer.resume_checkpoint` in config.",
-    )
-    parser.add_argument(
-        "--id",
-        "--run_id",
-        type=str,
-        dest="run_id",
-        default="test_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
-        help="Unique identifier for testing. Annotates checkpoints & logs. (default: %(default)s)",
-    )
-    parser.add_argument(
-        "-o",
-        "--override",
-        type=str,
-        nargs="+",
-        dest="override",
-        default=None,
-        help="Override config params. Must match keys in YAML config. "
-        "e.g. -o seed=1 dataset.type=NewDataType model.layers=[64,128,256] model.layers[2]=512 (default: %(default)s)",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        dest="verbose",
-        default=False,
-        help="Run testing in verbose mode (default: %(default)s)",
-    )
-
-    # Add additional arguments here (Overrides YAML configs)
-    parser.add_argument("--dev", "--device", dest="device", help="Device to run on, e.g. cpu, cuda or cuda:1.")
-    parser.add_argument(
-        "--mode",
-        type=str,
-        dest="mode",
-        default="TEST_PYTORCH",
-        choices=["TEST_PYTORCH"],
-        help="Running mode. (default: %(default)s)",
-    )
+def main():
+    parser = argparse.ArgumentParser(description="Test a trained image classifier on the test split")
+    add_common_args(parser, run_prefix="test")
+    parser.add_argument("-w", "--weights", required=True, help="Checkpoint to test, e.g. .../models/best.pth")
     args = parser.parse_args()
 
-    # To override key-value params from YAML file,
-    # match the YAML kv structure for any additional args above
-    # keys-val pairs can have nested structure separated by colons
-    yaml_modification = {
-        "trainer.resume_checkpoint": args.resume_checkpoint,
-        "device": args.device,
-        "mode": args.mode,
-    }
-    return CustomDictConfig.from_args(args, yaml_modification)
-
-
-def main():
-    config = get_config_from_args()
-    setup_logging(osp.join(config.logs_dir, "test.log"))
+    config = load_config(args.config, args.override)
+    run_dir = make_run_dir(config, args.run_id)
+    setup_logging(osp.join(run_dir, "logs", "test.log"))
+    OmegaConf.save(config, osp.join(run_dir, "config.yaml"))
     device = get_device(config.device)
 
     train_transform, eval_transform, _ = build_transforms(config.dataset.preprocess)
@@ -89,9 +35,8 @@ def main():
         raise ValueError("The dataset has no test split")
 
     model = MODELS[config.model.type](**config.model.args)
-    run_dir = osp.join(config.save_dir, config.experiment_name, config.run_id)
-    trainer = ClassifierTrainer(config, model, run_dir, device, verbose=config.verbose)
-    trainer.evaluate(test_loader, weights=config.trainer.resume_checkpoint)
+    trainer = ClassifierTrainer(config, model, run_dir, device)
+    trainer.evaluate(test_loader, weights=args.weights)
 
 
 if __name__ == "__main__":
