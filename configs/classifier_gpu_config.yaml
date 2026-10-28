@@ -50,6 +50,7 @@ loss:
   args:
     label_smoothing: 0.1
 metrics:
+  average: macro
   val:
   - accuracy_score
   - f1_score

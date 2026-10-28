@@ -73,6 +73,7 @@ loss:
 
 # Metrics configuration
 metrics:
+  average: macro  # How f1_score, precision_score and recall_score average the classes: macro, micro, weighted, or binary for class 1 alone
   val:
   - accuracy_score  # Validation metric: accuracy
   - f1_score  # Validation metric: F1 score

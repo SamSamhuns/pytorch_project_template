@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
 
 from src.config_parser import CustomDictConfig
-from src.metrics import calc_metric, plot_metric
+from src.metrics import PLOTS, calc_metric, plot_metric
 from src.models import MODELS
 from src.trainers.base_trainer import BaseTrainer
 from src.utils.custom_statistics import get_model_params
@@ -242,9 +242,9 @@ class ClassifierTrainer(BaseTrainer):
         # add all val metrics
         metric_name_val_dict = {}
         for metric_name in self.config["metrics"]["val"]:
-            if metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"} and y_score.ndim > 1:
+            if (metric_name == "roc_auc_score" or metric_name in PLOTS) and y_score.ndim > 1:
                 continue  # binary-only metrics; multi-class y_score holds one column per class
-            if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
+            if metric_name in PLOTS:
                 if self.config.verbose:
                     self.logger.info("\tPlotting val %s", metric_name)
                 plot_metric(
@@ -254,7 +254,7 @@ class ClassifierTrainer(BaseTrainer):
                     savepath=os.path.join(self.config["logs_dir"], f"val_e{self.current_epoch}_{metric_name}.png"),
                 )
                 continue
-            metric_val = calc_metric(metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
+            metric_val = calc_metric(metric_name, y_true, y_score, y_pred, self.config["metrics"]["average"])
             if (
                 metric_name not in {"confusion_matrix", "classification_report"}
                 and self.config["trainer"]["use_tensorboard"]
@@ -307,9 +307,9 @@ class ClassifierTrainer(BaseTrainer):
             self.tboard_writer.add_scalar("Loss/test/epoch", test_loss, self.current_epoch)
         # add all test metrics
         for metric_name in self.config["metrics"]["test"]:
-            if metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"} and y_score.ndim > 1:
+            if (metric_name == "roc_auc_score" or metric_name in PLOTS) and y_score.ndim > 1:
                 continue  # binary-only metrics; multi-class y_score holds one column per class
-            if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
+            if metric_name in PLOTS:
                 self.logger.info("\tPlotting %s", metric_name)
                 plot_metric(
                     metric_name,
@@ -318,7 +318,7 @@ class ClassifierTrainer(BaseTrainer):
                     savepath=os.path.join(self.config["logs_dir"], f"{metric_name}.png"),
                 )
                 continue
-            metric_val = calc_metric(metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
+            metric_val = calc_metric(metric_name, y_true, y_score, y_pred, self.config["metrics"]["average"])
             if metric_name in {"confusion_matrix", "classification_report"}:
                 self.logger.info("\t%s: \n%s", metric_name, metric_val)
             else:
