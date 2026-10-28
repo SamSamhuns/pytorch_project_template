@@ -1,8 +1,16 @@
+import glob
 import os.path as osp
+import tarfile
+from collections import Counter
+from pathlib import Path
 
 import pytest
+import torch
+from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from src.datasets import ClassifierDataset
+from tests.conftest import NUM_CLS, NUM_IMGS_P_CLS
 
 
 def test_initialization_imgs(mock_classifierdataset):
@@ -20,6 +28,37 @@ def test_initialization_webdataset(basic_params, mock_webdataset_path):
     basic_params["test_path"] = None
     dataset = ClassifierDataset(data_mode="webdataset", **basic_params)
     assert dataset.train_set is not None, "Training set should be initialized."
+
+
+def test_webdataset_shards_keep_the_image_files(mock_webdataset_path, dump_mock_img_data_dir):
+    """The converter stores each image file's bytes without re-encoding, shuffled so each shard mixes the classes"""
+    stored = Counter()
+    for shard in glob.glob(osp.join(mock_webdataset_path, "*.tar")):
+        with tarfile.open(shard) as tar:
+            files = {member.name: tar.extractfile(member).read() for member in tar}
+        stored.update(data for name, data in files.items() if name.endswith(".jpg"))
+        assert len({data for name, data in files.items() if name.endswith(".cls")}) == NUM_CLS
+    images = glob.glob(osp.join(dump_mock_img_data_dir, "*", "*.jpg"))
+    assert stored == Counter(Path(image).read_bytes() for image in images)
+
+
+def test_webdataset_workers_read_every_sample_once(mock_webdataset_path):
+    """Each DataLoader worker reads its own shards, and a worker without a shard reads nothing"""
+    dataset = ClassifierDataset(
+        train_transform=transforms.ToTensor(),
+        data_mode="webdataset",
+        root=osp.dirname(mock_webdataset_path),
+        train_path=osp.basename(mock_webdataset_path),
+        val_path=None,
+        test_path=None,
+    )
+    loader = DataLoader(dataset.train_set, batch_size=10, num_workers=4)  # 3 shards of 50 images
+    batches = [target for _, target in loader]
+
+    assert len(dataset.train_set) == NUM_CLS * NUM_IMGS_P_CLS  # from info.json, without reading the images
+    assert len(loader) == len(batches) == 15
+    assert Counter(torch.cat(batches).tolist()) == dict.fromkeys(range(NUM_CLS), NUM_IMGS_P_CLS)
+    assert dataset.train_set.classes == [f"class_{i}" for i in range(NUM_CLS)]
 
 
 def test_split_missing_a_class_dir_raises(tmp_path, create_and_save_dummy_imgs):
