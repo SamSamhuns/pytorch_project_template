@@ -61,13 +61,6 @@ def test_get_pil_img():
         assert opened_img.mode == 'RGB'
 
 
-def test_default_loader():
-    with tempfile.NamedTemporaryFile(suffix=".jpg") as tmpfile:
-        # Create a small image file
-        img = Image.new('RGB', (10, 10))
-        img.save(tmpfile.name)
-
-
 def test_initialization(image_dataset):
     """Check if the dataset is initialized correctly"""
     assert len(image_dataset) == NUM_CLS * NUM_IMGS_P_CLS

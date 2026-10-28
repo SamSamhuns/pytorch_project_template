@@ -8,8 +8,6 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import torch
-import tqdm
-from tensorboard import program
 from torch import nn
 from torch.utils.data import Subset
 from torch.utils.tensorboard import SummaryWriter
@@ -19,14 +17,8 @@ from src.config_parser import CustomDictConfig
 from src.dataloaders import init_dataloader
 from src.datasets import init_dataset
 from src.loggers import get_logger
-from src.utils.common import BColors, is_port_in_use, recursively_flatten_config
-from src.utils.export_utils import (
-    ONNXDynamoExportStrategy,
-    ONNXTSExportStrategy,
-    QuantizedModelWrapper,
-    TSScriptExportStrategy,
-    TSTraceExportStrategy,
-)
+from src.utils.common import BColors, recursively_flatten_config
+from src.utils.export_utils import ONNXDynamoExportStrategy, ONNXTSExportStrategy
 
 
 class _BaseTrainer(ABC):
@@ -231,40 +223,20 @@ class BaseTrainer(_BaseTrainer):
             flat_cfg = recursively_flatten_config(self.config)
             for cfg_key, cfg_val in flat_cfg.items():
                 self.tboard_writer.add_text(cfg_key, str(cfg_val))
-
-            tboard_port = self.config["trainer"]["tensorboard_port"]
-            if tboard_port is not None:
-                while is_port_in_use(tboard_port) and tboard_port < 65535:
-                    tboard_port += 1
-                    print(f"Port {tboard_port - 1} unavailable."
-                          "Switching to {tboard_port} for tboard logging")
-
-                tboard = program.TensorBoard()
-                tboard.configure(
-                    argv=[None, "--logdir", tb_logdir, "--port", str(tboard_port)])
-                url = tboard.launch()
-                self.logger.info("Tensorboard logger started on %s", url)
         # #############################################################
 
-    def export(self, mode: str = "ONNX_TS", quantize_mode_backend: str = None):
-        """Export pytorch model to onnx/torchscript with optional quantization
-        Currently supported quantization mode includes ("fbgemm", "x86", "qnnpack", "onednn")
+    def export(self, mode: str = "ONNX_TS"):
+        """Export pytorch model to onnx
         """
         # dict with export path suffix & export strategy
         exporter_dict = {
             "ONNX_TS": ("_ts.onnx", ONNXTSExportStrategy),
             "ONNX_DYNAMO": ("_dynamo.onnx", ONNXDynamoExportStrategy),
-            "TS_TRACE": ("_traced.ptc", TSTraceExportStrategy),
-            "TS_SCRIPT": ("_scripted.ptc", TSScriptExportStrategy)
         }
         if mode not in exporter_dict:
             raise NotImplementedError(f"{mode} export mode is not supported")
         if not self.model:
             raise NotImplementedError("Model not implemented/initialized")
-        if quantize_mode_backend:
-            self.logger.info("Init model quantization with %s backend", quantize_mode_backend)
-            self.model = QuantizedModelWrapper(self.model)
-            self.model = self.quantize_model(quantize_mode_backend)
 
         self.model.eval()
         self.logger.info("Initiated %s export mode", mode)
@@ -276,36 +248,9 @@ class BaseTrainer(_BaseTrainer):
 
         model_name = "model_gpu" if self.device.type == "cuda" else "model_cpu"
         export_path = osp.join(self.config["models_dir"], model_name)
-        export_path += f"_quant_{quantize_mode_backend}" if quantize_mode_backend else ""
         export_path = export_path + exporter_dict[mode][0]
         exporter = exporter_dict[mode][1](self.logger)
         # export and test inference for equality with orig pytorch model
         exporter.export(self.model, export_path, sample_in)
         exporter.test_inference(self.model, export_path, sample_in)
         self.logger.info("%s export complete", mode)
-
-    def quantize_model(self, backend: str = "qnnpack") -> nn.Module:
-        """Quantizes the model.
-
-        Args:
-            backend (str): The backend for quantization ("fbgemm", "x86", "qnnpack", "onednn").
-        Note: All tensors must be in cpu
-
-        """
-        if self.device != torch.device("cpu"):
-            self.logger.warning("Quantization is only tested on cpu. Running on GPU may cause errors.")
-        self.model.eval()
-        torch.backends.quantized.engine = backend
-        self.model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
-        torch.ao.quantization.prepare(self.model, inplace=True)
-
-        # Calibrate the model using the test loader
-        self.logger.info("Calibrating quantized model with test data...")
-        with torch.no_grad():
-            for data, _ in tqdm.tqdm(self.test_data_loader):
-                data = data.to(self.device, non_blocking=True)
-                self.model(data)
-
-        quantized_model = torch.ao.quantization.convert(self.model, inplace=False)
-        self.logger.info("Quantization complete with %s backend", backend)
-        return quantized_model

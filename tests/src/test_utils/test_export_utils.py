@@ -7,8 +7,6 @@ import pytest
 from src.utils.export_utils import (
     ONNXDynamoExportStrategy,
     ONNXTSExportStrategy,
-    TSScriptExportStrategy,
-    TSTraceExportStrategy,
     onnx_inference,
     torch_inference,
 )
@@ -45,8 +43,6 @@ def test_inference_compatibility(simple_2d_conv_model, onnx_session, sample_tens
 @pytest.mark.parametrize("strategy_class, export_file_extn", [
     (ONNXTSExportStrategy, ".onnx"),
     (ONNXDynamoExportStrategy, ".onnx"),
-    (TSTraceExportStrategy, ".pt"),
-    (TSScriptExportStrategy, ".pt")
 ])
 def test_export(setup_model_and_logger, sample_tensor, strategy_class, export_file_extn):
     model, logger = setup_model_and_logger
@@ -59,8 +55,6 @@ def test_export(setup_model_and_logger, sample_tensor, strategy_class, export_fi
 @pytest.mark.parametrize("strategy_class, export_file_extn", [
     (ONNXTSExportStrategy, ".onnx"),
     (ONNXDynamoExportStrategy, ".onnx"),
-    (TSTraceExportStrategy, ".pt"),
-    (TSScriptExportStrategy, ".pt")
 ])
 @pytest.mark.order(after=["test_export"])
 def test_inference(setup_model_and_logger, sample_tensor, strategy_class, export_file_extn):

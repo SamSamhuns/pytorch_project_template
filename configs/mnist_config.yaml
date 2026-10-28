@@ -8,7 +8,6 @@ gpu_device:
 - 0
 use_amp: false
 torch_compile_model: false
-quant_backend: null
 trainer:
   type: ClassifierTrainer
   resume_checkpoint: null
@@ -17,7 +16,6 @@ trainer:
   epochs: 12
   verbosity: 2
   use_tensorboard: true
-  tensorboard_port: null
 model:
   type: MnistModel
   args:

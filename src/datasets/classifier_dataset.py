@@ -2,8 +2,6 @@
 """
 import os.path as osp
 
-import imageio.v2 as imageio
-import torchvision.utils as v_utils
 import webdataset as wds
 from torchvision.transforms import Compose
 
@@ -88,44 +86,6 @@ class ClassifierDataset:
                 test_root = osp.join(root, test_path)
                 test_len = _get_webdataset_len(test_root)
                 self.test_set = _get_webdataset(test_root, test_transform, test_len)
-        elif data_mode == "numpy":
-            raise NotImplementedError(
-                "This mode is not implemented YET")
         else:
             raise NotImplementedError(
                 f"{data_mode} data_mode is not supported. Available modes are: imgs, webdataset")
-
-    def plot_samples_per_epoch(self, batch, epoch, out_dir):
-        """Plotting the batch images
-        :param batch: Tensor of shape (B,C,H,W)
-        :param epoch: the number of current epoch
-        :param out_dir: output save directory
-        :return: img_epoch: which will contain the image of this epoch
-        """
-        img_epoch = f"{out_dir}samples_epoch_{epoch:d}.png"
-        v_utils.save_image(batch,
-                           img_epoch,
-                           nrow=4,
-                           padding=2,
-                           normalize=True)
-        return imageio.imread(img_epoch)
-
-    def make_gif(self, epochs, out_dir):
-        """Make a gif from a multiple images of epochs
-        :param epochs: num_epochs till now
-        :param out_dir: output save directory
-        :return:
-        """
-        gen_image_plots = []
-        for epoch in range(epochs + 1):
-            img_epoch = f'{out_dir}samples_epoch_{epoch:d}.png'
-            try:
-                gen_image_plots.append(imageio.imread(img_epoch))
-            except OSError as e:
-                print(e)
-
-        imageio.mimsave(
-            out_dir + f'animation_epochs_{epochs:d}.gif', gen_image_plots, fps=2)
-
-    def finalize(self):
-        pass

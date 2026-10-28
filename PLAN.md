@@ -260,6 +260,25 @@ Each fix should land with one small regression test. None of these bugs is caugh
 
 These are pure deletions with no behavior change on the main path. Their tests go with them. This is about 1,400 lines in total.
 
+**Status (2026-10-27): done.**
+
+- **Tests:** 93 passed, 25 skipped (CUDA-only), on both the exact lock and the latest stack. The 34 fewer passing tests are the tests of deleted code.
+- **Smoke runs passed:**
+  - MNIST: train → `test.py` → `inference.py` → both ONNX exports
+  - the binary classifier with ROC/PR/calibration plots
+  - the WebDataset config with TensorBoard logging on
+- **MNIST is unchanged within noise with PyTorch's default init:** 96.6% val and 96.7% test after 2 epochs, vs 96.2% and 96.8% before.
+- **Changes beyond the table:**
+  - The loss registry keeps only `NLLLoss` and `CrossEntropyLoss`. BCE, BCEWithLogits and MSE can't work with log-probability outputs and class-index targets.
+  - `top_k_accuracy_score` was fixed rather than deleted: `calc_metric` now passes it `y_score`, with one test.
+  - Deleting base_metrics.py also removed `optimal_thres_from_roc_curve` and the tpr/tnr/ppv/npv/fpr/fnr/fdr metric names. `classification_report` covers the per-class rates.
+  - The `quant_backend` and `tensorboard_port` config keys and the `-q` export flag were removed (6.2 is done).
+  - The `.squeeze(-1)` on model outputs, which existed only for single-output BCE models, was removed.
+- **Left for Phase 3:**
+  - `torchinfo` is now unused.
+  - `imageio` is used only by two data-prep scripts and the test fixtures.
+  - `pyproject.toml` is untouched, because 3.2–3.3 rewrite it for uv.
+
 | Delete | Where | ~Lines | Why |
 | --- | --- | --- | --- |
 | Feature importance and the `TRAIN_TEST_FEATSELECT` mode | [classifier_trainer.py:441-535](src/trainers/classifier_trainer.py#L441-L535), [train.py:41,65-67](train.py#L41) | 100 | Time-series leftover that crashes ✅ (`'list' object has no attribute 'shape'`) |
@@ -611,10 +630,10 @@ These are pure deletions with no behavior change on the main path. Their tests g
 - **Parity check:** keep one `np.testing.assert_allclose` check. Drop the 32-run benchmark, which takes 30–55% of export time ✅.
 - **Optional PyTorch-native artifact:** `torch.export.save(torch.export.export(model, (sample,), ...), "model.pt2")` ✅.
 - **Also:**
-  - Delete the `TEST_TORCHSCRIPT` mode of `test.py`.
+  - Delete the `TEST_TORCHSCRIPT` mode of `test.py`. (Done in Phase 2, with `TS_TRACE` and `TS_SCRIPT`; `ONNX_TS` and `ONNX_DYNAMO` remain.)
   - Requires onnxscript ≥0.7 (3.2).
 
-### 6.2 Quantization: delete the `torch.ao` path (S, R+, about −60 lines)
+### 6.2 Quantization: delete the `torch.ao` path (S, R+, about −60 lines; deletion done in Phase 2)
 
 - **Problem:**
   - Eager `torch.ao.quantization` with a QuantStub wrapper and no layer fusion fails for both shipped models ✅:
@@ -743,8 +762,8 @@ These are pure deletions with no behavior change on the main path. Their tests g
 - **Unused or runtime-only keys to remove:**
   - `verbosity` (never read)
   - `git_hash` and `mode` (runtime state; `mode` done in Phase 1)
-  - `quant_backend` (6.2)
-  - `tensorboard_port` (Phase 2)
+  - `quant_backend` (done in Phase 2)
+  - `tensorboard_port` (done in Phase 2)
   - `weight_save_freq` and `save_best_only` (done in Phase 1)
   - `gpu_device` (4.4)
   - `prefetch_factor` (done in Phase 1)
@@ -796,9 +815,9 @@ These are pure deletions with no behavior change on the main path. Their tests g
 
 These are low impact. Fold each into whichever PR touches the file. Many become moot once the code they're in is deleted.
 
-- [classifier_trainer.py:1-2](src/trainers/classifier_trainer.py#L1-L2): the docstring says "Time Series Classification trainer". Line 41 mentions a "UCR Dataset".
+- [classifier_trainer.py:1-2](src/trainers/classifier_trainer.py#L1-L2): the docstring says "Time Series Classification trainer". Line 41 mentions a "UCR Dataset". (Done in Phase 2.)
 - [classifier_trainer.py:327](src/trainers/classifier_trainer.py#L327) logs `val_end_tm - val_end_tm`, so validation time always reads 0.000 s. (Done in Phase 1.)
-- [base_trainer.py:281-282](src/trainers/base_trainer.py#L281-L282): the second string lacks its `f` prefix and a space, so it prints a literal `{tboard_port}`.
+- [base_trainer.py:281-282](src/trainers/base_trainer.py#L281-L282): the second string lacks its `f` prefix and a space, so it prints a literal `{tboard_port}`. (Moot: deleted in Phase 2.)
 - `eval_one_epoch` is annotated as returning lists but returns numpy arrays. (Done in Phase 1.)
 - [config_parser.py:122](src/config_parser.py#L122): `k.rsplit('.')[0]` should be `k.split('.', 1)[0]`.
 - [server.py:167,193](server/server.py#L167): `print(traceback.print_exc())` prints `None`.
@@ -812,15 +831,15 @@ These are low impact. Fold each into whichever PR touches the file. Many become 
 - [generate_classmap_from_dataset.py](scripts/generate_classmap_from_dataset.py): the docstring says "convert dataset to tar format" and the function is named `generate_tar`.
 - [duplicate_data.py:78-83](scripts/duplicate_data.py#L78-L83) copies N+1 files, and its main function is named `split_train_test`.
 - [export_utils.py:140](src/utils/export_utils.py#L140): a comment contradicts the code below it.
-- The export tests expect a `.pt` suffix while the code writes `.ptc`.
-- The `comprehensive_clsf_metrics` docstring promises tp/tn/fp/fn keys it doesn't return.
+- The export tests expect a `.pt` suffix while the code writes `.ptc`. (Moot: deleted in Phase 2.)
+- The `comprehensive_clsf_metrics` docstring promises tp/tn/fp/fn keys it doesn't return. (Moot: deleted in Phase 2.)
 - `ClassifierModel` (all three done in Phase 1 by the 1.7 rewrite):
   - Its docstring documents a `pretrained` parameter that doesn't exist.
   - `print("custom backbone")` silently ignores `num_classes`.
   - `num_classes > 0 and num_classes is not None` checks in the wrong order.
 - `_get_webdataset_len` leaves tar handles open (ResourceWarning).
 - [inference.py:24](inference.py#L24): the default run id is prefixed `test_` (copied from test.py).
-- [mnist_dataset.py:33](src/datasets/mnist_dataset.py#L33) raises a bare `Exception`.
+- [mnist_dataset.py:33](src/datasets/mnist_dataset.py#L33) raises a bare `Exception`. (Done in Phase 2.)
 - `InputModel.back_url: str = None` should be `str | None`.
 - [cleanup.sh](scripts/cleanup.sh) deletes `experiments*` and `logs*`, but runs are saved under `checkpoints/`.
 - `.dockerignore` is padded with entries for Django, PyInstaller and Travis that don't apply here.

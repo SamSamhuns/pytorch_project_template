@@ -55,7 +55,6 @@ def mock_clsf_config(
             "valid_freq": 2,
             "epochs": 4,
             "use_tensorboard": False,
-            "tensorboard_port": 6006
         },
         "model": {
             "type": "ClassifierModel",
