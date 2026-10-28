@@ -11,7 +11,7 @@ experiment_name: image_classifier  # Name of experiment, name of the dir for sav
 save_dir: checkpoints  # Directory to save checkpoints and logs
 git_hash: null  # Git hash for version control, set during runs
 seed: 42  # Random seed for reproducibility
-reproducible: true  # Sets cudnn benchmark to false and deterministic mode to true
+reproducible: false  # true trades speed for determinism: no cuDNN benchmarking, deterministic algorithms where they exist
 device: cuda  # Device to run on: cpu, cuda or cuda:1. Falls back to cpu when CUDA is unavailable
 use_amp: true  # bfloat16 mixed precision for training and evaluation; needs an Ampere or newer GPU, often slower on CPU
 torch_compile_model: false  # Compile the PyTorch model for optimized performance

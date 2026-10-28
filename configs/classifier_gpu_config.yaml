@@ -2,7 +2,7 @@ experiment_name: image_classifier
 save_dir: checkpoints
 git_hash: null
 seed: 42
-reproducible: true
+reproducible: false
 device: cuda
 use_amp: true
 torch_compile_model: false

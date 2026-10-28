@@ -1,10 +1,22 @@
 """Tests for src.utils.common"""
 
+import random
 import subprocess
 
+import numpy as np
+import torch
 from omegaconf import OmegaConf
 
-from src.utils.common import BColors, get_git_revision_hash, recursively_flatten_config
+from src.utils.common import BColors, get_git_revision_hash, recursively_flatten_config, seed_everything
+
+
+def test_seed_everything():
+    """The same seed gives the same python, numpy and torch draws"""
+    draws = []
+    for _ in range(2):
+        seed_everything(7)
+        draws.append((random.random(), np.random.rand(), torch.rand(1).item()))
+    assert draws[0] == draws[1]
 
 
 def test_BColors():

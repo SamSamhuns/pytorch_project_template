@@ -3,8 +3,11 @@
 import argparse
 from datetime import datetime
 
+import torch
+
 from src.config_parser import CustomDictConfig
 from src.trainers import init_trainer
+from src.utils.common import seed_everything
 
 
 def get_config_from_args() -> CustomDictConfig:
@@ -80,6 +83,12 @@ def get_config_from_args() -> CustomDictConfig:
 
 def main():
     config = get_config_from_args()
+    if config.seed is not None:
+        seed_everything(config.seed)
+    # reproducible runs trade speed for determinism; otherwise cuDNN benchmarks and picks the fastest algorithms
+    torch.backends.cudnn.benchmark = not config.reproducible
+    if config.reproducible:
+        torch.use_deterministic_algorithms(True, warn_only=True)  # warns on ops that have no deterministic version
     trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="train")
 
     trainer.train()
