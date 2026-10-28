@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import torch
 from omegaconf import OmegaConf
-from torch.utils.data import DataLoader, IterableDataset
+from torch.utils.data import DataLoader, IterableDataset, Subset
 from torch.utils.tensorboard import SummaryWriter
 
 from src.augmentations import init_transform
@@ -114,24 +114,22 @@ class BaseTrainer(_BaseTrainer):
         if self.data_set.test_set is not None:
             self.test_data_loader = DataLoader(self.data_set.test_set, **loader_args)
 
-        # log dataset data count, uniq labels and counts
+        # log the data count and label counts of each split, from the targets rather than a pass over the images
         if self.config.verbose:
             root = self.config["dataset"]["args"]["root"]
-            self.logger.info("TRAIN: Loaded %d data points from %s", len(self.data_set.train_set), root)
-            if self.data_set.test_set is not None:
-                self.logger.info("TEST: Loaded %d data points from %s", len(self.data_set.test_set), root)
-
-            def _log_unique_label_counts(data_loader, label_type):
-                """Extracts targets, flattens them, and logs unique counts."""
-                targets = np.concatenate([t.numpy() for _, t in data_loader])
-                uniq_elem, counts = np.unique(targets, return_counts=True)
-                self.logger.info("%s dataset labels: %s, counts: %s", label_type, uniq_elem, counts)
-
-            _log_unique_label_counts(self.train_data_loader, "Train")
-            if self.val_data_loader:
-                _log_unique_label_counts(self.val_data_loader, "Val")
-            if self.test_data_loader:
-                _log_unique_label_counts(self.test_data_loader, "Test")
+            splits = {"Train": self.data_set.train_set, "Val": self.data_set.val_set, "Test": self.data_set.test_set}
+            for split, dataset in splits.items():
+                if dataset is None:
+                    continue
+                self.logger.info("%s: Loaded %d data points from %s", split, len(dataset), root)
+                if isinstance(dataset, IterableDataset):
+                    continue  # a WebDataset reads each label with its image
+                if isinstance(dataset, Subset):  # carved out of the train data by validation_split
+                    targets = np.asarray(dataset.dataset.targets)[dataset.indices]
+                else:
+                    targets = np.asarray(dataset.targets)
+                labels, counts = np.unique(targets, return_counts=True)
+                self.logger.info("%s dataset labels: %s, counts: %s", split, labels, counts)
         # #############################################################
 
         # ############ Tboard Summary Writer if enabled ##############
