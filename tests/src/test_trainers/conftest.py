@@ -73,7 +73,7 @@ def mock_clsf_config(request, root_directory, create_and_save_dummy_imgs: Callab
                 "args": {"weights": "MobileNet_V2_Weights.IMAGENET1K_V1"},
             },
         },
-        "dataloader": {"batch_size": 16, "num_workers": 4, "pin_memory": False},
+        "dataloader": {"batch_size": 16, "num_workers": 4},
         "optimizer": {"type": "SGD", "args": {"lr": 0.01, "momentum": 0.9, "weight_decay": 1e-05}},
         "lr_scheduler": {"type": "ReduceLROnPlateau", "args": {"factor": 0.1, "patience": 5}},
         "loss": {"type": "CrossEntropyLoss", "args": {}},

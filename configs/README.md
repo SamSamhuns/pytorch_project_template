@@ -56,9 +56,8 @@ dataset:
 
 # DataLoader configuration
 dataloader:  # torch DataLoaders; the train loader shuffles, the val and test loaders don't
-  batch_size: 32  # Number of samples per batch
-  num_workers: 4  # Number of worker processes for data loading
-  pin_memory: true  # Enable pinned memory for faster data transfer to GPU
+  batch_size: 32  # Number of samples per batch; the train loader drops its last, smaller batch
+  num_workers: 4  # Worker processes for data loading, kept between epochs; memory is pinned when training on CUDA
 
 # Optimizer configuration
 optimizer:

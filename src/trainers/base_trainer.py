@@ -95,16 +95,18 @@ class BaseTrainer(_BaseTrainer):
             **self.config["dataset"]["args"],
         )
 
-        # in OSX systems ["dataloader"]["num_workers"] should be 0 which might increase train time
+        num_workers = self.config["dataloader"]["num_workers"]
         loader_args = {
             "batch_size": self.config["dataloader"]["batch_size"],
-            "num_workers": self.config["dataloader"]["num_workers"],
-            "pin_memory": self.config["dataloader"]["pin_memory"],
+            "num_workers": num_workers,
+            "persistent_workers": num_workers > 0,  # start the workers once, not every epoch
+            "pin_memory": self.device.type == "cuda",  # page-locked memory speeds up copies to the GPU
         }
         # a WebDataset shuffles itself; the DataLoader shuffles the other (map-style) datasets
         shuffle = not isinstance(self.data_set.train_set, IterableDataset)
+        # drop_last, as BatchNorm raises on a last train batch of one sample
         self.train_data_loader = DataLoader(
-            self.data_set.train_set, shuffle=shuffle, generator=generator, **loader_args
+            self.data_set.train_set, shuffle=shuffle, drop_last=True, generator=generator, **loader_args
         )
         self.val_data_loader, self.test_data_loader = None, None
         if self.data_set.val_set is not None:

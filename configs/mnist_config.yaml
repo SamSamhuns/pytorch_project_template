@@ -34,7 +34,6 @@ dataset:
 dataloader:
   batch_size: 32
   num_workers: 4
-  pin_memory: true
 optimizer:
   type: SGD
   args:
