@@ -1,9 +1,9 @@
-"""Find corrupt images, i.e., images that cannot be opened with imageio"""
+"""Find corrupt images, i.e., images that cannot be opened with PIL"""
 import argparse
 import glob
 import os
 
-import imageio
+from PIL import Image
 from tqdm import tqdm
 
 
@@ -22,10 +22,9 @@ def validate_imgs(source_path, corrupt_flist_txt, remove) -> None:
             for img_name in img_list:
                 # print(img_name)
                 try:
-                    img = imageio.imread(img_name, mode="RGB")
-                    img = img[..., :3]
+                    Image.open(img_name).convert("RGB")  # convert() decodes the whole image
                 except Exception as excep:
-                    print(f"{excep}. imageio could not read file {img_name}")
+                    print(f"{excep}. PIL could not read file {img_name}")
                     fw.write(img_name + '\n')
                     if os.path.exists(img_name) and remove:
                         print(f"Removing {img_name}")
