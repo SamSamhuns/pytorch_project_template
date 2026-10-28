@@ -79,6 +79,7 @@ def mock_clsf_config(request, root_directory, create_and_save_dummy_imgs: Callab
         "lr_scheduler": {"type": "ReduceLROnPlateau", "args": {"factor": 0.1, "patience": 5}},
         "loss": {"type": "CrossEntropyLoss", "args": {}},
         "metrics": {
+            "average": "macro",
             "val": ["accuracy_score"],
             "test": ["accuracy_score", "f1_score", "roc_auc_score", "confusion_matrix", "classification_report"],
         },

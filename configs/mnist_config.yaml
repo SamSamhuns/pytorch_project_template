@@ -42,6 +42,7 @@ loss:
   type: CrossEntropyLoss
   args: {}
 metrics:
+  average: macro
   val:
   - accuracy_score
   - f1_score
