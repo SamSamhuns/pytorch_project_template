@@ -49,10 +49,9 @@ dataset:
     test_path: test  # Subdirectory for test data
   num_classes: 20  # Number of classes in the dataset
   preprocess:
-    train_transform: ImagenetClassifierPreprocess  # Data preprocessing for training
-    val_transform: ImagenetClassifierPreprocess  # Data preprocessing for validation
-    test_transform: ImagenetClassifierPreprocess  # Data preprocessing for testing
-    inference_transform: ImagenetClassifierPreprocess  # Data preprocessing for inference
+    type: ImagenetClassifierPreprocess  # Random crops and flips for training; one eval transform for val, test and inference
+    args:
+      weights: ${model.args.pretrained_weights}  # The eval resize, crop and normalization come from these weights
 
 # DataLoader configuration
 dataloader:

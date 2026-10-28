@@ -31,10 +31,8 @@ dataset:
     test_path: test
   num_classes: 10
   preprocess:
-    train_transform: MnistPreprocess
-    val_transform: MnistPreprocess
-    test_transform: MnistPreprocess
-    inference_transform: MnistPreprocess
+    type: MnistPreprocess
+    args: {}
 dataloader:
   type: CustomDataLoader
   args:
