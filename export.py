@@ -1,19 +1,26 @@
-"""Export script to convert pytorch model to onnx.
-Run with: python export.py --cfg YAML_CONFIG_PATH -r PTH_MODEL_PATH --mode ONNX_TS
+"""Export a trained model to ONNX, run with: python export.py --cfg YAML_CONFIG_PATH -r .../models/best.pth
+Writes model.onnx to the export run's models dir. It takes any batch size and holds the class names
 """
 
 import argparse
+import json
+import logging
 import os.path as osp
 from datetime import datetime
 
+import torch
+
 from src.config_parser import CustomDictConfig
 from src.loggers import setup_logging
-from src.trainers import init_trainer
+from src.models import init_model
+from src.utils.export_utils import export_onnx
+
+logger = logging.getLogger(__name__)
 
 
 def get_config_from_args() -> CustomDictConfig:
     """Get CustomDictConfig obj from argparse"""
-    parser = argparse.ArgumentParser(description="PyTorch Export. Supports ONNX export")
+    parser = argparse.ArgumentParser(description="PyTorch Export to ONNX")
     # primary cli args
     parser.add_argument("--cfg", "--config", type=str, dest="config", required=True, help="YAML config file path.")
     parser.add_argument(
@@ -22,7 +29,7 @@ def get_config_from_args() -> CustomDictConfig:
         type=str,
         dest="resume_checkpoint",
         required=True,
-        help="Path to resume checkpoint. Overrides `trainer.resume_checkpoint` in config.",
+        help="Checkpoint to export, e.g. .../models/best.pth",
     )
     parser.add_argument(
         "--id",
@@ -50,31 +57,26 @@ def get_config_from_args() -> CustomDictConfig:
         default=False,
         help="Run export in verbose mode (default: %(default)s)",
     )
-
-    # additional arguments (Overrides YAML configs)
-    parser.add_argument("--dev", "--device", dest="device", help="Device to run on, e.g. cpu, cuda or cuda:1.")
-    parser.add_argument(
-        "--mode", type=str, dest="mode", required=True, choices=["ONNX_TS", "ONNX_DYNAMO"], help="Running mode."
-    )
     args = parser.parse_args()
-
-    # To override key-value params from YAML file,
-    # match the YAML kv structure for any additional args above
-    # keys-val pairs can have nested structure separated by colons
-    yaml_modification = {
-        "trainer.resume_checkpoint": args.resume_checkpoint,
-        "device": args.device,
-        "mode": args.mode,
-    }
-    return CustomDictConfig.from_args(args, yaml_modification)
+    return CustomDictConfig.from_args(args)
 
 
 def main():
     config = get_config_from_args()
     setup_logging(osp.join(config.logs_dir, "export.log"))
-    trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="export")
+    for name in ("onnx_ir", "onnxscript"):  # the ONNX graph optimizer logs each of its passes at INFO
+        logging.getLogger(name).setLevel(logging.WARNING)
 
-    trainer.export(config["mode"])
+    # the export runs on the CPU and needs only the model, not the trainer or the datasets
+    model = init_model(config["model"]["type"], **config["model"]["args"])
+    checkpoint = torch.load(config["resume_checkpoint"], map_location="cpu", weights_only=True)
+    model.load_state_dict(checkpoint["model"])
+
+    info = config["model"]["info"]
+    sample = torch.randn(2, info["input_channel"], info["input_height"], info["input_width"])
+    export_path = osp.join(config["models_dir"], "model.onnx")
+    export_onnx(model, sample, export_path, metadata={"classes": json.dumps(checkpoint["classes"])})
+    logger.info("Exported %s; ONNX Runtime's outputs match the PyTorch model's", export_path)
 
 
 if __name__ == "__main__":

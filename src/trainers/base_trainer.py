@@ -17,7 +17,6 @@ from torch.utils.tensorboard import SummaryWriter
 from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
 from src.datasets import init_dataset
-from src.utils.export_utils import ONNXDynamoExportStrategy, ONNXTSExportStrategy
 
 
 class _BaseTrainer(ABC):
@@ -61,10 +60,6 @@ class _BaseTrainer(ABC):
 
     def validate(self):
         """Main validate function"""
-        raise NotImplementedError()
-
-    def export(self):
-        """Main export function"""
         raise NotImplementedError()
 
 
@@ -147,32 +142,3 @@ class BaseTrainer(_BaseTrainer):
             # the whole config as YAML, indented so TensorBoard's markdown shows it as a code block
             self.tboard_writer.add_text("config", textwrap.indent(OmegaConf.to_yaml(self.config), "    "))
         # #############################################################
-
-    def export(self, mode: str = "ONNX_TS"):
-        """Export pytorch model to onnx"""
-        # dict with export path suffix & export strategy
-        exporter_dict = {
-            "ONNX_TS": ("_ts.onnx", ONNXTSExportStrategy),
-            "ONNX_DYNAMO": ("_dynamo.onnx", ONNXDynamoExportStrategy),
-        }
-        if mode not in exporter_dict:
-            raise NotImplementedError(f"{mode} export mode is not supported")
-        if not self.model:
-            raise NotImplementedError("Model not implemented/initialized")
-
-        self.model.eval()
-        self.logger.info("Initiated %s export mode", mode)
-
-        in_w = self.config["model"]["info"]["input_width"]
-        in_h = self.config["model"]["info"]["input_height"]
-        in_c = self.config["model"]["info"]["input_channel"]
-        sample_in = torch.randn((4, in_c, in_h, in_w)).to(self.device)
-
-        model_name = "model_gpu" if self.device.type == "cuda" else "model_cpu"
-        export_path = osp.join(self.config["models_dir"], model_name)
-        export_path = export_path + exporter_dict[mode][0]
-        exporter = exporter_dict[mode][1](self.logger)
-        # export and test inference for equality with orig pytorch model
-        exporter.export(self.model, export_path, sample_in)
-        exporter.test_inference(self.model, export_path, sample_in)
-        self.logger.info("%s export complete", mode)

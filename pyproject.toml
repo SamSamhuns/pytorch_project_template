@@ -11,7 +11,6 @@ dependencies = [
     "matplotlib>=3.11,<4",
     "numpy>=2.4,<3",
     "omegaconf>=2.4,<2.5",
-    "onnx>=1.23,<2",
     "onnxruntime>=1.31,<1.32",
     "onnxscript>=0.7,<0.8",
     "pillow>=13,<14",
@@ -27,7 +26,7 @@ cpu = ["torch>=2.14,<2.15", "torchvision>=0.29,<0.30"]
 cu130 = ["torch>=2.14,<2.15", "torchvision>=0.29,<0.30"]
 
 [dependency-groups]
-test = ["pytest>=9.2,<10", "pytest-cov>=7.1,<8", "pytest-mock>=3.17,<4", "pytest-order>=1.5,<2"]
+test = ["pytest>=9.2,<10", "pytest-cov>=7.1,<8", "pytest-mock>=3.17,<4"]
 dev = [{ include-group = "test" }, "pre-commit>=4.7,<5", "ruff==0.17.3"]
 server = ["fastapi>=0.162,<0.163", "python-multipart>=0.0.32,<0.1", "requests>=2.34,<3", "uvicorn>=0.54,<0.55"]
 
