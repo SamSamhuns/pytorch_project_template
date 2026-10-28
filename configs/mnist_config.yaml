@@ -51,7 +51,7 @@ optimizer:
     lr: 0.01
     momentum: 0.5
 loss:
-  type: NLLLoss
+  type: CrossEntropyLoss
   args: {}
 metrics:
   val:

@@ -91,7 +91,7 @@ class ClassifierTrainer(BaseTrainer):
                 loss = self.loss(output, target)
             # loss is the batch mean, so weight it by the batch size
             cum_train_loss += loss.item() * data.size(0)
-            # get the index of the max log-probability
+            # the predicted class has the largest logit
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
 
@@ -343,7 +343,7 @@ class ClassifierTrainer(BaseTrainer):
                 data = inference_transform(image)
                 data = data.to(self.device).unsqueeze(0)
                 output = self.model(data)
-                # get the index of the max log-probability
+                # the predicted class has the largest logit
                 pred = output.max(1, keepdim=True)[1].item()
 
                 self.logger.info("Image path=%s: predicted label=%s", image_path, pred)
