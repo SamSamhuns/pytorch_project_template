@@ -20,11 +20,11 @@ def test_output_shapes(sample_pilimage):
 
 
 class TestMnistPreprocess:
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def preprocess(self):
         return MnistPreprocess()
 
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def example_image(self):
         # Create a dummy image (28x28, single channel)
         return Image.new('L', (28, 28))

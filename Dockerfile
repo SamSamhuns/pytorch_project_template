@@ -44,34 +44,24 @@ RUN groupadd -g "${GID}" "${UNAME}" \
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-ENV POETRY_VERSION=2.1.3
-ENV POETRY_HOME="/opt/poetry"
-ENV POETRY_NO_INTERACTION=1
-ENV POETRY_VIRTUALENVS_IN_PROJECT=1
-ENV POETRY_VIRTUALENVS_CREATE=1
-ENV POETRY_CACHE_DIR="/tmp/poetry_cache"
-ENV PATH="${POETRY_HOME}/bin:$PATH"
+ENV UV_PYTHON_DOWNLOADS=never
 
-# install poetry
-RUN curl -sSL https://install.python-poetry.org | python3 - \
-    && chmod a+x ${POETRY_HOME}/bin/poetry
+# install uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.6 /uv /uvx /bin/
 
 # set workdir and create with proper ownership
 ENV WORKDIR="/home/${UNAME}/pytorch_model"
 RUN mkdir -p ${WORKDIR} && chown -R ${UID}:${GID} /home/${UNAME}
 WORKDIR ${WORKDIR}
 
-# copy poetry files first for better layer caching
-COPY --chown=${UID}:${GID} pyproject.toml poetry.lock* ${WORKDIR}/
+# copy the dependency files first for better layer caching
+COPY --chown=${UID}:${GID} pyproject.toml uv.lock ${WORKDIR}/
 
 # switch to user before installing dependencies
 USER ${UNAME}
 
-# install dependencies using poetry (without installing the project itself)
-RUN poetry install --no-root --no-ansi --with dev,test \
-    && poetry cache clear pypi --all
+# install dependencies with CUDA torch, plus the dev and test groups
+RUN uv sync --locked --extra cu130 --no-cache
 
 # copy the rest of the project files
 COPY --chown=${UID}:${GID} . ${WORKDIR}/
