@@ -5,7 +5,7 @@ import sys
 import traceback
 import urllib.request as urllib2
 import uuid
-from enum import Enum
+from enum import StrEnum
 
 import requests
 import uvicorn
@@ -39,7 +39,7 @@ class InputModel(BaseModel):
     image_file: str
 
 
-class model_name(str, Enum):
+class model_name(StrEnum):
     ResNet50 = model1
     ResNet101 = model2
 
@@ -89,8 +89,8 @@ class InferenceProcessTask:
             except Exception as excep:
                 print(excep)
                 self.response_data["code"] = "failed"
-                self.response_data["msg"] = "Can not download image from '%s'. Not a valid link." % (
-                    self.input_data.image_file
+                self.response_data["msg"] = (
+                    f"Can not download image from '{self.input_data.image_file}'. Not a valid link."
                 )
                 return
 
@@ -119,9 +119,8 @@ class InferenceProcessTask:
         #     self.response_data["results"] = resp_dict_item
         # """
         # Remove cached file
-        if is_url:
-            if os.path.exists(input_image_file):
-                os.remove(input_image_file)
+        if is_url and os.path.exists(input_image_file):
+            os.remove(input_image_file)
         try:
             if self.input_data.back_url is not None:
                 headers = {"Content-Type": "application/json"}
@@ -141,7 +140,7 @@ class InferenceProcessTask:
 async def inference_model_file(
     input_model: model_name,
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
+    file: UploadFile = File(...),  # noqa: B008 (FastAPI's way to declare an uploaded file)
     display_image_only: bool = Form(False),
     threshold: float = Form(0.55),
 ):

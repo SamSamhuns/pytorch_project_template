@@ -21,7 +21,7 @@ def test_init_trainer(clsf_trainer_and_logger):
 
     gpu_dev = trainer.config["gpu_device"]
     if gpu_dev and not torch.cuda.is_available():
-        warnings.warn("CUDA device not found, GPU testing has been skipped")
+        warnings.warn("CUDA device not found, GPU testing has been skipped", stacklevel=2)
         assert ("Program will run on CPU",) in info_calls
     elif gpu_dev is None:
         assert ("Program will run on CPU",) in info_calls

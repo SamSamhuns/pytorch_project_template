@@ -187,9 +187,8 @@ class ClassifierTrainer(BaseTrainer):
         self.logger.info("Starting training...")
         for epoch in range(1, epochs + 1):
             self.train_one_epoch()
-            if epoch % self.config["trainer"]["valid_freq"] == 0:
-                if self.val_data_loader is not None:
-                    self.validate()  # also saves best.pth when the val accuracy improves
+            if epoch % self.config["trainer"]["valid_freq"] == 0 and self.val_data_loader is not None:
+                self.validate()  # also saves best.pth when the val accuracy improves
             # scheduler.step should be called after validate()
             if isinstance(self.scheduler, (ReduceLROnPlateau, OneCycleLR)):
                 # ReduceLROnPlateau takes metrics during its step call (inside validate())
@@ -239,9 +238,11 @@ class ClassifierTrainer(BaseTrainer):
                 )
                 continue
             metric_val = calc_metric(metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
-            if metric_name not in {"confusion_matrix", "classification_report"}:
-                if self.config["trainer"]["use_tensorboard"]:
-                    self.tboard_writer.add_scalar(f"{metric_name}/val/epoch", metric_val, self.current_epoch)
+            if (
+                metric_name not in {"confusion_matrix", "classification_report"}
+                and self.config["trainer"]["use_tensorboard"]
+            ):
+                self.tboard_writer.add_scalar(f"{metric_name}/val/epoch", metric_val, self.current_epoch)
             metric_name_val_dict[metric_name] = metric_val
 
         val_end_tm = time.perf_counter()
@@ -255,7 +256,10 @@ class ClassifierTrainer(BaseTrainer):
                 else:
                     self.logger.info("\t%s: %.4f", metric_name, metric_val)
         else:
-            log_message = f"\tValidation at Epoch {self.current_epoch} | val time: {val_end_tm - val_start_tm:.3f}s | avg loss: {val_loss:.4f}"
+            log_message = (
+                f"\tValidation at Epoch {self.current_epoch} | val time: {val_end_tm - val_start_tm:.3f}s"
+                f" | avg loss: {val_loss:.4f}"
+            )
             for metric_name, metric_val in metric_name_val_dict.items():
                 # confusion_matrix and classification_report are not reported in non-verbose mode
                 if metric_name not in {"confusion_matrix", "classification_report"}:

@@ -1,3 +1,4 @@
+import argparse
 import os
 import tempfile
 from unittest.mock import patch
@@ -45,13 +46,7 @@ def test_CustomDictConfig_from_args():
         OmegaConf.save(OmegaConf.create(config_dict), temp_config.name)
         temp_config_path = temp_config.name
 
-    class MockArgs:
-        config = temp_config_path
-        run_id = None
-        verbose = True
-        override = ["name.new_name=bar"]
-
-    args = MockArgs()
+    args = argparse.Namespace(config=temp_config_path, run_id=None, verbose=True, override=["name.new_name=bar"])
     with pytest.raises(omegaconf.errors.ConfigKeyError, match="Key 'name' is not in struct"):
         _ = CustomDictConfig.from_args(args)
 
@@ -71,13 +66,10 @@ def test_override_parses_scientific_notation(tmp_path):
     }
     OmegaConf.save(OmegaConf.create(config_dict), tmp_path / "config.yaml")
 
-    class MockArgs:
-        config = str(tmp_path / "config.yaml")
-        run_id = None
-        verbose = False
-        override = ["optimizer.args.lr=1e-3"]
-
-    cfg = CustomDictConfig.from_args(MockArgs())
+    args = argparse.Namespace(
+        config=str(tmp_path / "config.yaml"), run_id=None, verbose=False, override=["optimizer.args.lr=1e-3"]
+    )
+    cfg = CustomDictConfig.from_args(args)
     assert cfg.optimizer.args.lr == 0.001
 
 
