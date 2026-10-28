@@ -75,7 +75,7 @@ def test_pretrained_weights_survive_trainer_init(clsf_trainer_and_logger):
     pretrained = torchvision.models.get_model("mobilenet_v2", weights="MobileNet_V2_Weights.IMAGENET1K_V1")
 
     expected = pretrained.features.state_dict()
-    actual = trainer.model.model.features.state_dict()
+    actual = trainer.model.features.state_dict()
     assert all(torch.equal(actual[k].cpu(), v) for k, v in expected.items())
 
 
@@ -155,7 +155,7 @@ def test_compiled_checkpoint_loads_into_plain_model(mock_clsf_config: CustomDict
     mocker.patch.object(trainer, "train_one_epoch")  # train() still compiles and saves last.pth
     trainer.train()
 
-    plain_model = init_model("ClassifierModel", **mock_clsf_config["model"]["args"])
+    plain_model = init_model("torchvision_classifier", **mock_clsf_config["model"]["args"])
     checkpoint = torch.load(osp.join(mock_clsf_config["models_dir"], "last.pth"), weights_only=True)
     plain_model.load_state_dict(checkpoint["model"])
 

@@ -15,7 +15,7 @@ trainer:
   verbosity: 2
   use_tensorboard: true
 model:
-  type: ClassifierModel
+  type: torchvision_classifier
   args:
     backbone: mobilenet_v2
     feat_extract: false
