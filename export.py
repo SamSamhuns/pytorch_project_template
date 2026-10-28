@@ -1,5 +1,6 @@
 """Export a trained model to ONNX, run with: python export.py --cfg YAML_CONFIG_PATH -r .../models/best.pth
-Writes model.onnx to the export run's models dir. It takes any batch size and holds the class names
+Writes model.onnx to the export run's models dir. It takes any batch size, and holds the class names and
+the settings of the eval transform, which server/app.py reads
 """
 
 import argparse
@@ -10,6 +11,7 @@ from datetime import datetime
 
 import torch
 
+from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
 from src.loggers import setup_logging
 from src.models import init_model
@@ -71,11 +73,14 @@ def main():
     model = init_model(config["model"]["type"], **config["model"]["args"])
     checkpoint = torch.load(config["resume_checkpoint"], map_location="cpu", weights_only=True)
     model.load_state_dict(checkpoint["model"])
+    preprocess_cfg = config["dataset"]["preprocess"]
+    preprocess = init_transform(preprocess_cfg["type"], **preprocess_cfg["args"])
 
     info = config["model"]["info"]
     sample = torch.randn(2, info["input_channel"], info["input_height"], info["input_width"])
     export_path = osp.join(config["models_dir"], "model.onnx")
-    export_onnx(model, sample, export_path, metadata={"classes": json.dumps(checkpoint["classes"])})
+    metadata = {"classes": json.dumps(checkpoint["classes"]), "preprocess": json.dumps(preprocess.eval_settings)}
+    export_onnx(model, sample, export_path, metadata)
     logger.info("Exported %s; ONNX Runtime's outputs match the PyTorch model's", export_path)
 
 

@@ -27,8 +27,17 @@ cu130 = ["torch>=2.14,<2.15", "torchvision>=0.29,<0.30"]
 
 [dependency-groups]
 test = ["pytest>=9.2,<10", "pytest-cov>=7.1,<8", "pytest-mock>=3.17,<4"]
-dev = [{ include-group = "test" }, "pre-commit>=4.7,<5", "ruff==0.17.3"]
-server = ["fastapi>=0.162,<0.163", "python-multipart>=0.0.32,<0.1", "requests>=2.34,<3", "uvicorn>=0.54,<0.55"]
+# dev includes the server group, so the tests can import the server
+dev = [{ include-group = "test" }, { include-group = "server" }, "pre-commit>=4.7,<5", "ruff==0.17.3"]
+# the server's Docker image installs only this group: ONNX Runtime instead of torch
+server = [
+    "fastapi>=0.162,<0.163",
+    "numpy>=2.4,<3",
+    "onnxruntime>=1.31,<1.32",
+    "pillow>=13,<14",
+    "python-multipart>=0.0.32,<0.1",
+    "uvicorn>=0.54,<0.55",
+]
 
 [tool.uv]
 conflicts = [[{ extra = "cpu" }, { extra = "cu130" }]]

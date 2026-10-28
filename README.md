@@ -35,7 +35,7 @@ uv sync --extra cu130  # PyTorch with CUDA 13.0 for NVIDIA GPUs (driver >= 580)
 
 Pass the same `--extra` every time you run `uv sync`; without one, uv removes PyTorch. Run commands with `uv run`, e.g. `uv run python train.py --cfg configs/mnist_config.yaml`, or activate the environment with `source .venv/bin/activate`.
 
--   Add `--group server` to install the FastAPI server's dependencies.
+-   This also installs the FastAPI server's dependencies, the `server` group, which the default `dev` group includes.
 -   For a pip requirements file: `uv export --extra cpu --no-hashes > requirements.txt`
 
 ## Train
@@ -169,6 +169,8 @@ The container runs on CPU unless you pass GPUs with `-g`, e.g. `bash scripts/run
 bash server/build_server_docker.sh -m pytorch/onnx
 bash server/run_server_docker.sh -h/--http 8080
 ```
+
+Without Docker, run `MODEL_PATH=path/to/model.onnx uvicorn server.app:app --port 8080` from the repo root.
 
 ## Utility functions
 

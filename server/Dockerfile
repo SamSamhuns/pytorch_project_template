@@ -36,4 +36,4 @@ RUN chown -R "$UNAME" "$WORKDIR"
 USER "$UNAME"
 
 # Default command
-CMD ["python3", "server/server.py"]
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8080"]
