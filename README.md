@@ -138,15 +138,13 @@ Install docker in the system first:
 ### Training and testing
 
 ```shell
-bash scripts/build_docker.sh  # builds the docker image
-bash scripts/run_docker.sh    # runs the previous docker image creating a shared volume checkpoint_docker outside the container
+bash scripts/build_docker.sh  # builds the CUDA image; add --build-arg TORCH_EXTRA=cpu for a CPU-only image
+bash scripts/run_docker.sh    # runs the image with a shared checkpoints_docker volume outside the container
 # inside the docker container
 python train.py
 ```
 
-Using gpus inside docker for training/testing:
-
-`--gpus device=0,1 or all`
+The container runs on CPU unless you pass GPUs with `-g`, e.g. `bash scripts/run_docker.sh -g all` or `-g device=0`. GPUs need the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) and an NVIDIA driver >= 580 on the host.
 
 ### For serving the model with FastAPI
 

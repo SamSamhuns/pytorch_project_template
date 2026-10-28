@@ -2,19 +2,22 @@
 
 def_cont_name=pytorch_model_train_cont
 port=6006
+gpus=""  # empty runs on CPU
 
 helpFunction()
 {
    echo ""
-   echo "Usage: $0 -p port"
+   echo "Usage: $0 -p port [-g gpus]"
    echo -e "\t-p http_port"
+   echo -e "\t-g gpus to use, e.g. all or device=0 (default: none, CPU only)"
    exit 1 # Exit script after printing help
 }
 
-while getopts "p:" opt
+while getopts "p:g:" opt
 do
    case "$opt" in
       p ) port="$OPTARG" ;;
+      g ) gpus="$OPTARG" ;;
       ? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
    esac
 done
@@ -39,7 +42,7 @@ mkdir -p checkpoints_docker  # create checkpoints_docker dir so that it has prop
 docker run \
       -ti --rm \
       -p "0.0.0.0:$port:6006" \
-      --gpus "device=0" \
+      ${gpus:+--gpus "$gpus"} \
       -v "$PWD"/checkpoints_docker:/home/user1/pytorch_model/checkpoints \
       -v "$PWD"/data:/home/user1/pytorch_model/data \
       --name "$def_cont_name" \
