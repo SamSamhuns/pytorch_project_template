@@ -11,12 +11,11 @@ from abc import ABC, abstractmethod
 import numpy as np
 import torch
 from omegaconf import OmegaConf
-from torch.utils.data import Subset
+from torch.utils.data import DataLoader, IterableDataset, Subset
 from torch.utils.tensorboard import SummaryWriter
 
 from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
-from src.dataloaders import init_dataloader
 from src.datasets import init_dataset
 from src.utils.export_utils import ONNXDynamoExportStrategy, ONNXTSExportStrategy
 
@@ -82,98 +81,62 @@ class BaseTrainer(_BaseTrainer):
         if self.config["mode"] in {"INFERENCE"}:
             return
 
-        val_path = self.config["dataset"]["args"]["val_path"]
-        test_path = self.config["dataset"]["args"]["test_path"]
-
-        # ############# check exclusive config parameters #############
-        val_split = self.config["dataloader"]["args"]["validation_split"]
-        if val_path is not None and val_split > 0:
-            msg = f"If val_path {val_path} is not None, val_split({val_split}) must be 0"
-            self.logger.error(msg)
-            raise ValueError(msg)
-
         # ############### define dataset & dataloaders ################
-        self.data_set = init_dataset(
-            self.config["dataset"]["type"],
-            train_transform=self.preprocess.train_transform,
-            val_transform=self.preprocess.eval_transform,
-            test_transform=self.preprocess.eval_transform,
-            **self.config["dataset"]["args"],
-        )
-
-        # log numerized remapped labels if present
-        if self.config.verbose and hasattr(self.data_set, "labels2idx"):
-            msg = f"Remapped labels dict = {self.data_set.labels2idx}"
-            self.logger.info(msg)
-
-        # define train, validate, and test data_loaders
-        self.train_data_loader, self.val_data_loader, self.test_data_loader = None, None, None
-        # in OSX systems ["dataloader"]["num_workers"] should be 0 which might increase train time
-        dldr_type = self.config["dataloader"]["type"]
-        data_ldr_args = dict(self.config["dataloader"]["args"].copy())
-
-        # init torch.Generator for reproducibility if seed is present
+        # a seeded generator makes the val split and the train shuffle reproducible
         generator = torch.Generator(device="cpu")
         if self.config["seed"] is not None:
             generator.manual_seed(self.config["seed"])
-        data_ldr_args["generator"] = generator
+        # the val set comes from val_path, or validation_split carves it out of the train data
+        self.data_set = init_dataset(
+            self.config["dataset"]["type"],
+            train_transform=self.preprocess.train_transform,
+            eval_transform=self.preprocess.eval_transform,
+            generator=generator,
+            **self.config["dataset"]["args"],
+        )
 
-        self.train_data_loader = init_dataloader(dldr_type, dataset=self.data_set.train_set, **data_ldr_args)
+        num_workers = self.config["dataloader"]["num_workers"]
+        loader_args = {
+            "batch_size": self.config["dataloader"]["batch_size"],
+            "num_workers": num_workers,
+            "persistent_workers": num_workers > 0,  # start the workers once, not every epoch
+            "pin_memory": self.device.type == "cuda",  # page-locked memory speeds up copies to the GPU
+        }
+        # a WebDataset shuffles itself; the DataLoader shuffles the other (map-style) datasets
+        shuffle = not isinstance(self.data_set.train_set, IterableDataset)
+        # drop_last, as BatchNorm raises on a last train batch of one sample
+        self.train_data_loader = DataLoader(
+            self.data_set.train_set, shuffle=shuffle, drop_last=True, generator=generator, **loader_args
+        )
+        self.val_data_loader, self.test_data_loader = None, None
+        if self.data_set.val_set is not None:
+            self.val_data_loader = DataLoader(self.data_set.val_set, **loader_args)
+        if self.data_set.test_set is not None:
+            self.test_data_loader = DataLoader(self.data_set.test_set, **loader_args)
 
-        # if val_path is not None then dataloader.args.validation_split is assumed to be 0.0
-        # if no val dir is provided, take val split from training data
-        if val_path is None and data_ldr_args["validation_split"] > 0:
-            self.val_data_loader = self.train_data_loader.get_validation_split()
-        # if val dir is provided, use all data inside val dir for validation
-        elif self.data_set.val_set is not None:
-            self.val_data_loader = init_dataloader(dldr_type, dataset=self.data_set.val_set, **data_ldr_args)
-        # if an invalid val_path is provided
-        elif val_path is not None and not self.data_set.val_set:
-            msg = f"val_path: {val_path} in config is invalid."
-            self.logger.error(msg)
-            raise ValueError(msg)
-
-        if test_path is not None or self.data_set.test_set is not None:
-            data_ldr_args["validation_split"] = 0.0
-            if dldr_type != "WebDatasetDataLoader":
-                data_ldr_args["shuffle"] = False
-            self.test_data_loader = init_dataloader(dldr_type, dataset=self.data_set.test_set, **data_ldr_args)
-
-        # log dataset data count, uniq labels and counts
+        # log the data count and label counts of each split, from the targets rather than a pass over the images
         if self.config.verbose:
-            ds = self.data_set.train_set
-            train_set = ds.dataset if isinstance(ds, Subset) else ds
-            test_set = self.data_set.test_set
-            if dldr_type != "WebDatasetDataLoader":
-                train_set = train_set.data
-                test_set = test_set.data if test_set is not None else None
-
-            self.logger.info(
-                "TRAIN: Loaded %d data points from %s", len(train_set), self.config["dataset"]["args"]["root"]
-            )
-            if test_set is not None:
-                self.logger.info(
-                    "TEST: Loaded %d data points from %s", len(test_set), self.config["dataset"]["args"]["root"]
-                )
-
-            def _log_unique_label_counts(data_loader, label_type):
-                """Extracts targets, flattens them, and logs unique counts."""
-                targets = np.concatenate([t.numpy() for _, t in data_loader])
-                uniq_elem, counts = np.unique(targets, return_counts=True)
-                self.logger.info("%s dataset labels: %s, counts: %s", label_type, uniq_elem, counts)
-
-            _log_unique_label_counts(self.train_data_loader, "Train")
-            if self.val_data_loader:
-                _log_unique_label_counts(self.val_data_loader, "Val")
-            if self.test_data_loader:
-                _log_unique_label_counts(self.test_data_loader, "Test")
+            root = self.config["dataset"]["args"]["root"]
+            splits = {"Train": self.data_set.train_set, "Val": self.data_set.val_set, "Test": self.data_set.test_set}
+            for split, dataset in splits.items():
+                if dataset is None:
+                    continue
+                self.logger.info("%s: Loaded %d data points from %s", split, len(dataset), root)
+                if isinstance(dataset, IterableDataset):
+                    continue  # a WebDataset reads each label with its image
+                if isinstance(dataset, Subset):  # carved out of the train data by validation_split
+                    targets = np.asarray(dataset.dataset.targets)[dataset.indices]
+                else:
+                    targets = np.asarray(dataset.targets)
+                labels, counts = np.unique(targets, return_counts=True)
+                self.logger.info("%s dataset labels: %s, counts: %s", split, labels, counts)
         # #############################################################
 
         # ############ Tboard Summary Writer if enabled ##############
         if self.config["trainer"]["use_tensorboard"]:
             _agent_name = self.config["experiment_name"]
             _optim_name = self.config["optimizer"]["type"]
-            _bsize = self.config["dataloader"]["args"]["batch_size"]
+            _bsize = self.config["dataloader"]["batch_size"]
             _lr = self.config["optimizer"]["args"]["lr"]
 
             _suffix = f"{_agent_name}__{_optim_name}_BSIZE{_bsize}_LR{_lr}"

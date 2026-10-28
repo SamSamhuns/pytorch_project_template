@@ -29,24 +29,19 @@ dataset:
   type: ClassifierDataset
   args:
     data_mode: webdataset
-    root: data
-    train_path: birds_train.tar
-    val_path: birds_valid.tar
-    test_path: birds_test.tar
+    root: data/birds_webdataset
+    train_path: train
+    val_path: valid
+    test_path: test
+    validation_split: 0.0
   num_classes: 20
   preprocess:
     type: ImagenetClassifierPreprocess
     args:
       weights: ${model.args.pretrained_weights}
 dataloader:
-  type: WebDatasetDataLoader
-  args:
-    batch_size: 32
-    num_workers: 0
-    validation_split: 0.0
-    drop_last: false
-    pin_memory: true
-    worker_init_fn: null
+  batch_size: 32
+  num_workers: 4
 optimizer:
   type: SGD
   args:

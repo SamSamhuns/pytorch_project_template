@@ -459,7 +459,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - `dataset.preprocess` is one `type` plus `args`, instead of four `*_transform` keys that always named the same class.
   - `best.pth` has the same full-state format as `last.pth`. Test, inference and export load its `"model"` entry.
   - The WebDataset CPU config sets `use_amp: false`, since AMP now applies on CPU too.
-  - Until 5.1, a val split carved from the train set (`validation_split > 0`) gets the train augmentation. The shipped classifier configs use a separate val dir, and MNIST has no augmentation.
+  - Until 5.1, a val split carved from the train set (`validation_split > 0`) gets the train augmentation. The shipped classifier configs use a separate val dir, and MNIST has no augmentation. (Fixed in Phase 5.)
   - The server still passes `gpu_device`; it is rebuilt in Phase 6.
   - Five nitpicks in touched files are done; see [Nitpicks](#nitpicks-segregated).
 
@@ -572,6 +572,30 @@ These are pure deletions with no behavior change on the main path. Their tests g
 
 ## Phase 5: Data pipeline and speed
 
+**Status (2026-10-28): done.**
+
+- **Tests:** 71 passed, 27 skipped (CUDA-only), on Python 3.11 and 3.14.
+  - New tests cover the val split's eval transform, the MNIST split sizes, shards that keep the image files and mix the classes, and DataLoader workers that read every sample once, including a worker without a shard.
+  - The val-split and WebDataset tests fail without their fixes ✅.
+  - The count is below Phase 4's 87 because the 19 tests of deleted code went with it: the custom loaders, the dataset helpers and MNIST's `data_mode`.
+  - The suite takes about 29 s on 3.11 and 41 s on 3.14, vs 56 s and 88 s after Phase 4.
+- **`src/`** is 1,392 lines, down from 1,770 after Phase 4.
+- **Measured on CPU ✅:**
+  - MNIST, 3 epochs: average epoch time 4.07 → 3.88 s on Python 3.11, and 5.28 → 4.78 s on 3.14.
+  - `--verbose` label counts: the same counts, in 0.11 s vs 1.41 s for a pass over MNIST.
+  - Startup: `import src.trainers` takes 2.6 s, down from 3.0 s.
+  - WebDataset: see 5.5.
+- **Smoke runs on CPU:**
+  - MNIST: a run resumed from `last.pth` trained epochs 3 and 4 with the same LRs as an uninterrupted run (0.005 and 0.001464). `test.py` scored 97.5% on `best.pth`, `inference.py` labelled 4 RGB PNGs correctly, and both ONNX exports match PyTorch ✅.
+  - WebDataset: `train.py` trained, validated and tested from shards with 4 workers, on Python 3.11 and 3.14 ✅.
+- **Not verified here:** the GPU effect of 5.2 and of pinned memory. The machine's shared GPUs were busy.
+- **Changes beyond the items below:**
+  - Config: `dataloader` holds only `batch_size` and `num_workers`, and `validation_split` moved to `dataset.args`. The trainer sets shuffling, `drop_last`, pinned memory and persistent workers itself, so `type`, `shuffle`, `drop_last`, `pin_memory` and `worker_init_fn` are gone.
+  - The dataset classes no longer take `**kwargs`, so unknown `dataset.args` keys raise. The MNIST config drops `train_path`, `val_path` and `test_path`, which it never read, and `MnistDataset` drops its one-value `data_mode`.
+  - `--verbose` no longer changes training. Its label count iterated the train loader, which shifted the shuffle: epoch-1 loss 0.698 vs 0.776 on MNIST ✅.
+  - The train loss is summed in float32 on the device, so the logged value can differ in the 4th decimal (0.7706 vs 0.7705 on MNIST).
+  - The trainer tests' fixture creates its own split dirs. Before, those tests passed only after the dataset tests had created them.
+
 ### 5.1 Built-in datasets and loaders (M, R+, about −320 lines)
 
 - **Built-in replacements:**
@@ -583,6 +607,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - Batches silently shrink and the bad path is never logged.
   - Let it raise, and clean the data once with `scripts/find_corrupt_images.py`.
 - **Also:** add the class-list assert from 1.10.
+- (Done. torchvision's `ImageFolder` and plain `DataLoader`s replace them; `src/dataloaders/` and `base_dataset.py` are deleted. The val split uses `random_split`, then points the val `Subset` at a second dataset with the eval transform. Corrupt images now raise, and the README runs `find_corrupt_images.py` first. The class check from Phase 1 also covers WebDataset splits now.)
 
 ### 5.2 Remove per-step host↔device syncs (🔎, S, R0)
 
@@ -592,6 +617,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - Accumulate `loss.detach() * bs` and `(pred == target).sum()` as tensors, with a single `.item()` at epoch end.
   - Write per-iteration scalars every `batch_log_freq` steps. (Done in Phase 4, 4.8.)
   - Do this together with 1.4.
+- (Done. Loss and correct counts stay on the device until the epoch ends; the per-iteration loss still calls `.item()` every `batch_log_freq` steps.)
 
 ### 5.3 Stop re-reading the data (S, R+)
 
@@ -606,7 +632,8 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - `add_images(next(iter(train_loader)))` respawns the workers and decodes `num_workers × prefetch_factor` batches every epoch, to keep one.
   - That costs 0.25 s per epoch ✅, about 35–40% of a small epoch's loading time.
   - Log the last batch from the loop instead. (Done in Phase 4, 4.8.)
-  - It also logs normalized tensors, which look clipped.
+  - It also logs normalized tensors, which look clipped. (Done: `make_grid(normalize=True)` rescales them. Before, 72.5% of the pixel values were clipped ✅.)
+- (Label counts done: they come from `targets`, indexed by a `Subset`'s indices for a carved val split.)
 
 ### 5.4 DataLoader settings (S, R0)
 
@@ -617,6 +644,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
 - **`pin_memory`:** only when training on CUDA.
 - **`prefetch_factor`:** drop it (1.12).
 - **`drop_last: true` for the train loader:** avoids BatchNorm failing on a final batch of 1.
+- (All done; the trainer sets them, not the config. For a WebDataset, `drop_last` applies per worker, so each drops its own partial batch, different images each epoch.)
 
 ### 5.5 WebDataset done right (M, R+; decided: keep it)
 
@@ -633,17 +661,27 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - Shuffle only the train split.
   - Set `shardshuffle` explicitly; `True` warns on webdataset 1.0.
 - **Loader class:** replace `WebDatasetDataLoader` with `wds.WebLoader`, or `DataLoader(ds.batched(bs), batch_size=None)`. 1.8 was fixed in Phase 1 by passing `generator` through; this replaces that stopgap.
+- (Done, measured on 1,000 synthetic train JPEGs ✅:
+  - (a) The converter writes a dir of shuffled shards per split with the original file bytes: 58 MB vs 126 MB.
+  - (b) 4 shards with 4 workers load 1,557 img/s vs 373–430 img/s. `empty_check=False` lets a worker without a shard read nothing, e.g. on a one-shard val split.
+  - (c) The first batch holds 17 of 20 classes, vs 3.
+  - (d) `info.json` holds the image count and class names, so setup takes 0.00 s vs 1.2 s.
+  - (e) A plain `DataLoader` batches, so `len()` counts batches; only the train split shuffles.
+  - Also: wds' `with_length()` creates a class at runtime that pickle can't find, so DataLoader workers failed under spawn (macOS) and forkserver (Python 3.14) ✅. A 3-line subclass defines `__len__` instead; the config had pinned `num_workers: 0`.
+  - Old single-tar datasets need converting again. The converter's `--mp` mapping file is gone, as `info.json` has the class names.)
 
 ### 5.6 Faster startup imports (S, R+)
 
 - **Problem:** `import src.trainers` takes 3.2 s, vs 1.6 s for torch and torchvision alone. [utils/\_\_init\_\_.py](src/utils/__init__.py) eagerly imports export utils (onnx, onnxruntime), visualization (sklearn.manifold) and pyplot ([metrics/plots.py:1-4](src/metrics/plots.py#L1-L4)).
 - **Fix:** empty that `__init__` and import pyplot inside the plot functions. Measured: 3.2 → 2.5 s ✅.
+- (Done. The `__init__` was already empty after Phase 2; moving pyplot into the plot functions took `src.metrics` from 0.87 to 0.57 s, and `import src.trainers` from 3.0 to 2.6 s ✅.)
 
 ### 5.7 Optional: batched inference (R−, about +8 lines)
 
 - **Where:** `inference()` runs one image at a time with a sync per image ([classifier_trainer.py:421-432](src/trainers/classifier_trainer.py#L421-L432)).
 - **Impact:** no gain on CPU (30 vs 30 img/s ✅); est. 5–8× on GPU at batch size 32 🔎.
 - **Fix:** only if bulk GPU inference matters: a Dataset over the file paths, a `DataLoader`, and `torch.inference_mode()`.
+- (Skipped: 6.3 rewrites inference.)
 
 ---
 
@@ -754,7 +792,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
 
 ### 7.3 Registries become built-ins plus plain dicts (S, R+)
 
-- **Problem:** there are 8 copies of "a dict plus an `init_*` function with try/except", one each for trainers, transforms, dataloaders, datasets, models, losses, optimizers and schedulers. Each hand-lists a subset of what torch already provides.
+- **Problem:** there are 8 copies of "a dict plus an `init_*` function with try/except", one each for trainers, transforms, dataloaders, datasets, models, losses, optimizers and schedulers. Each hand-lists a subset of what torch already provides. (The dataloader one went with the custom loaders in Phase 5.)
 - **Fix:**
   - Built-ins straight from the config: `getattr(torch.optim, cfg.optimizer.type)(model.parameters(), **cfg.optimizer.args)`, and the same for `torch.nn` losses and `torch.optim.lr_scheduler`.
   - Every built-in then works from YAML, and `src/optimizers/`, `src/losses/` and `src/schedulers/` disappear.
@@ -808,7 +846,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - `dataset.num_classes` vs `model.args.num_classes`: use `${model.args.num_classes}` interpolation or delete one.
   - `model.info` input sizes vs the transforms.
 - **Contradictions:**
-  - The webdataset config sets `device: cpu` together with `use_amp: true`, `pin_memory: true` and `gpu_device: [0]`. (`use_amp` and `gpu_device` done in Phase 4; `pin_memory` is 5.4.)
+  - The webdataset config sets `device: cpu` together with `use_amp: true`, `pin_memory: true` and `gpu_device: [0]`. (`use_amp` and `gpu_device` done in Phase 4, `pin_memory` in Phase 5.)
   - `configs/README.md` says `feat_extract` freezes the backbone; it actually swaps the head for Identity. (Done in Phase 1.)
   - It also says "mode: TRAIN or TEST".
 - **Guard against drift:** add a tiny parametrized test that loads every `configs/*.yaml` and builds its model and transforms.
@@ -816,7 +854,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
 ### 7.9 Tests (M, R+)
 
 - **Regression tests:** add one per Phase 1 fix. The 119 passing tests catch none of them ✅. (Done in Phase 1.)
-- **Temp files:** replace the hard-coded `/tmp/pytest` root ([tests/conftest.py:24](tests/conftest.py#L24)) with pytest's `tmp_path`.
+- **Temp files:** replace the hard-coded `/tmp/pytest` root ([tests/conftest.py:24](tests/conftest.py#L24)) with pytest's `tmp_path`. The shared root also hid an ordering dependency: the trainer tests used split dirs that only the dataset tests created (fixed in Phase 5).
 - **Offline and fast:**
   - Problem: trainer tests download MobileNetV2 weights and train it at 224 px for 4 epochs, and MNIST tests download MNIST.
   - Fix: use `pretrained_weights: null`, a tiny model and `torchvision.datasets.FakeData`.
@@ -874,7 +912,7 @@ These are low impact. Fold each into whichever PR touches the file. Many become 
   - Its docstring documents a `pretrained` parameter that doesn't exist.
   - `print("custom backbone")` silently ignores `num_classes`.
   - `num_classes > 0 and num_classes is not None` checks in the wrong order.
-- `_get_webdataset_len` leaves tar handles open (ResourceWarning).
+- `_get_webdataset_len` leaves tar handles open (ResourceWarning). (Moot: deleted in Phase 5.)
 - [inference.py:24](inference.py#L24): the default run id is prefixed `test_` (copied from test.py). (Done in Phase 4.)
 - [mnist_dataset.py:33](src/datasets/mnist_dataset.py#L33) raises a bare `Exception`. (Done in Phase 2.)
 - `InputModel.back_url: str = None` should be `str | None`.
@@ -888,7 +926,7 @@ These are low impact. Fold each into whichever PR touches the file. Many become 
 | Decision | Status | Item |
 | --- | --- | --- |
 | Dependency tool: uv or Poetry | **Decided: uv.** One lockfile, CPU/CUDA extras, faster CI and Docker, and three requirements files plus a script deleted. | 3.3 |
-| Keep WebDataset? | **Decided: keep it,** and fix it per 5.5. | 5.5 |
+| Keep WebDataset? | **Decided: keep it,** and fix it per 5.5 (done in Phase 5). | 5.5 |
 | Keep the server? | **Decided: keep it,** rebuilt as the minimal ONNX Runtime app. | 6.4 |
 | Old checkpoints | **Decided: they don't need to load.** 1.7 and 4.1 rename the classifier head's state-dict keys; no key map. 4.2's full-state checkpoints don't load bare state dicts either. | 4.1 |
 | Multi-GPU? | Open. Recommendation: single device; add DDP with `torchrun` if and when it's needed. Phase 1 already removed DataParallel (1.5). | 4.4 |
@@ -951,7 +989,7 @@ A smoke test (train 2 epochs → test → all 4 export modes) passes on both the
 | onnxscript | 0.4.0 | 0.7.2 | 0.4.0 with onnx-ir 1.x breaks dynamo export ✅ | `>=0.7,<0.8` |
 | onnxruntime | 1.21.1 | 1.31.1 (Oct 26) | Needs Python ≥3.11 | `>=1.31,<1.32` |
 | onnx | 1.17.0 | 1.23.2 | Already transitive through onnxscript; keep it direct only if you call `onnx.checker` | transitive |
-| webdataset | 0.2.100 | 1.0.2 (2025-06) | `shardshuffle=True`/None and `with_length` warn | `>=1.0,<1.1` (or remove) |
+| webdataset | 0.2.100 | 1.0.2 (2025-06) | `shardshuffle=True`/None and `with_length` warn; `with_length` can't be pickled for spawn or forkserver workers | `>=1.0,<1.1` (or remove) |
 | omegaconf | 2.3.0 | 2.4.0 (Oct 9) | Drops the antlr4 4.9.3 pin; current code works | `>=2.4,<2.5` |
 | scikit-learn | 1.6.1 | 1.9.1 | Needs Python ≥3.11 | `>=1.9,<2` |
 | tensorboard | 2.18.0 | 2.21.0 | No issues | `<3` |
