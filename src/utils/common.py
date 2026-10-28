@@ -1,8 +1,11 @@
 """Contains utility functions meant to be used internally & externally"""
 
+import random
 import subprocess
 from collections.abc import MutableMapping
 
+import numpy as np
+import torch
 from omegaconf import DictConfig, OmegaConf
 
 
@@ -30,6 +33,13 @@ def get_git_revision_hash() -> str:
     except (subprocess.CalledProcessError, OSError) as excep:  # OSError: git is not installed
         print(excep, "Couldn't get git hash of the current repo. Returning None")
     return None
+
+
+def seed_everything(seed: int) -> None:
+    """Seed python, numpy and torch. torch.manual_seed also seeds every CUDA device"""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 
 def identity(x):
