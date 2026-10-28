@@ -19,6 +19,14 @@ def get_git_revision_hash() -> str:
     return None
 
 
+def get_device(device: str) -> torch.device:
+    """The device to run on, e.g. cpu, cuda or cuda:1. Falls back to the CPU, with a warning, without CUDA"""
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        logger.warning("CUDA is not available, so the program will run on CPU")
+        device = "cpu"
+    return torch.device(device)
+
+
 def seed_everything(seed: int) -> None:
     """Seed python, numpy and torch. torch.manual_seed also seeds every CUDA device"""
     random.seed(seed)

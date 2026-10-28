@@ -17,6 +17,7 @@ from torch.utils.tensorboard import SummaryWriter
 from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
 from src.datasets import init_dataset
+from src.utils.common import get_device
 
 
 class _BaseTrainer(ABC):
@@ -27,12 +28,7 @@ class _BaseTrainer(ABC):
         # the entry script sets up the console and file handlers once, with src.loggers.setup_logging
         self.logger = logging.getLogger(logger_name)
 
-        # one device, e.g. cpu, cuda or cuda:1
-        device = self.config["device"]
-        if device.startswith("cuda") and not torch.cuda.is_available():
-            self.logger.warning("CUDA is not available, so the program will run on CPU")
-            device = "cpu"
-        self.device = torch.device(device)
+        self.device = get_device(self.config["device"])
         self.logger.info("Program will run on %s", self.device)
 
     def load_checkpoint(self, file_path: str) -> dict:
@@ -72,9 +68,6 @@ class BaseTrainer(_BaseTrainer):
         # train_transform augments; eval_transform is shared by val, test and inference
         preprocess_cfg = self.config["dataset"]["preprocess"]
         self.preprocess = init_transform(preprocess_cfg["type"], **preprocess_cfg["args"])
-        # do not load datasets for INFERENCE mode
-        if self.config["mode"] in {"INFERENCE"}:
-            return
 
         # ############### define dataset & dataloaders ################
         # a seeded generator makes the val split and the train shuffle reproducible
