@@ -4,8 +4,6 @@ git_hash: null
 seed: 42
 reproducible: true
 device: cuda
-gpu_device:
-- 0
 use_amp: true
 torch_compile_model: false
 trainer:

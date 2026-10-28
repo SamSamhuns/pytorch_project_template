@@ -29,14 +29,13 @@ class PatchedBaseTrainer(BaseTrainer):
 
 @pytest.fixture(
     scope="function",
-    params=[None, pytest.param([0], marks=pytest.mark.skipif(not CUDA_AVAI, reason="CUDA unavailable"))],
+    params=["cpu", pytest.param("cuda", marks=pytest.mark.skipif(not CUDA_AVAI, reason="CUDA unavailable"))],
 )
 def mock_clsf_config(request, root_directory, create_and_save_dummy_imgs: Callable) -> CustomDictConfig:
     """Configure and create a training environment for a
     CNN classifier using a custom image dataset
     """
     create_and_save_dummy_imgs(root_directory, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
-    gpu_device = request.param
     cfg_dict = {
         "experiment_name": "pytest_base_trainer",
         "save_dir": f"{PYTEST_TEMP_ROOT}/base_trainer",
@@ -44,8 +43,7 @@ def mock_clsf_config(request, root_directory, create_and_save_dummy_imgs: Callab
         "mode": "PYTEST",
         "seed": 42,
         "reproducible": True,
-        "device": "cuda" if gpu_device else "cpu",
-        "gpu_device": gpu_device,
+        "device": request.param,
         "use_amp": False,
         "torch_compile_model": False,
         "trainer": {
