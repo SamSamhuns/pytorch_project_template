@@ -4,9 +4,13 @@ import argparse
 import os.path as osp
 from datetime import datetime
 
+from src.augmentations import build_transforms
 from src.config_parser import CustomDictConfig
+from src.datasets import DATASETS, build_dataloaders
 from src.loggers import setup_logging
+from src.models import MODELS
 from src.trainers import ClassifierTrainer
+from src.utils.common import get_device
 
 
 def get_config_from_args() -> CustomDictConfig:
@@ -74,9 +78,20 @@ def get_config_from_args() -> CustomDictConfig:
 def main():
     config = get_config_from_args()
     setup_logging(osp.join(config.logs_dir, "test.log"))
-    trainer = ClassifierTrainer(config=config, logger_name="test")
+    device = get_device(config.device)
 
-    trainer.test()
+    train_transform, eval_transform, _ = build_transforms(config.dataset.preprocess)
+    dataset = DATASETS[config.dataset.type](
+        train_transform=train_transform, eval_transform=eval_transform, **config.dataset.args
+    )
+    _, _, test_loader = build_dataloaders(dataset, config.dataloader, pin_memory=device.type == "cuda")
+    if test_loader is None:
+        raise ValueError("The dataset has no test split")
+
+    model = MODELS[config.model.type](**config.model.args)
+    run_dir = osp.join(config.save_dir, config.experiment_name, config.run_id)
+    trainer = ClassifierTrainer(config, model, run_dir, device, verbose=config.verbose)
+    trainer.evaluate(test_loader, weights=config.trainer.resume_checkpoint)
 
 
 if __name__ == "__main__":

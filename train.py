@@ -6,10 +6,13 @@ from datetime import datetime
 
 import torch
 
+from src.augmentations import build_transforms
 from src.config_parser import CustomDictConfig
+from src.datasets import DATASETS, build_dataloaders, log_label_counts
 from src.loggers import setup_logging
+from src.models import MODELS
 from src.trainers import ClassifierTrainer
-from src.utils.common import seed_everything
+from src.utils.common import get_device, seed_everything
 
 
 def get_config_from_args() -> CustomDictConfig:
@@ -92,12 +95,29 @@ def main():
     torch.backends.cudnn.benchmark = not config.reproducible
     if config.reproducible:
         torch.use_deterministic_algorithms(True, warn_only=True)  # warns on ops that have no deterministic version
-    trainer = ClassifierTrainer(config=config, logger_name="train")
+    device = get_device(config.device)
 
-    trainer.train()
+    # a seeded generator makes the val split and the train shuffle reproducible
+    generator = torch.Generator().manual_seed(config.seed) if config.seed is not None else None
+    train_transform, eval_transform, _ = build_transforms(config.dataset.preprocess)
+    dataset = DATASETS[config.dataset.type](
+        train_transform=train_transform, eval_transform=eval_transform, generator=generator, **config.dataset.args
+    )
+    if config.verbose:
+        log_label_counts(dataset)
+    train_loader, val_loader, test_loader = build_dataloaders(
+        dataset, config.dataloader, pin_memory=device.type == "cuda", generator=generator
+    )
+
+    model = MODELS[config.model.type](**config.model.args)
+    run_dir = osp.join(config.save_dir, config.experiment_name, config.run_id)
+    trainer = ClassifierTrainer(config, model, run_dir, device, classes=dataset.classes, verbose=config.verbose)
+    if config.trainer.resume_checkpoint:
+        trainer.load(config.trainer.resume_checkpoint)
+    trainer.fit(train_loader, val_loader)
     # test this run's best.pth; it is None if this run saved none, then the last weights are tested
-    if config["mode"] == "TRAIN_TEST":
-        trainer.test(trainer.best_checkpoint_path)
+    if config.mode == "TRAIN_TEST" and test_loader is not None:
+        trainer.evaluate(test_loader, weights=trainer.best_path)
 
 
 if __name__ == "__main__":

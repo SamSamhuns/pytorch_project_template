@@ -4,109 +4,73 @@ import numpy as np
 import pytest
 import torch
 import torch.nn.functional as F
-import torchvision
 
-from src.config_parser import CustomDictConfig
 from src.metrics import calc_metric
-from src.models import MODELS
+from src.models import torchvision_classifier
 from src.trainers import ClassifierTrainer
-from tests.conftest import NUM_CLS
+from tests.src.test_trainers.conftest import CLASSES, tiny_model
 
 
-def test_init_trainer(clsf_trainer_and_logger):
-    """Test if trainer is initialized properly with both cpu & gpu mode."""
-    trainer, mocked_logger = clsf_trainer_and_logger
-    info_calls = [call.args for call in mocked_logger.return_value.info.call_args_list]
-    assert ("Program will run on %s", trainer.device) in info_calls
-
-    assert isinstance(trainer.model, torch.nn.Module)
-    assert isinstance(trainer.loss, torch.nn.Module)
-    assert isinstance(trainer.optimizer, torch.optim.Optimizer)
+def test_init_builds_the_configured_parts(trainer):
+    """The loss, optimizer and LR scheduler are the torch classes the config names"""
+    assert isinstance(trainer.loss, torch.nn.CrossEntropyLoss)
     assert isinstance(trainer.optimizer, torch.optim.SGD)
-    assert isinstance(trainer.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
+    assert isinstance(trainer.scheduler, torch.optim.lr_scheduler.CosineAnnealingLR)
 
 
-def test_train_one_epoch_method(clsf_trainer_and_logger):
-    trainer, mocked_logger = clsf_trainer_and_logger
+def test_train_one_epoch_updates_the_model(trainer_cfg, run_dir, loader, device, caplog):
+    trainer = ClassifierTrainer(trainer_cfg, tiny_model(), run_dir, device)
     initial_params = [p.clone() for p in trainer.model.parameters()]
 
-    trainer.train_one_epoch()
+    with caplog.at_level("INFO"):
+        train_loss = trainer.train_one_epoch(loader)
 
-    final_params = list(trainer.model.parameters())
-    param_changes = any(not torch.equal(ip, fp) for ip, fp in zip(initial_params, final_params, strict=True))
-    assert param_changes, "Model parameters did not change after training epoch."
-
-    logger_instance = mocked_logger.return_value
-    info_calls = [call.args for call in logger_instance.info.call_args_list]
-    assert any("Train Epoch" in str(call) for call in info_calls), "Training log entry missing"
-    assert any("Loss:" in str(call) for call in info_calls), "No logging for Loss"
+    assert any(not torch.equal(a, b) for a, b in zip(initial_params, trainer.model.parameters(), strict=True))
+    assert train_loss > 0
+    assert "Train Epoch 1" in caplog.text
 
 
-def test_eval_one_epoch_method(mock_clsf_config: CustomDictConfig):
-    """Test eval_one_epoch"""
-    mock_clsf_config["dataset"]["args"]["validation_split"] = 0.1
-    mock_clsf_config["dataset"]["args"]["val_path"] = None
-    trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="time_series_clsf_logger")
-    trainer.model.eval()
-    loader = trainer.val_data_loader
+def test_fit_saves_the_checkpoints(trainer, loader):
+    trainer.fit(loader, val_loader=loader)
 
-    test_loss, y_true, y_score, y_pred = trainer.eval_one_epoch(loader)
-
-    assert isinstance(test_loss, float), "Loss is not calculated as a float."
-    assert len(y_true) == len(y_score) == len(y_pred), "Mismatch in output lengths of targets and predictions."
+    assert trainer.epoch == 2
+    assert trainer.best_path == osp.join(trainer.run_dir, "models", "best.pth")
+    checkpoint = torch.load(osp.join(trainer.run_dir, "models", "last.pth"), weights_only=True)
+    assert checkpoint["epoch"] == 2
+    assert checkpoint["classes"] == CLASSES
 
 
-def test_train_method(clsf_trainer_and_logger):
-    trainer, mocked_logger = clsf_trainer_and_logger
-    initial_epoch = trainer.current_epoch
-
-    trainer.train()
-
-    assert trainer.current_epoch > initial_epoch, "No epochs were completed."
-    checkpoint = torch.load(osp.join(trainer.config["models_dir"], "last.pth"), weights_only=True)
-    assert checkpoint["classes"] == [f"class_{i}" for i in range(NUM_CLS)]  # the mock image dirs
-    logger_instance = mocked_logger.return_value
-    assert logger_instance.info.call_count > 0, "No logging occurred during training."
+def test_trainer_keeps_the_model_weights(trainer_cfg, run_dir):
+    """The trainer used to re-initialize every model, which wiped pretrained backbones"""
+    model = torchvision_classifier(num_classes=3, pretrained_weights=None)
+    weights = {name: value.clone() for name, value in model.state_dict().items()}
+    trainer = ClassifierTrainer(trainer_cfg, model, run_dir, torch.device("cpu"))
+    assert all(torch.equal(value, weights[name]) for name, value in trainer.model.state_dict().items())
 
 
-def test_pretrained_weights_survive_trainer_init(clsf_trainer_and_logger):
-    """The trainer must not re-initialize a pretrained backbone"""
-    trainer, _ = clsf_trainer_and_logger
-    pretrained = torchvision.models.get_model("mobilenet_v2", weights="MobileNet_V2_Weights.IMAGENET1K_V1")
-
-    expected = pretrained.features.state_dict()
-    actual = trainer.model.features.state_dict()
-    assert all(torch.equal(actual[k].cpu(), v) for k, v in expected.items())
-
-
-def test_best_checkpoint_keeps_highest_val_accuracy(clsf_trainer_and_logger, mocker):
+def test_best_checkpoint_keeps_highest_val_accuracy(trainer, loader, mocker):
     """Val accuracies 90% -> 50% -> 60% must save best.pth once, in the first epoch"""
-    trainer, _ = clsf_trainer_and_logger
-    trainer.config["trainer"]["epochs"] = 3
-    trainer.config["trainer"]["valid_freq"] = 1
-    mocker.patch.object(trainer, "train_one_epoch")
-    mocker.patch.object(trainer, "validate", side_effect=[90.0, 50.0, 60.0])
-    save_checkpoint = mocker.patch.object(trainer, "save_checkpoint")
+    trainer.cfg.trainer.epochs = 3
+    mocker.patch.object(trainer, "train_one_epoch", return_value=1.0)
+    mocker.patch.object(trainer, "validate", side_effect=[(90.0, 0.1), (50.0, 0.5), (60.0, 0.4)])
+    save = mocker.patch.object(trainer, "save")
 
-    trainer.train()
+    trainer.fit(loader, val_loader=loader)
 
-    saved = [call.args[0] for call in save_checkpoint.call_args_list]
-    assert saved == ["best.pth", "last.pth", "last.pth", "last.pth"]
+    assert [call.args[0] for call in save.call_args_list] == ["best.pth", "last.pth", "last.pth", "last.pth"]
     assert trainer.best_val_acc == 90.0
 
 
-def test_resume_continues_where_training_stopped(mock_clsf_config: CustomDictConfig, mocker):
+def test_resume_continues_where_training_stopped(trainer_cfg, run_dir, loader):
     """Resuming from last.pth restores the epoch, the optimizer state and the LR schedule"""
-    mocker.patch("logging.getLogger")
-    mock_clsf_config["trainer"]["epochs"] = 2
-    mock_clsf_config["lr_scheduler"] = {"type": "CosineAnnealingLR", "args": {"T_max": 4}, "warmup_epochs": 1}
-    trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="resume_logger")
-    trainer.train()
+    trainer_cfg.lr_scheduler = {"type": "CosineAnnealingLR", "args": {"T_max": 4}, "warmup_epochs": 1}
+    trainer = ClassifierTrainer(trainer_cfg, tiny_model(), run_dir, torch.device("cpu"))
+    trainer.fit(loader)
 
-    mock_clsf_config["trainer"]["resume_checkpoint"] = osp.join(mock_clsf_config["models_dir"], "last.pth")
-    resumed = ClassifierTrainer(config=mock_clsf_config, logger_name="resume_logger")
+    resumed = ClassifierTrainer(trainer_cfg, tiny_model(), run_dir, torch.device("cpu"))
+    resumed.load(osp.join(run_dir, "models", "last.pth"))
 
-    assert resumed.current_epoch == 3
+    assert resumed.epoch == 3
     assert resumed.optimizer.param_groups[0]["lr"] == trainer.optimizer.param_groups[0]["lr"]
     assert resumed.scheduler.state_dict() == trainer.scheduler.state_dict()
     momentum = [state["momentum_buffer"] for state in trainer.optimizer.state.values()]
@@ -114,9 +78,8 @@ def test_resume_continues_where_training_stopped(mock_clsf_config: CustomDictCon
     assert all(torch.equal(a, b) for a, b in zip(momentum, resumed_momentum, strict=True))
 
 
-def test_eval_loss_is_mean_over_samples(clsf_trainer_and_logger):
+def test_eval_loss_is_mean_over_samples(trainer):
     """Batches of unequal size must be weighted by their size"""
-    trainer, _ = clsf_trainer_and_logger
     trainer.model = torch.nn.Identity()  # the batches below already hold the model's logits
     logits = torch.randn(4, 5)
     target = torch.tensor([0, 1, 2, 3])
@@ -125,18 +88,16 @@ def test_eval_loss_is_mean_over_samples(clsf_trainer_and_logger):
     assert loss == pytest.approx(F.cross_entropy(logits, target).item())
 
 
-def test_amp_scores_convert_to_numpy(clsf_trainer_and_logger):
+def test_amp_scores_convert_to_numpy(trainer):
     """With use_amp the model outputs bfloat16, which numpy can't hold, so the scores must be cast"""
-    trainer, _ = clsf_trainer_and_logger
-    trainer.config["use_amp"] = True
+    trainer.cfg.use_amp = True
 
-    _, _, y_score, _ = trainer.eval_one_epoch([(torch.randn(2, 3, 64, 64), torch.tensor([0, 1]))])
+    _, _, y_score, _ = trainer.eval_one_epoch([(torch.randn(2, 3, 16, 16), torch.tensor([0, 1]))])
     assert y_score.dtype == np.float32
 
 
-def test_binary_y_score_is_positive_class_probability(clsf_trainer_and_logger):
+def test_binary_y_score_is_positive_class_probability(trainer):
     """A perfect binary classifier must get ROC-AUC 1.0"""
-    trainer, _ = clsf_trainer_and_logger
     trainer.model = torch.nn.Identity()  # the batch below already holds the model's logits
     p1 = torch.tensor([0.1, 0.4, 0.6, 0.9])  # P(class 1): every positive scores above every negative
     logits = torch.stack([1 - p1, p1], dim=1).log()  # softmax maps these back to the probabilities
@@ -146,39 +107,44 @@ def test_binary_y_score_is_positive_class_probability(clsf_trainer_and_logger):
     assert calc_metric("roc_auc_score", y_true=y_true, y_score=y_score) == 1.0
 
 
-def test_compiled_checkpoint_loads_into_plain_model(mock_clsf_config: CustomDictConfig, mocker):
+def test_compiled_checkpoint_loads_into_plain_model(trainer, loader, mocker):
     """torch_compile_model must not add the "_orig_mod." prefix to saved keys"""
-    mocker.patch("logging.getLogger")
-    mock_clsf_config["torch_compile_model"] = True
-    mock_clsf_config["trainer"]["epochs"] = 1
-    trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="compile_logger")
-    mocker.patch.object(trainer, "train_one_epoch")  # train() still compiles and saves last.pth
-    trainer.train()
+    trainer.cfg.torch_compile_model = True
+    trainer.cfg.trainer.epochs = 1
+    mocker.patch.object(trainer, "train_one_epoch", return_value=1.0)  # fit() still compiles and saves last.pth
+    trainer.fit(loader)
 
-    plain_model = MODELS["torchvision_classifier"](**mock_clsf_config["model"]["args"])
-    checkpoint = torch.load(osp.join(mock_clsf_config["models_dir"], "last.pth"), weights_only=True)
-    plain_model.load_state_dict(checkpoint["model"])
+    checkpoint = torch.load(osp.join(trainer.run_dir, "models", "last.pth"), weights_only=True)
+    tiny_model().load_state_dict(checkpoint["model"])
 
 
-def test_validate_method(mock_clsf_config: CustomDictConfig, mocker):
-    mocked_logger = mocker.patch("logging.getLogger")
-    mock_clsf_config["dataset"]["args"]["val_path"] = None
-    mock_clsf_config["dataset"]["args"]["validation_split"] = 0.1
-    trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="time_series_clsf_logger")
-    if trainer.val_data_loader is not None:
-        trainer.validate()
-        logger_instance = mocked_logger.return_value
-        info_calls = [call.args for call in logger_instance.info.call_args_list]
-        assert any("Validation" in str(call) for call in info_calls), "Validation log entry missing"
-        assert any("loss" in str(call) for call in info_calls), "No logging for validation loss"
-    else:
-        pytest.skip("No validation data loader configured for this test.")
+def test_validate_logs_the_metrics(trainer, loader, caplog):
+    with caplog.at_level("INFO"):
+        accuracy, loss = trainer.validate(loader)
+    assert 0 <= accuracy <= 100
+    assert loss > 0
+    assert "Validation at Epoch 1" in caplog.text
+    assert "accuracy_score" in caplog.text
 
 
-def test_test_method(clsf_trainer_and_logger):
-    trainer, mocked_logger = clsf_trainer_and_logger
-    trainer.test()
+def test_evaluate_tests_the_checkpoint(trainer, trainer_cfg, run_dir, loader, caplog):
+    """evaluate() with weights tests that checkpoint, not the trainer's current weights"""
+    saved = trainer.save("best.pth")
+    other = ClassifierTrainer(trainer_cfg, tiny_model(), run_dir, torch.device("cpu"))
 
-    logger_instance = mocked_logger.return_value
-    info_calls = [call.args for call in logger_instance.info.call_args_list]
-    assert any("Test set:" in str(call) for call in info_calls), "Test log entry missing"
+    with caplog.at_level("INFO"):
+        other.evaluate(loader, weights=saved)
+
+    assert all(torch.equal(a, b) for a, b in zip(other.model.parameters(), trainer.model.parameters(), strict=True))
+    assert "test loss" in caplog.text
+    assert "confusion_matrix" in caplog.text
+
+
+def test_tensorboard_logs_to_the_run_dir(trainer_cfg, run_dir, loader):
+    trainer_cfg.trainer.use_tensorboard = True
+    trainer_cfg.trainer.epochs = 1
+    trainer = ClassifierTrainer(trainer_cfg, tiny_model(), run_dir, torch.device("cpu"))
+    trainer.fit(loader, val_loader=loader)
+    trainer.evaluate(loader)
+    trainer.writer.close()
+    assert osp.isdir(osp.join(run_dir, "tf_logs"))
