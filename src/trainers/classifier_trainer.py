@@ -13,7 +13,6 @@ from PIL import Image
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
-from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
 from src.datasets.base_dataset import IMG_EXTENSIONS, is_file_ext_valid
 from src.losses import init_loss
@@ -346,11 +345,10 @@ class ClassifierTrainer(BaseTrainer):
             raise ValueError(f"Inference source {source_path} is not an image file or dir with images")
 
         pred_file_labels = []
-        inference_transform = init_transform(self.config["dataset"]["preprocess"]["inference_transform"]).inference
         with torch.no_grad():
             for image_path in image_list:
                 image = Image.open(image_path).convert("RGB")
-                data = inference_transform(image)
+                data = self.preprocess.eval_transform(image)
                 data = data.to(self.device).unsqueeze(0)
                 output = self.model(data)
                 # the predicted class has the largest logit

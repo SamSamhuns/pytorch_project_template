@@ -74,6 +74,9 @@ class BaseTrainer(_BaseTrainer):
     def __init__(self, config: CustomDictConfig, logger_name: str = "logger") -> None:
         super().__init__(config, logger_name)
         self.model = None  # placeholder model attrb. Must be init later
+        # train_transform augments; eval_transform is shared by val, test and inference
+        preprocess_cfg = self.config["dataset"]["preprocess"]
+        self.preprocess = init_transform(preprocess_cfg["type"], **preprocess_cfg["args"])
         # do not load datasets for INFERENCE mode
         if self.config["mode"] in {"INFERENCE"}:
             return
@@ -91,9 +94,9 @@ class BaseTrainer(_BaseTrainer):
         # ############### define dataset & dataloaders ################
         self.data_set = init_dataset(
             self.config["dataset"]["type"],
-            train_transform=init_transform(self.config["dataset"]["preprocess"]["train_transform"]).train,
-            val_transform=init_transform(self.config["dataset"]["preprocess"]["val_transform"]).val,
-            test_transform=init_transform(self.config["dataset"]["preprocess"]["test_transform"]).test,
+            train_transform=self.preprocess.train_transform,
+            val_transform=self.preprocess.eval_transform,
+            test_transform=self.preprocess.eval_transform,
             **self.config["dataset"]["args"],
         )
 

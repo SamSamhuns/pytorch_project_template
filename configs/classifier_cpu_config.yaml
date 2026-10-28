@@ -34,10 +34,9 @@ dataset:
     test_path: test
   num_classes: 20
   preprocess:
-    train_transform: ImagenetClassifierPreprocess
-    val_transform: ImagenetClassifierPreprocess
-    test_transform: ImagenetClassifierPreprocess
-    inference_transform: ImagenetClassifierPreprocess
+    type: ImagenetClassifierPreprocess
+    args:
+      weights: ${model.args.pretrained_weights}
 dataloader:
   type: CustomDataLoader
   args:
