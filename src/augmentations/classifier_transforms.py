@@ -21,3 +21,12 @@ class ImagenetClassifierPreprocess:
                 transforms.Normalize(self.eval_transform.mean, self.eval_transform.std),
             ]
         )
+        # what eval_transform does; export.py stores it in the ONNX file, for the server, which has no torchvision
+        self.eval_settings = {
+            "image_mode": "RGB",
+            "resize_size": self.eval_transform.resize_size[0],
+            "crop_size": self.eval_transform.crop_size[0],
+            "mean": self.eval_transform.mean,
+            "std": self.eval_transform.std,
+            "interpolation": self.eval_transform.interpolation.value,  # e.g. bilinear or bicubic
+        }

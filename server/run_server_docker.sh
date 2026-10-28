@@ -58,14 +58,14 @@ if [ "$(docker ps -q -f name=$def_cont_name)" ]; then
     docker rm "$def_cont_name"
 fi
 
-# Ensure the checkpoints directory exists
+# The server loads checkpoints_server/model.onnx, a model written by export.py
 checkpoints_dir="$PWD/checkpoints_server"
-if [ ! -d "$checkpoints_dir" ]; then
-    echo "Creating checkpoints directory at $checkpoints_dir..."
-    mkdir -p "$checkpoints_dir"
+if [ ! -f "$checkpoints_dir/model.onnx" ]; then
+    echo "Error: $checkpoints_dir/model.onnx not found. Copy a model.onnx written by export.py there."
+    exit 1
 fi
 
-# Start the Docker container
+# Start the Docker container, which runs the server
 echo "Starting Docker container '$def_cont_name' with FastAPI on port: $port..."
 docker run \
     -ti --rm \
@@ -73,5 +73,4 @@ docker run \
     -v "$checkpoints_dir:/home/user1/app/checkpoints_server" \
     --name "$def_cont_name" \
     --env LANG=en_US.UTF-8 \
-    pytorch_model_server \
-    bash
+    pytorch_model_server
