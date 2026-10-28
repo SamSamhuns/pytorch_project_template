@@ -39,8 +39,9 @@ def main():
     model.load_state_dict(checkpoint["model"])
     _, _, eval_settings = build_transforms(config.dataset.preprocess)
 
-    info = config.model.info
-    sample = torch.randn(2, info.input_channel, info.input_height, info.input_width)
+    # a batch of 2 random images, with the channels and size of the eval transform's output
+    channels, size = {"L": 1, "RGB": 3}[eval_settings["image_mode"]], eval_settings["crop_size"]
+    sample = torch.randn(2, channels, size, size)
     export_path = osp.join(run_dir, "models", "model.onnx")
     metadata = {"classes": json.dumps(checkpoint["classes"]), "preprocess": json.dumps(eval_settings)}
     export_onnx(model, sample, export_path, metadata)

@@ -9,7 +9,6 @@ trainer:
   batch_log_freq: 5
   valid_freq: 2
   epochs: 12
-  verbosity: 2
   use_tensorboard: true
 model:
   type: torchvision_classifier
@@ -18,10 +17,6 @@ model:
     num_classes: 20
     feat_extract: false
     pretrained_weights: MobileNet_V2_Weights.IMAGENET1K_V1
-  info:
-    input_width: 224
-    input_height: 224
-    input_channel: 3
 dataset:
   type: ClassifierDataset
   args:
@@ -31,7 +26,6 @@ dataset:
     val_path: valid
     test_path: test
     validation_split: 0.0
-  num_classes: 20
   preprocess:
     type: imagenet_transforms
     args:

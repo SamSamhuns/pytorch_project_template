@@ -7,8 +7,8 @@ An example Configuration file is provided at `classifier_cpu_config.yaml`
 ```yaml
 # Configuration for Image Classifier
 # General settings
-experiment_name: image_classifier  # Name of experiment, name of the dir for saving logs, metrics & models
-save_dir: checkpoints  # Directory to save checkpoints and logs
+experiment_name: image_classifier  # Name of the experiment's dir in save_dir, which holds one dir per run
+save_dir: checkpoints  # Each run saves its config.yaml, logs, models and tf_logs to save_dir/experiment_name/RUN_ID
 seed: 42  # Random seed for reproducibility
 reproducible: false  # true trades speed for determinism: no cuDNN benchmarking, deterministic algorithms where they exist
 device: cuda  # Device to run on: cpu, cuda or cuda:1. Falls back to cpu when CUDA is unavailable
@@ -20,7 +20,6 @@ trainer:
   batch_log_freq: 5  # Logging frequency within an epoch
   valid_freq: 2  # Validate every N epochs; best.pth is saved when val accuracy improves, last.pth every epoch
   epochs: 12  # Number of training epochs
-  verbosity: 2  # Verbosity level of training logs
   use_tensorboard: true  # Enable TensorBoard logging
 
 # Model configuration
@@ -31,10 +30,6 @@ model:
     feat_extract: false  # If true, the last Linear layer becomes Identity and the model returns features, not class scores
     num_classes: 20  # Number of output classes
     pretrained_weights: MobileNet_V2_Weights.IMAGENET1K_V1  # Pretrained weights to initialize the backbone
-  info:
-    input_width: 224  # Input image width
-    input_height: 224  # Input image height
-    input_channel: 3  # Number of input channels (e.g., RGB images)
 
 # Dataset configuration
 dataset:
@@ -45,7 +40,6 @@ dataset:
     val_path: valid  # Subdirectory for validation data
     test_path: test  # Subdirectory for test data
     validation_split: 0.0  # Without a val_path, the fraction of the train data to validate on
-  num_classes: 20  # Number of classes in the dataset
   preprocess:
     type: imagenet_transforms  # TRANSFORMS in src/augmentations: random crops and flips for training; one eval transform for val, test and inference
     args:
