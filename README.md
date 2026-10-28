@@ -69,6 +69,9 @@ Set training data inside `data` directory in the following format:
     Note: ImageNet style class_dir->subdirs->subdirs->images... is also supported
 
 ```shell
+# list the images PIL can't read, which would stop training; add -r to remove them
+python scripts/find_corrupt_images.py -s data/SOURCE_DATASET
+
 # generate an id to name classmap
 python scripts/generate_classmap_from_dataset.py --sd data/SOURCE_DATASET --mp data/ID_2_CLASSNAME_MAP_TXT_FILE
 

@@ -12,9 +12,9 @@ import tqdm
 from PIL import Image
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
+from torchvision.datasets.folder import is_image_file
 
 from src.config_parser import CustomDictConfig
-from src.datasets.base_dataset import IMG_EXTENSIONS, is_file_ext_valid
 from src.losses import init_loss
 from src.metrics import calc_metric, plot_metric
 from src.models import init_model
@@ -88,9 +88,7 @@ class ClassifierTrainer(BaseTrainer):
         cum_train_loss = 0
         train_size = 0
         correct = 0
-        train_data_len = len(self.data_set.train_set) - (
-            len(self.data_set.train_set) * self.config["dataloader"]["args"]["validation_split"]
-        )
+        train_data_len = len(self.train_data_loader.dataset)
 
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
             data = data.to(self.device, non_blocking=True)
@@ -113,7 +111,7 @@ class ClassifierTrainer(BaseTrainer):
             if batch_idx % self.config["trainer"]["batch_log_freq"] == 0:
                 if self.config.verbose:
                     self.logger.info(
-                        "\tTrain Epoch: %s [%6d/%.0f (%.1f%%)] Loss: %.6f",
+                        "\tTrain Epoch: %s [%6d/%d (%.1f%%)] Loss: %.6f",
                         self.current_epoch,
                         batch_idx * len(data),
                         train_data_len,
@@ -338,8 +336,8 @@ class ClassifierTrainer(BaseTrainer):
         image_list = []
         if osp.isdir(source_path):
             fpaths = glob.glob(osp.join(source_path, "*"))
-            image_list = [path for path in fpaths if is_file_ext_valid(path, IMG_EXTENSIONS)]
-        elif osp.isfile(source_path) and is_file_ext_valid(source_path, IMG_EXTENSIONS):
+            image_list = [path for path in fpaths if is_image_file(path)]
+        elif osp.isfile(source_path) and is_image_file(source_path):
             image_list = [source_path]
         else:
             raise ValueError(f"Inference source {source_path} is not an image file or dir with images")

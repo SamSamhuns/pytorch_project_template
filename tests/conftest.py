@@ -14,10 +14,6 @@ import torch
 import webdataset as wds
 from PIL import Image
 from torch import nn
-from torch.utils.data import Dataset
-
-from src.datasets.classifier_dataset import _get_webdataset_len
-from src.utils.common import identity
 
 PYTEST_TEMP_ROOT = "/tmp/pytest"
 os.makedirs(PYTEST_TEMP_ROOT, exist_ok=True)
@@ -69,47 +65,6 @@ def mock_parser(scope="function"):
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False)
     parser.add_argument("-o", "--override", type=str, nargs="+", dest="override", default=None)
     return parser
-
-
-#######################################
-###### setup for dataloader test ######
-
-
-class MockDataset(Dataset):
-    """Mock a simple dataset"""
-
-    def __init__(self, size, transform=None):
-        self.size = size
-        self.transform = transform
-
-    def __len__(self):
-        return self.size
-
-    def __getitem__(self, idx):
-        if idx % 10 == 0:  # return None for every 10th item
-            return None
-        return torch.tensor([idx] * 10, dtype=torch.float32)
-
-
-@pytest.fixture
-def mock_dataset() -> Dataset:
-    """Return a mock dataset with size 100"""
-    return MockDataset(100)
-
-
-@pytest.fixture
-def dummy_webdataset(mock_webdataset_path):
-    """Return a mock webdataset"""
-    tar_path = mock_webdataset_path
-    data_len = _get_webdataset_len(tar_path)
-    return (
-        wds.WebDataset(tar_path)
-        .shuffle(100)
-        .decode("pil")
-        .to_tuple("input.jpg", "output.cls")
-        .map_tuple(None, identity)
-        .with_length(data_len)
-    )
 
 
 ####################################

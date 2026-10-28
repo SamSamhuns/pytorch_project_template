@@ -26,23 +26,15 @@ dataset:
   type: MnistDataset
   args:
     root: data
-    train_path: train
-    val_path: null
-    test_path: test
+    validation_split: 0.1
   num_classes: 10
   preprocess:
     type: MnistPreprocess
     args: {}
 dataloader:
-  type: CustomDataLoader
-  args:
-    batch_size: 32
-    num_workers: 4
-    shuffle: true
-    validation_split: 0.1
-    drop_last: false
-    pin_memory: true
-    worker_init_fn: null
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
 optimizer:
   type: SGD
   args:
