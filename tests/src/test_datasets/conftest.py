@@ -27,11 +27,3 @@ def basic_params(root_directory, create_and_save_dummy_imgs):
 @pytest.fixture
 def mock_classifierdataset(basic_params):
     return ClassifierDataset(data_mode="imgs", **basic_params)
-
-
-# ######### Fixtures for MnistDataset #########
-
-
-@pytest.fixture
-def mnist_dir():
-    return "data"

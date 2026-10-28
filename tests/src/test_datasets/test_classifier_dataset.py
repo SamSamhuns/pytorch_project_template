@@ -6,10 +6,11 @@ from pathlib import Path
 
 import pytest
 import torch
+from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from src.datasets import ClassifierDataset
+from src.datasets import ClassifierDataset, build_dataloaders, log_label_counts
 from tests.conftest import NUM_CLS, NUM_IMGS_P_CLS
 
 
@@ -91,3 +92,47 @@ def test_non_implemented_mode(basic_params):
     """Test initialization with a non-implemented mode."""
     with pytest.raises(NotImplementedError):
         _ = ClassifierDataset(data_mode="numpy", **basic_params)
+
+
+@pytest.mark.parametrize(
+    "val_path, val_split, expected_excep",
+    [(None, 0.1, None), ("/fake/val/path", 0, FileNotFoundError), ("/fake/val/path", 0.1, ValueError)],
+)
+def test_validation_split_configuration(basic_params, val_path, val_split, expected_excep):
+    """The val set comes from a val dir or from validation_split, not both"""
+    basic_params.update(val_path=val_path, validation_split=val_split)
+    if expected_excep:
+        with pytest.raises(expected_excep):
+            ClassifierDataset(**basic_params)
+    else:
+        assert len(ClassifierDataset(**basic_params).val_set) == 15
+
+
+def test_build_dataloaders(mock_classifierdataset):
+    """A loader for each split; the train loader drops its last, smaller batch"""
+    cfg = OmegaConf.create({"batch_size": 16, "num_workers": 0})
+    train_loader, val_loader, test_loader = build_dataloaders(mock_classifierdataset, cfg)
+    assert train_loader.drop_last
+    assert len(val_loader.dataset) == len(test_loader.dataset) == NUM_CLS * NUM_IMGS_P_CLS
+
+    mock_classifierdataset.test_set = None
+    assert build_dataloaders(mock_classifierdataset, cfg)[2] is None
+
+
+def test_build_dataloaders_lets_a_webdataset_shuffle_itself(basic_params, mock_webdataset_path):
+    """A WebDataset is an IterableDataset, which the DataLoader must not be asked to shuffle"""
+    basic_params.update(train_path=osp.basename(mock_webdataset_path), val_path=None, test_path=None)
+    dataset = ClassifierDataset(data_mode="webdataset", **basic_params)
+    train_loader, _, _ = build_dataloaders(dataset, OmegaConf.create({"batch_size": 16, "num_workers": 0}))
+    data, target = next(iter(train_loader))
+    assert len(data) == len(target) == 16
+
+
+def test_log_label_counts(basic_params, caplog):
+    """--verbose logs the size and label counts of each split, including a val split carved from the train dir"""
+    basic_params.update(val_path=None, validation_split=0.2)
+    with caplog.at_level("INFO"):
+        log_label_counts(ClassifierDataset(**basic_params))
+    assert "Train: 120 data points" in caplog.text
+    assert "Val: 30 data points" in caplog.text
+    assert "Val labels: [0 1 2 3 4]" in caplog.text

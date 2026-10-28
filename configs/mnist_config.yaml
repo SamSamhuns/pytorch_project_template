@@ -1,35 +1,26 @@
 experiment_name: mnist_image_classifier
 save_dir: checkpoints
-git_hash: null
 seed: 42
 reproducible: false
 device: cuda
 use_amp: false
 torch_compile_model: false
 trainer:
-  type: ClassifierTrainer
-  resume_checkpoint: null
   batch_log_freq: 10
   valid_freq: 2
   epochs: 12
-  verbosity: 2
   use_tensorboard: true
 model:
   type: MnistModel
   args:
     num_classes: 10
-  info:
-    input_width: 28
-    input_height: 28
-    input_channel: 1
 dataset:
   type: MnistDataset
   args:
     root: data
     validation_split: 0.1
-  num_classes: 10
   preprocess:
-    type: MnistPreprocess
+    type: mnist_transforms
     args: {}
 dataloader:
   batch_size: 32
@@ -43,6 +34,7 @@ loss:
   type: CrossEntropyLoss
   args: {}
 metrics:
+  average: macro
   val:
   - accuracy_score
   - f1_score

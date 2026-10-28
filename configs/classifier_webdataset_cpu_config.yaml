@@ -1,30 +1,22 @@
 experiment_name: image_classifier
 save_dir: checkpoints
-git_hash: null
 seed: 42
 reproducible: false
 device: cpu
 use_amp: false
 torch_compile_model: false
 trainer:
-  type: ClassifierTrainer
-  resume_checkpoint: null
   batch_log_freq: 5
   valid_freq: 2
   epochs: 12
-  verbosity: 2
   use_tensorboard: true
 model:
-  type: ClassifierModel
+  type: torchvision_classifier
   args:
     backbone: mobilenet_v2
     num_classes: 20
     feat_extract: false
     pretrained_weights: MobileNet_V2_Weights.IMAGENET1K_V1
-  info:
-    input_width: 224
-    input_height: 224
-    input_channel: 3
 dataset:
   type: ClassifierDataset
   args:
@@ -34,9 +26,8 @@ dataset:
     val_path: valid
     test_path: test
     validation_split: 0.0
-  num_classes: 20
   preprocess:
-    type: ImagenetClassifierPreprocess
+    type: imagenet_transforms
     args:
       weights: ${model.args.pretrained_weights}
 dataloader:
@@ -52,6 +43,7 @@ loss:
   args:
     label_smoothing: 0.1
 metrics:
+  average: macro
   val:
   - accuracy_score
   - f1_score

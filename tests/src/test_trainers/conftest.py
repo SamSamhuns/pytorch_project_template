@@ -1,113 +1,63 @@
-import os.path as osp
-from collections.abc import Callable
-
 import pytest
 import torch
 from omegaconf import OmegaConf
+from torch import nn
+from torch.utils.data import DataLoader
+from torchvision.datasets import FakeData
+from torchvision.transforms import ToTensor
 
-from src.config_parser import CustomDictConfig
-from src.trainers import BaseTrainer, ClassifierTrainer
-from tests.conftest import NUM_CLS, NUM_IMGS_P_CLS, PYTEST_TEMP_ROOT
+from src.trainers import ClassifierTrainer
+from tests.conftest import NUM_CLS
 
-CUDA_AVAI = torch.cuda.is_available()
-
-
-class PatchedBaseTrainer(BaseTrainer):
-    """Patches the abstract methods of the BaseTrainer class"""
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def train(self):
-        raise NotImplementedError()
-
-    def test(self):
-        raise NotImplementedError()
-
-    def validate(self):
-        raise NotImplementedError()
+CLASSES = [f"class_{i}" for i in range(NUM_CLS)]
 
 
-@pytest.fixture(
-    scope="function",
-    params=["cpu", pytest.param("cuda", marks=pytest.mark.skipif(not CUDA_AVAI, reason="CUDA unavailable"))],
-)
-def mock_clsf_config(request, root_directory, create_and_save_dummy_imgs: Callable) -> CustomDictConfig:
-    """Configure and create a training environment for a
-    CNN classifier using a custom image dataset
-    """
-    for split in ("train", "val", "test"):  # the dataset dirs the config below names
-        create_and_save_dummy_imgs(osp.join(root_directory, split), n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
-    cfg_dict = {
-        "experiment_name": "pytest_base_trainer",
-        "save_dir": f"{PYTEST_TEMP_ROOT}/base_trainer",
-        "git_hash": None,
-        "mode": "PYTEST",
-        "seed": 42,
-        "reproducible": True,
-        "device": request.param,
-        "use_amp": False,
-        "torch_compile_model": False,
-        "trainer": {
-            "type": "ClassifierTrainer",
-            "resume_checkpoint": None,
-            "batch_log_freq": 2,
-            "valid_freq": 2,
-            "epochs": 4,
-            "use_tensorboard": False,
-        },
-        "model": {
-            "type": "ClassifierModel",
-            "args": {
-                "backbone": "mobilenet_v2",
-                "feat_extract": False,
-                "num_classes": NUM_CLS,
-                "pretrained_weights": "MobileNet_V2_Weights.IMAGENET1K_V1",
-            },
-            "info": {"input_width": 100, "input_height": 100, "input_channel": 3},
-        },
-        "dataset": {
-            "type": "ClassifierDataset",
-            "args": {"root": root_directory, "train_path": "train", "val_path": "val", "test_path": "test"},
-            "num_classes": NUM_CLS,
-            "preprocess": {
-                "type": "ImagenetClassifierPreprocess",
-                "args": {"weights": "MobileNet_V2_Weights.IMAGENET1K_V1"},
-            },
-        },
-        "dataloader": {"batch_size": 16, "num_workers": 4},
-        "optimizer": {"type": "SGD", "args": {"lr": 0.01, "momentum": 0.9, "weight_decay": 1e-05}},
-        "lr_scheduler": {"type": "ReduceLROnPlateau", "args": {"factor": 0.1, "patience": 5}},
-        "loss": {"type": "CrossEntropyLoss", "args": {}},
-        "metrics": {
-            "val": ["accuracy_score"],
-            "test": ["accuracy_score", "f1_score", "roc_auc_score", "confusion_matrix", "classification_report"],
-        },
-    }
-    cfg = OmegaConf.create(cfg_dict)
-    return CustomDictConfig(cfg)
+def tiny_model(num_classes: int = NUM_CLS) -> nn.Module:
+    """A model small enough to train in a test"""
+    return nn.Sequential(nn.Conv2d(3, 4, 3), nn.AdaptiveAvgPool2d(1), nn.Flatten(), nn.Linear(4, num_classes))
 
 
 @pytest.fixture
-def mock_logger(mocker):
-    return mocker.Mock()
+def trainer_cfg():
+    """The parts of a config that the trainer reads"""
+    return OmegaConf.create(
+        {
+            "use_amp": False,
+            "torch_compile_model": False,
+            "trainer": {"batch_log_freq": 2, "valid_freq": 1, "epochs": 2, "use_tensorboard": False},
+            "optimizer": {"type": "SGD", "args": {"lr": 0.01, "momentum": 0.9}},
+            "loss": {"type": "CrossEntropyLoss", "args": {}},
+            "lr_scheduler": {"type": "CosineAnnealingLR", "args": {"T_max": 2}},
+            "metrics": {
+                "average": "macro",
+                "val": ["accuracy_score"],
+                "test": ["accuracy_score", "f1_score", "confusion_matrix", "classification_report"],
+            },
+        }
+    )
 
 
-@pytest.fixture()
-def base_trainer_and_logger(dump_mock_img_data_dir, mock_clsf_config: CustomDictConfig, mocker):
-    """Get a abstract method patched BaseTrainer
-    and the associated logger
-    """
-    mocked_logger = mocker.patch("logging.getLogger")
-    trainer = PatchedBaseTrainer(config=mock_clsf_config, logger_name="base_trainer_logger")
-    return trainer, mocked_logger
+@pytest.fixture
+def run_dir(tmp_path) -> str:
+    """A run dir with the models and logs dirs the trainer writes to"""
+    (tmp_path / "models").mkdir()
+    (tmp_path / "logs").mkdir()
+    return str(tmp_path)
 
 
-@pytest.fixture()
-def clsf_trainer_and_logger(dump_mock_img_data_dir, mock_clsf_config: CustomDictConfig, mocker):
-    """Get a abstract method patched TimeSeriesClassifierTrainer
-    and the associated logger
-    """
-    mocked_logger = mocker.patch("logging.getLogger")
-    trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="time_series_clsf_trainer_logger")
-    return trainer, mocked_logger
+@pytest.fixture
+def loader() -> DataLoader:
+    """32 random 16x16 images of NUM_CLS classes"""
+    return DataLoader(FakeData(32, (3, 16, 16), num_classes=NUM_CLS, transform=ToTensor()), batch_size=8)
+
+
+@pytest.fixture(
+    params=["cpu", pytest.param("cuda", marks=pytest.mark.skipif(not torch.cuda.is_available(), reason="no CUDA"))]
+)
+def device(request) -> torch.device:
+    return torch.device(request.param)
+
+
+@pytest.fixture
+def trainer(trainer_cfg, run_dir) -> ClassifierTrainer:
+    return ClassifierTrainer(trainer_cfg, tiny_model(), run_dir, torch.device("cpu"), classes=CLASSES)

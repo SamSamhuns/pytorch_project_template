@@ -6,7 +6,7 @@ import subprocess
 import numpy as np
 import torch
 
-from src.utils.common import get_git_revision_hash, seed_everything
+from src.utils.common import get_device, get_git_revision_hash, seed_everything
 
 
 def test_seed_everything():
@@ -27,3 +27,10 @@ def test_get_git_revision_hash(mocker):
     for error in (subprocess.CalledProcessError(1, "git"), FileNotFoundError("git")):
         mocker.patch("subprocess.check_output", side_effect=error)
         assert get_git_revision_hash() is None
+
+
+def test_get_device_falls_back_to_cpu(mocker):
+    """device: cuda:1 runs on CPU, with a warning, when CUDA is unavailable"""
+    mocker.patch("torch.cuda.is_available", return_value=False)
+    assert get_device("cuda:1") == torch.device("cpu")
+    assert get_device("cpu") == torch.device("cpu")

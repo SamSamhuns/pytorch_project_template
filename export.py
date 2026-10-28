@@ -1,4 +1,4 @@
-"""Export a trained model to ONNX, run with: python export.py --cfg YAML_CONFIG_PATH -r .../models/best.pth
+"""Export a trained model to ONNX, run with: python export.py --cfg YAML_CONFIG_PATH -w .../models/best.pth
 Writes model.onnx to the export run's models dir. It takes any batch size, and holds the class names and
 the settings of the eval transform, which server/app.py reads
 """
@@ -7,79 +7,43 @@ import argparse
 import json
 import logging
 import os.path as osp
-from datetime import datetime
 
 import torch
+from omegaconf import OmegaConf
 
-from src.augmentations import init_transform
-from src.config_parser import CustomDictConfig
+from src.augmentations import build_transforms
+from src.config_parser import add_common_args, load_config, make_run_dir
 from src.loggers import setup_logging
-from src.models import init_model
+from src.models import MODELS
 from src.utils.export_utils import export_onnx
 
 logger = logging.getLogger(__name__)
 
 
-def get_config_from_args() -> CustomDictConfig:
-    """Get CustomDictConfig obj from argparse"""
-    parser = argparse.ArgumentParser(description="PyTorch Export to ONNX")
-    # primary cli args
-    parser.add_argument("--cfg", "--config", type=str, dest="config", required=True, help="YAML config file path.")
-    parser.add_argument(
-        "-r",
-        "--resume_checkpoint",
-        type=str,
-        dest="resume_checkpoint",
-        required=True,
-        help="Checkpoint to export, e.g. .../models/best.pth",
-    )
-    parser.add_argument(
-        "--id",
-        "--run_id",
-        type=str,
-        dest="run_id",
-        default="export_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
-        help="Unique identifier for export. Annotates checkpoints & logs. (default: %(default)s)",
-    )
-    parser.add_argument(
-        "-o",
-        "--override",
-        type=str,
-        nargs="+",
-        dest="override",
-        default=None,
-        help="Override config params. Must match keys in YAML config. "
-        "e.g. -o seed=1 dataset.type=NewDataType model.layers=[64,128,256] model.layers[2]=512 (default: %(default)s)",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        dest="verbose",
-        default=False,
-        help="Run export in verbose mode (default: %(default)s)",
-    )
-    args = parser.parse_args()
-    return CustomDictConfig.from_args(args)
-
-
 def main():
-    config = get_config_from_args()
-    setup_logging(osp.join(config.logs_dir, "export.log"))
+    parser = argparse.ArgumentParser(description="Export a trained model to ONNX")
+    add_common_args(parser, run_prefix="export")
+    parser.add_argument("-w", "--weights", required=True, help="Checkpoint to export, e.g. .../models/best.pth")
+    args = parser.parse_args()
+
+    config = load_config(args.config, args.override)
+    run_dir = make_run_dir(config, args.run_id)
+    setup_logging(osp.join(run_dir, "logs", "export.log"))
+    OmegaConf.save(config, osp.join(run_dir, "config.yaml"))
     for name in ("onnx_ir", "onnxscript"):  # the ONNX graph optimizer logs each of its passes at INFO
         logging.getLogger(name).setLevel(logging.WARNING)
 
     # the export runs on the CPU and needs only the model, not the trainer or the datasets
-    model = init_model(config["model"]["type"], **config["model"]["args"])
-    checkpoint = torch.load(config["resume_checkpoint"], map_location="cpu", weights_only=True)
+    model = MODELS[config.model.type](**config.model.args)
+    checkpoint = torch.load(args.weights, map_location="cpu", weights_only=True)
     model.load_state_dict(checkpoint["model"])
-    preprocess_cfg = config["dataset"]["preprocess"]
-    preprocess = init_transform(preprocess_cfg["type"], **preprocess_cfg["args"])
+    _, _, eval_settings = build_transforms(config.dataset.preprocess)
 
-    info = config["model"]["info"]
-    sample = torch.randn(2, info["input_channel"], info["input_height"], info["input_width"])
-    export_path = osp.join(config["models_dir"], "model.onnx")
-    metadata = {"classes": json.dumps(checkpoint["classes"]), "preprocess": json.dumps(preprocess.eval_settings)}
+    # a batch of 2 random images, with the channels and size of the eval transform's output
+    channels, size = {"L": 1, "RGB": 3}[eval_settings["image_mode"]], eval_settings["crop_size"]
+    sample = torch.randn(2, channels, size, size)
+    export_path = osp.join(run_dir, "models", "model.onnx")
+    metadata = {"classes": json.dumps(checkpoint["classes"]), "preprocess": json.dumps(eval_settings)}
     export_onnx(model, sample, export_path, metadata)
     logger.info("Exported %s; ONNX Runtime's outputs match the PyTorch model's", export_path)
 

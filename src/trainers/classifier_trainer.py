@@ -1,99 +1,149 @@
 """Image classification trainer"""
 
-import os
+import logging
 import os.path as osp
+import textwrap
 import time
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 import tqdm
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from omegaconf import DictConfig, OmegaConf
+from torch import nn
+from torch.optim import Optimizer, lr_scheduler
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
 
-from src.config_parser import CustomDictConfig
-from src.losses import init_loss
-from src.metrics import calc_metric, plot_metric
-from src.models import init_model
-from src.optimizers import init_optimizer
-from src.schedulers import init_scheduler
-from src.trainers import BaseTrainer
+from src.metrics import PLOTS, calc_metric, plot_metric
 from src.utils.custom_statistics import get_model_params
 
+logger = logging.getLogger(__name__)
 
-class ClassifierTrainer(BaseTrainer):
-    """Main ClassifierTrainer with the train, test, validate, load_checkpoint and save_checkpoint funcs"""
 
-    def __init__(self, config: CustomDictConfig, logger_name: str):
-        super().__init__(config, logger_name)
+def build_scheduler(optimizer: Optimizer, cfg: DictConfig) -> lr_scheduler.LRScheduler:
+    """Build any scheduler in torch.optim.lr_scheduler from cfg.type and cfg.args.
+    With cfg.warmup_epochs, the LR first climbs linearly from 10% to 100% (not with ReduceLROnPlateau).
+    """
+    scheduler = getattr(lr_scheduler, cfg["type"])(optimizer, **cfg["args"])
+    warmup_epochs = cfg.get("warmup_epochs", 0)
+    if warmup_epochs:
+        warmup = lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=warmup_epochs)
+        scheduler = lr_scheduler.SequentialLR(optimizer, [warmup, scheduler], milestones=[warmup_epochs])
+    return scheduler
 
-        # define models
-        self.model = init_model(self.config["model"]["type"], **self.config["model"]["args"])
-        self.logger.info("Model info: %s", get_model_params(self.model))
 
-        # resume from a checkpoint, if given
-        resume_ckpt = self.config["trainer"]["resume_checkpoint"]
-        checkpoint = self.load_checkpoint(resume_ckpt) if resume_ckpt else None
-        if checkpoint:
-            self.model.load_state_dict(checkpoint["model"])
-        else:
-            self.logger.info("Training will be done from scratch")
-        self.model = self.model.to(self.device)
+class ClassifierTrainer:
+    """Trains and tests an image classifier with the loss, optimizer and LR scheduler the config names.
+    fit() trains up to cfg.trainer.epochs, validates every cfg.trainer.valid_freq epochs, and saves last.pth every
+    epoch and best.pth whenever the val accuracy improves, to run_dir/models. evaluate() logs the test metrics.
+    """
 
-        # define loss and instantiate it
-        self.loss = init_loss(self.config["loss"]["type"], **self.config["loss"]["args"]).to(self.device)
-        # define optimizer
-        self.optimizer = init_optimizer(
-            self.config["optimizer"]["type"], **self.config["optimizer"]["args"], params=self.model.parameters()
-        )
-        # define lr scheduler
-        self.scheduler = init_scheduler(self.optimizer, self.config["lr_scheduler"])
-        # best.pth is saved whenever the val accuracy beats best_val_acc
-        self.best_val_acc = float("-inf")
-        self.best_checkpoint_path = None  # set once this run saves a best.pth
-        # initialize counter
-        self.current_epoch = 1
-        if checkpoint:  # continue training where the checkpoint left off
-            self.optimizer.load_state_dict(checkpoint["optimizer"])
-            self.scheduler.load_state_dict(checkpoint["scheduler"])
-            self.best_val_acc = checkpoint["best_val_acc"]
-            self.current_epoch = checkpoint["epoch"] + 1
+    def __init__(
+        self,
+        cfg: DictConfig,
+        model: nn.Module,
+        run_dir: str,
+        device: torch.device,
+        classes: list[str] | None = None,
+        verbose: bool = False,
+    ):
+        """classes: the class names, saved in the checkpoints for inference.py and export.py"""
+        self.cfg = cfg
+        self.run_dir = run_dir
+        self.device = device
+        self.classes = classes
+        self.verbose = verbose
+        self.model = model.to(device)
+        logger.info("Model info: %s", get_model_params(self.model))
+        # the loss, optimizer and LR scheduler are torch's own, named in the config, e.g. CrossEntropyLoss and SGD
+        self.loss = getattr(nn, cfg.loss.type)(**cfg.loss.args).to(device)
+        self.optimizer = getattr(torch.optim, cfg.optimizer.type)(self.model.parameters(), **cfg.optimizer.args)
+        self.scheduler = build_scheduler(self.optimizer, cfg.lr_scheduler)
+        self.epoch = 1  # the epoch to train next; after fit(), the last one trained
+        self.best_val_acc = float("-inf")  # best.pth is saved whenever the val accuracy beats it
+        self.best_path = None  # set once fit() saves a best.pth
+        self.writer = None
+        if cfg.trainer.use_tensorboard:
+            self.writer = SummaryWriter(osp.join(run_dir, "tf_logs"))
+            # the whole config as YAML, indented so TensorBoard's markdown shows it as a code block
+            self.writer.add_text("config", textwrap.indent(OmegaConf.to_yaml(cfg), "    "))
 
-    def save_checkpoint(self, file_name: str) -> str:
-        """Save everything needed to resume training to models_dir/file_name and return the path"""
+    def save(self, file_name: str) -> str:
+        """Save everything needed to resume training to run_dir/models/file_name, and return its path"""
         checkpoint = {
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "scheduler": self.scheduler.state_dict(),
-            "epoch": self.current_epoch,
+            "epoch": self.epoch,
             "best_val_acc": self.best_val_acc,
-            "classes": self.data_set.classes,  # for inference.py and export.py, which name the predicted classes
+            "classes": self.classes,  # for inference.py and export.py, which name the predicted classes
         }
-        save_path = osp.join(self.config["models_dir"], file_name)
-        torch.save(checkpoint, save_path)
-        return save_path
+        path = osp.join(self.run_dir, "models", file_name)
+        torch.save(checkpoint, path)
+        return path
 
-    def train_one_epoch(self) -> None:
-        """One epoch of training"""
-        if self.config.verbose:
-            self.logger.info("Training set:")
+    def load(self, path: str) -> None:
+        """Continue from a checkpoint saved by save(): the weights, the optimizer and LR schedule, and the epoch"""
+        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+        self.model.load_state_dict(checkpoint["model"])
+        self.optimizer.load_state_dict(checkpoint["optimizer"])
+        self.scheduler.load_state_dict(checkpoint["scheduler"])
+        self.best_val_acc = checkpoint["best_val_acc"]
+        self.epoch = checkpoint["epoch"] + 1
+        logger.info("Resuming from %s at epoch %d", path, self.epoch)
+
+    def fit(self, train_loader: DataLoader, val_loader: DataLoader | None = None) -> None:
+        """Train from self.epoch up to cfg.trainer.epochs"""
+        if self.cfg.torch_compile_model:
+            logger.info("Using torch compile mode")
+            # compiles in place, so state_dict keys stay the same as the uncompiled model's
+            self.model.compile()
+        train_start_tm, start_epoch = time.perf_counter(), self.epoch
+        logger.info("Starting training...")
+        for epoch in range(start_epoch, self.cfg.trainer.epochs + 1):
+            self.epoch = epoch
+            train_loss = self.train_one_epoch(train_loader)
+            val_accuracy = val_loss = None
+            if val_loader is not None and epoch % self.cfg.trainer.valid_freq == 0:
+                val_accuracy, val_loss = self.validate(val_loader)
+            # ReduceLROnPlateau steps on a loss: the val loss, or the train loss without a val set
+            if not isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
+                self.scheduler.step()
+            elif val_loader is None:
+                self.scheduler.step(train_loss)
+            elif val_loss is not None:
+                self.scheduler.step(val_loss)
+
+            # saved after the scheduler step, so a resumed run continues with the next epoch's LR
+            if val_accuracy is not None and val_accuracy > self.best_val_acc:
+                self.best_val_acc = val_accuracy
+                self.best_path = self.save("best.pth")
+            self.save("last.pth")
+        train_tm = time.perf_counter() - train_start_tm
+
+        logger.info("Total train time: %.3fs", train_tm)
+        logger.info("Average epoch time: %.3fs", train_tm / max(self.cfg.trainer.epochs - start_epoch + 1, 1))
+        logger.info("Finished training.\n")
+
+    def train_one_epoch(self, loader: DataLoader) -> float:
+        """One epoch of training, returns the mean train loss"""
         epoch_start_tm = time.perf_counter()
         self.model.train()
         # summed on the device and read once per epoch, as .item() makes the CPU wait for the GPU
         cum_train_loss = torch.zeros((), device=self.device)
         correct = torch.zeros((), dtype=torch.long, device=self.device)
         train_size = 0
-        train_data_len = len(self.train_data_loader.dataset)
 
-        for batch_idx, (data, target) in enumerate(self.train_data_loader):
+        for batch_idx, (data, target) in enumerate(loader):
             data = data.to(self.device, non_blocking=True)
             target = target.to(self.device, non_blocking=True)
             self.optimizer.zero_grad()
             train_size += data.shape[0]
 
             # mixed precision for the forward pass (model + loss); bfloat16 needs no GradScaler
-            with torch.autocast(self.device.type, dtype=torch.bfloat16, enabled=self.config["use_amp"]):
+            with torch.autocast(self.device.type, dtype=torch.bfloat16, enabled=self.cfg.use_amp):
                 output = self.model(data)
                 loss = self.loss(output, target)
             # loss is the batch mean, so weight it by the batch size
@@ -103,59 +153,42 @@ class ClassifierTrainer(BaseTrainer):
 
             loss.backward()
             self.optimizer.step()
-            if batch_idx % self.config["trainer"]["batch_log_freq"] == 0:
-                if self.config.verbose:
-                    self.logger.info(
+            if batch_idx % self.cfg.trainer.batch_log_freq == 0:
+                if self.verbose:
+                    logger.info(
                         "\tTrain Epoch: %s [%6d/%d (%.1f%%)] Loss: %.6f",
-                        self.current_epoch,
+                        self.epoch,
                         batch_idx * len(data),
-                        train_data_len,
-                        100 * batch_idx / len(self.train_data_loader),
+                        len(loader.dataset),
+                        100 * batch_idx / len(loader),
                         loss.item(),
                     )
-                if self.config["trainer"]["use_tensorboard"]:
+                if self.writer is not None:
                     # counts batches since the start of training, so it continues after a resume
-                    step = (self.current_epoch - 1) * len(self.train_data_loader) + batch_idx
-                    self.tboard_writer.add_scalar("Loss/train/iteration", loss.item(), step)
+                    step = (self.epoch - 1) * len(loader) + batch_idx
+                    self.writer.add_scalar("Loss/train/iteration", loss.item(), step)
 
         train_loss = cum_train_loss.item() / train_size
-        correct = correct.item()
-        train_accuracy = 100.0 * correct / train_size
-        epoch_end_tm = time.perf_counter()
-        epoch_tm = epoch_end_tm - epoch_start_tm
-        if self.config.verbose:
-            self.logger.info("\tEpoch time: %.2fs", epoch_tm)
-            self.logger.info(
-                "\tAverage loss: %.4f, Accuracy: %s/%s (%.0f%%)\n", train_loss, correct, train_size, train_accuracy
-            )
-        else:
-            self.logger.info(
-                "\tTrain Epoch %d, time: %.2fs, Loss: %.4f, Accuracy: %.2f%%",
-                self.current_epoch,
-                epoch_tm,
-                train_loss,
-                train_accuracy,
-            )
-
-        # if no val_data_loader, then run ReduceLROnPlateau on train_loss instead
-        if self.val_data_loader is None and isinstance(self.scheduler, ReduceLROnPlateau):
-            # ReduceLROnPlateau scheduler takes metrics during its step call
-            self.scheduler.step(metrics=train_loss)
-
-        if self.config["trainer"]["use_tensorboard"]:
+        train_accuracy = 100.0 * correct.item() / train_size
+        epoch_tm = time.perf_counter() - epoch_start_tm
+        logger.info(
+            "\tTrain Epoch %d, time: %.2fs, Loss: %.4f, Accuracy: %.2f%%",
+            self.epoch,
+            epoch_tm,
+            train_loss,
+            train_accuracy,
+        )
+        if self.writer is not None:
             # data still holds the epoch's last batch, so the loader isn't read again just for this;
             # the images are normalized, so make_grid rescales them to the [0, 1] range TensorBoard shows
-            self.tboard_writer.add_image(
-                "preprocessed image batch", make_grid(data, normalize=True), self.current_epoch
-            )
-            self.tboard_writer.add_scalar("Loss/train/epoch", train_loss, self.current_epoch)
-            self.tboard_writer.add_scalar("Accuracy/train/epoch", train_accuracy, self.current_epoch)
-            self.tboard_writer.add_scalar(
-                "Learning Rate/train/epoch", self.optimizer.param_groups[0]["lr"], self.current_epoch
-            )
+            self.writer.add_image("preprocessed image batch", make_grid(data, normalize=True), self.epoch)
+            self.writer.add_scalar("Loss/train/epoch", train_loss, self.epoch)
+            self.writer.add_scalar("Accuracy/train/epoch", train_accuracy, self.epoch)
+            self.writer.add_scalar("Learning Rate/train/epoch", self.optimizer.param_groups[0]["lr"], self.epoch)
+        return train_loss
 
-    def eval_one_epoch(self, data_loader: DataLoader) -> tuple[float, np.ndarray, np.ndarray, np.ndarray]:
-        """Evaluate model on one epoch with the given dataloader.
+    def eval_one_epoch(self, loader: DataLoader) -> tuple[float, np.ndarray, np.ndarray, np.ndarray]:
+        """Evaluate the model on one pass over the loader.
         Returns the mean loss, y_true, y_score and y_pred.
         y_score is P(class 1) for binary models and the class probabilities otherwise.
         """
@@ -163,10 +196,10 @@ class ClassifierTrainer(BaseTrainer):
         cumu_test_loss = torch.zeros((), device=self.device)  # read once at the end; .item() would sync every step
         y_true, y_score, y_pred = [], [], []
         with torch.inference_mode():
-            for data, target in tqdm.tqdm(data_loader):
+            for data, target in tqdm.tqdm(loader):
                 data = data.to(self.device, non_blocking=True)
                 target = target.to(self.device, non_blocking=True)
-                with torch.autocast(self.device.type, dtype=torch.bfloat16, enabled=self.config["use_amp"]):
+                with torch.autocast(self.device.type, dtype=torch.bfloat16, enabled=self.cfg.use_amp):
                     output = self.model(data)
                     loss = self.loss(output, target)
                 # sum up batch loss (the loss is the batch mean, so weight it by the batch size)
@@ -186,137 +219,45 @@ class ClassifierTrainer(BaseTrainer):
 
         return cumu_test_loss.item() / len(y_true), y_true, y_score, y_pred
 
-    def train(self) -> None:
-        """Main training function with loop"""
-        if self.config["torch_compile_model"]:
-            self.logger.info("Using torch compile mode")
-            # compiles in place, so state_dict keys stay the same as the uncompiled model's
-            self.model.compile()
-        train_start_tm = time.perf_counter()
-        epochs = self.config["trainer"]["epochs"]
-        start_epoch = self.current_epoch  # the epoch after the checkpoint's when resuming
-        self.logger.info("Starting training...")
-        for epoch in range(start_epoch, epochs + 1):
-            self.current_epoch = epoch
-            self.train_one_epoch()
-            val_accuracy = None
-            if epoch % self.config["trainer"]["valid_freq"] == 0 and self.val_data_loader is not None:
-                val_accuracy = self.validate()
-            # ReduceLROnPlateau steps on a loss instead: the val loss in validate(), or the train loss without a val set
-            if not isinstance(self.scheduler, ReduceLROnPlateau):
-                self.scheduler.step()
-
-            # saved after the scheduler step, so a resumed run continues with the next epoch's LR
-            if val_accuracy is not None and val_accuracy > self.best_val_acc:
-                self.best_val_acc = val_accuracy
-                self.best_checkpoint_path = self.save_checkpoint("best.pth")
-            self.save_checkpoint("last.pth")
-        train_end_tm = time.perf_counter()
-        train_tm = train_end_tm - train_start_tm
-
-        self.logger.info("Total train time: %.3fs", train_tm)
-        self.logger.info("Average epoch time: %.3fs", train_tm / max(epochs - start_epoch + 1, 1))
-        self.logger.info("Finished training.\n")
-
-    def validate(self) -> float:
-        """One epoch of model validation, returns the val accuracy in %"""
+    def validate(self, loader: DataLoader) -> tuple[float, float]:
+        """One pass over the val set that logs the cfg.metrics.val metrics. Returns the accuracy in % and the loss"""
         val_start_tm = time.perf_counter()
-
-        val_loss, y_true, y_score, y_pred = self.eval_one_epoch(self.val_data_loader)
+        val_loss, y_true, y_score, y_pred = self.eval_one_epoch(loader)
+        logger.info("\tValidation at Epoch %d, time: %.3fs", self.epoch, time.perf_counter() - val_start_tm)
+        self.log_metrics("val", val_loss, y_true, y_score, y_pred, plot_prefix=f"val_e{self.epoch}")
         # a python float, since checkpoints load with weights_only=True, which rejects numpy scalars
-        val_accuracy = 100.0 * float((y_true == y_pred).mean())
+        return 100.0 * float((y_true == y_pred).mean()), val_loss
 
-        if isinstance(self.scheduler, ReduceLROnPlateau):
-            # ReduceLROnPlateau scheduler takes metrics during its step call
-            self.scheduler.step(metrics=val_loss)
-
-        # add all val metrics
-        metric_name_val_dict = {}
-        for metric_name in self.config["metrics"]["val"]:
-            if metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"} and y_score.ndim > 1:
-                continue  # binary-only metrics; multi-class y_score holds one column per class
-            if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
-                if self.config.verbose:
-                    self.logger.info("\tPlotting val %s", metric_name)
-                plot_metric(
-                    metric_name,
-                    y_true=y_true,
-                    y_score=y_score,
-                    savepath=os.path.join(self.config["logs_dir"], f"val_e{self.current_epoch}_{metric_name}.png"),
-                )
-                continue
-            metric_val = calc_metric(metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
-            if (
-                metric_name not in {"confusion_matrix", "classification_report"}
-                and self.config["trainer"]["use_tensorboard"]
-            ):
-                self.tboard_writer.add_scalar(f"{metric_name}/val/epoch", metric_val, self.current_epoch)
-            metric_name_val_dict[metric_name] = metric_val
-
-        val_end_tm = time.perf_counter()
-        if self.config.verbose:
-            self.logger.info("Validation set:")
-            self.logger.info("\tval time: %.3fs", (val_end_tm - val_start_tm))
-            self.logger.info("\tavg loss: %.4f", val_loss)
-            for metric_name, metric_val in metric_name_val_dict.items():
-                if metric_name in {"confusion_matrix", "classification_report"}:
-                    self.logger.info("\t%s: \n%s", metric_name, metric_val)
-                else:
-                    self.logger.info("\t%s: %.4f", metric_name, metric_val)
-        else:
-            log_message = (
-                f"\tValidation at Epoch {self.current_epoch} | val time: {val_end_tm - val_start_tm:.3f}s"
-                f" | avg loss: {val_loss:.4f}"
-            )
-            for metric_name, metric_val in metric_name_val_dict.items():
-                # confusion_matrix and classification_report are not reported in non-verbose mode
-                if metric_name not in {"confusion_matrix", "classification_report"}:
-                    log_message += f" | {metric_name}: {metric_val:.4f}"
-            self.logger.info(log_message)
-        if self.config["trainer"]["use_tensorboard"]:
-            self.tboard_writer.add_scalar("Loss/validation/epoch", val_loss, self.current_epoch)
-        return val_accuracy
-
-    def test(self, weight_path: str | None = None) -> None:
-        """Main test function
-        args:
-            weight_path: checkpoint to test, e.g. models/best.pth. None tests the current weights
+    def evaluate(self, loader: DataLoader, weights: str | None = None) -> None:
+        """Log the cfg.metrics.test metrics on the loader's data
+        weights: a checkpoint to test, e.g. models/best.pth. None tests the current weights
         """
-        self.logger.info("Testing model...\n")
+        if weights is not None:
+            self.model.load_state_dict(torch.load(weights, map_location="cpu", weights_only=True)["model"])
+            logger.info("Testing %s", weights)
         test_start_tm = time.perf_counter()
+        test_loss, y_true, y_score, y_pred = self.eval_one_epoch(loader)
+        logger.info("Test set, time: %.3fs", time.perf_counter() - test_start_tm)
+        self.log_metrics("test", test_loss, y_true, y_score, y_pred, plot_prefix="test")
 
-        if weight_path is not None:
-            self.model.load_state_dict(self.load_checkpoint(weight_path)["model"])
-        if self.test_data_loader is None:
-            raise NotImplementedError("test_data_loader is None or missing.test_path might not have been set")
-
-        test_loss, y_true, y_score, y_pred = self.eval_one_epoch(self.test_data_loader)
-
-        self.logger.info("Test set:")
-        self.logger.info("\tAverage loss: %.4f", test_loss)
-        if self.config["trainer"]["use_tensorboard"]:
-            self.tboard_writer.add_scalar("Loss/test/epoch", test_loss, self.current_epoch)
-        # add all test metrics
-        for metric_name in self.config["metrics"]["test"]:
-            if metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"} and y_score.ndim > 1:
+    def log_metrics(self, split: str, loss: float, y_true, y_score, y_pred, plot_prefix: str) -> None:
+        """Log the loss and the cfg.metrics[split] metrics, also to TensorBoard, and plot the curves to run_dir/logs"""
+        scores, reports = [f"{split} loss: {loss:.4f}"], []
+        if self.writer is not None:
+            self.writer.add_scalar(f"Loss/{split}/epoch", loss, self.epoch)
+        for name in self.cfg.metrics[split]:
+            if (name == "roc_auc_score" or name in PLOTS) and y_score.ndim > 1:
                 continue  # binary-only metrics; multi-class y_score holds one column per class
-            if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
-                self.logger.info("\tPlotting %s", metric_name)
-                plot_metric(
-                    metric_name,
-                    y_true=y_true,
-                    y_score=y_score,
-                    savepath=os.path.join(self.config["logs_dir"], f"{metric_name}.png"),
-                )
+            if name in PLOTS:
+                plot_metric(name, y_true, y_score, osp.join(self.run_dir, "logs", f"{plot_prefix}_{name}.png"))
                 continue
-            metric_val = calc_metric(metric_name, y_true=y_true, y_score=y_score, y_pred=y_pred)
-            if metric_name in {"confusion_matrix", "classification_report"}:
-                self.logger.info("\t%s: \n%s", metric_name, metric_val)
-            else:
-                self.logger.info("\t%s: %.4f", metric_name, metric_val)
-                if self.config["trainer"]["use_tensorboard"]:
-                    self.tboard_writer.add_scalar(f"{metric_name}/test/epoch", metric_val, self.current_epoch)
-
-        test_end_tm = time.perf_counter()
-        self.logger.info("\nTest time: %.3fs", test_end_tm - test_start_tm)
-        self.logger.info("Finished testing model.")
+            value = calc_metric(name, y_true, y_score, y_pred, self.cfg.metrics.average)
+            if name in {"confusion_matrix", "classification_report"}:
+                reports.append(f"{name}:\n{value}")
+                continue
+            scores.append(f"{name}: {value:.4f}")
+            if self.writer is not None:
+                self.writer.add_scalar(f"{name}/{split}/epoch", value, self.epoch)
+        logger.info("\t%s", " | ".join(scores))
+        for report in reports:
+            logger.info("\t%s", report)
