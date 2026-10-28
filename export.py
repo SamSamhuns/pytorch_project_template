@@ -11,7 +11,7 @@ from datetime import datetime
 
 import torch
 
-from src.augmentations import init_transform
+from src.augmentations import build_transforms
 from src.config_parser import CustomDictConfig
 from src.loggers import setup_logging
 from src.models import init_model
@@ -73,13 +73,12 @@ def main():
     model = init_model(config["model"]["type"], **config["model"]["args"])
     checkpoint = torch.load(config["resume_checkpoint"], map_location="cpu", weights_only=True)
     model.load_state_dict(checkpoint["model"])
-    preprocess_cfg = config["dataset"]["preprocess"]
-    preprocess = init_transform(preprocess_cfg["type"], **preprocess_cfg["args"])
+    _, _, eval_settings = build_transforms(config["dataset"]["preprocess"])
 
     info = config["model"]["info"]
     sample = torch.randn(2, info["input_channel"], info["input_height"], info["input_width"])
     export_path = osp.join(config["models_dir"], "model.onnx")
-    metadata = {"classes": json.dumps(checkpoint["classes"]), "preprocess": json.dumps(preprocess.eval_settings)}
+    metadata = {"classes": json.dumps(checkpoint["classes"]), "preprocess": json.dumps(eval_settings)}
     export_onnx(model, sample, export_path, metadata)
     logger.info("Exported %s; ONNX Runtime's outputs match the PyTorch model's", export_path)
 

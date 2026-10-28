@@ -13,7 +13,7 @@ import torch
 from PIL import Image
 from torchvision.datasets.folder import is_image_file
 
-from src.augmentations import init_transform
+from src.augmentations import build_transforms
 from src.config_parser import CustomDictConfig
 from src.loggers import setup_logging
 from src.models import init_model
@@ -87,8 +87,7 @@ def main():
     model.load_state_dict(checkpoint["model"])
     model = model.to(device).eval()
     classes = checkpoint["classes"]
-    preprocess_cfg = config["dataset"]["preprocess"]
-    eval_transform = init_transform(preprocess_cfg["type"], **preprocess_cfg["args"]).eval_transform
+    _, eval_transform, _ = build_transforms(config["dataset"]["preprocess"])
 
     # is_image_file compares lower-cased extensions, so .JPG and .PNG files count too
     source_path = config["source_path"]

@@ -71,7 +71,7 @@ def mock_clsf_config(request, root_directory, create_and_save_dummy_imgs: Callab
             "args": {"root": root_directory, "train_path": "train", "val_path": "val", "test_path": "test"},
             "num_classes": NUM_CLS,
             "preprocess": {
-                "type": "ImagenetClassifierPreprocess",
+                "type": "imagenet_transforms",
                 "args": {"weights": "MobileNet_V2_Weights.IMAGENET1K_V1"},
             },
         },

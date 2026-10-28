@@ -50,7 +50,7 @@ dataset:
     validation_split: 0.0  # Without a val_path, the fraction of the train data to validate on
   num_classes: 20  # Number of classes in the dataset
   preprocess:
-    type: ImagenetClassifierPreprocess  # Random crops and flips for training; one eval transform for val, test and inference
+    type: imagenet_transforms  # TRANSFORMS in src/augmentations: random crops and flips for training; one eval transform for val, test and inference
     args:
       weights: ${model.args.pretrained_weights}  # The eval resize, crop and normalization come from these weights
 
