@@ -75,6 +75,7 @@ class ClassifierTrainer(BaseTrainer):
             "scheduler": self.scheduler.state_dict(),
             "epoch": self.current_epoch,
             "best_val_acc": self.best_val_acc,
+            "classes": self.data_set.classes,  # for inference.py and export.py, which name the predicted classes
         }
         save_path = osp.join(self.config["models_dir"], file_name)
         torch.save(checkpoint, save_path)

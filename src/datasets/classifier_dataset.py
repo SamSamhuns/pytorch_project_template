@@ -96,6 +96,7 @@ class ClassifierDataset:
                     f"Classes in {osp.join(root, split_path)} {split.classes} "
                     f"differ from the train classes {self.train_set.classes}"
                 )
+        self.classes = self.train_set.classes  # the class names, in the order of the model's outputs
 
         if validation_split > 0:
             self.train_set, self.val_set = random_split(
