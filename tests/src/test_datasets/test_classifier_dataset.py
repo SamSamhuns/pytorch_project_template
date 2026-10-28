@@ -1,11 +1,8 @@
-import os
 import os.path as osp
 
 import pytest
-import torch
 
 from src.datasets import ClassifierDataset
-from tests.conftest import PYTEST_TEMP_ROOT
 
 
 def test_initialization_imgs(mock_classifierdataset):
@@ -37,14 +34,3 @@ def test_non_implemented_mode(basic_params):
     """Test initialization with a non-implemented mode."""
     with pytest.raises(NotImplementedError):
         _ = ClassifierDataset(data_mode="numpy", **basic_params)
-
-
-def test_plot_samples_per_epoch(mock_classifierdataset):
-    """Test if plotting function saves images correctly."""
-    fake_batch = torch.rand(16, 3, 224, 224)  # Fake data batch
-    out_dir = PYTEST_TEMP_ROOT + "/"
-    img_path = f"{out_dir}samples_epoch_{0:d}.png"
-    mock_classifierdataset.plot_samples_per_epoch(
-        fake_batch, 0, out_dir)
-    assert os.path.exists(
-        img_path), "Plot image should be saved to the disk."

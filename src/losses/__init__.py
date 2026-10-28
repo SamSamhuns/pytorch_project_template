@@ -1,13 +1,8 @@
-from torch.nn import BCELoss, BCEWithLogitsLoss, CrossEntropyLoss, MSELoss, NLLLoss
+from torch.nn import CrossEntropyLoss, NLLLoss
 
-from .msse import MSSELoss
-
+# the models output log-probabilities, so only these two losses apply
 IMPLEMENTED_LOSSES = {"NLLLoss": NLLLoss,
-                      "CrossEntropyLoss": CrossEntropyLoss,
-                      "BCELoss": BCELoss,
-                      "BCEWithLogitsLoss": BCEWithLogitsLoss,
-                      "MSELoss": MSELoss,
-                      "MSSELoss": MSSELoss}
+                      "CrossEntropyLoss": CrossEntropyLoss}
 
 
 def init_loss(loss_name: str, **kwargs):

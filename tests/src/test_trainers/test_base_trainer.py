@@ -118,8 +118,6 @@ def test_full_training_cycle(base_trainer_and_logger, mocker):
 @pytest.mark.parametrize("mode, file_suffix", [
     ("ONNX_TS", "_ts.onnx"),
     ("ONNX_DYNAMO", "_dynamo.onnx"),
-    ("TS_TRACE", "_traced.pt"),
-    ("TS_SCRIPT", "_scripted.pt")
 ])
 def test_export_function(mode, file_suffix, base_trainer_and_logger, simple_2d_conv_model):
     """Test trainer export modes"""

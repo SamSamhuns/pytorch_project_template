@@ -30,7 +30,7 @@ class ExportStrategy(ABC):
 
 
 def torch_inference(model, sample_in):
-    """Pytorch/Torchscript based inference."""
+    """Pytorch based inference."""
     with torch.no_grad():
         return model(sample_in).cpu().numpy()
 
@@ -70,37 +70,6 @@ def onnx_inference_check(
     pt_tm_msg = f"Pytorch average inf time for tensor {sample_in.shape} = {torch_tm/runs:.3f}s"
     onnx_tm_msg = f"ONNX average inf time for tensor {sample_in.shape} = {ort_tm/runs:.3f}s"
     exp_msg = "\u2705 Exported ONNX model results match that of PyTorch model!"
-    if logger:
-        logger.info(pt_tm_msg)
-        logger.info(onnx_tm_msg)
-        logger.info(exp_msg)
-    else:
-        print(pt_tm_msg, onnx_tm_msg)
-        print(exp_msg)
-
-
-def ts_inference_check(
-        model: Module, ts_model_path: str, sample_in: torch.Tensor, logger: Logger = None) -> None:
-    """Test exported torchscript model and inference.
-
-    Currently only supports CPU based export check
-    Returns True if the ts model's output matches the PyTorch model's output, False otherwise.
-    """
-    ts_model = torch.jit.load(ts_model_path)
-
-    torch_out = torch_inference(model, sample_in)
-    ts_out = torch_inference(ts_model, sample_in)
-
-    # Compare torchscript and PyTorch results
-    np.testing.assert_allclose(torch_out, ts_out, rtol=1e-03, atol=1e-05)
-    # time torch and onnx inf runs
-    runs = 32
-    torch_tm = Timer(lambda: torch_inference(model, sample_in)).timeit(number=runs)
-    ts_tm = Timer(lambda: torch_inference(ts_model, sample_in)).timeit(number=runs)
-
-    pt_tm_msg = f"Pytorch average inf time for tensor {sample_in.shape} = {torch_tm/runs:.3f}s"
-    onnx_tm_msg = f"Torchscript average inf time for tensor {sample_in.shape} = {ts_tm/runs:.3f}s"
-    exp_msg = "\u2705 Exported torchscript model results match that of PyTorch model!"
     if logger:
         logger.info(pt_tm_msg)
         logger.info(onnx_tm_msg)
@@ -152,46 +121,3 @@ class ONNXDynamoExportStrategy(ExportStrategy):
 
     def test_inference(self, model: Module, path: str, sample_in: torch.Tensor):
         return onnx_inference_check(model, path, sample_in, self.logger)
-
-class TSTraceExportStrategy(ExportStrategy):
-    """TorchScript tracing export logic"""
-
-    def export(self, model: Module, path: str, sample_in: torch.Tensor):
-        traced_model = torch.jit.trace(model, sample_in)
-        torch.jit.save(traced_model, path)
-
-    def test_inference(self, model: Module, path: str, sample_in: torch.Tensor):
-        return ts_inference_check(model, path, sample_in, self.logger)
-
-
-class TSScriptExportStrategy(ExportStrategy):
-    """TorchScript scripting export logic"""
-
-    def export(self, model, path, sample_in=None):
-        scripted_model = torch.jit.script(model)
-        scripted_model.save(path)
-
-    def test_inference(self, model: Module, path: str, sample_in: torch.Tensor):
-        return ts_inference_check(model, path, sample_in, self.logger)
-    
-
-class QuantizedModelWrapper(torch.nn.Module):
-    """Wrapper for quantizing model with quant and dequant ops at the start and end"""
-
-    def __init__(self, model_q):
-        super().__init__()
-        # QuantStub converts tensors from floating point to quantized, for inputs.
-        self.quant = torch.ao.quantization.QuantStub()
-        # DeQuantStub converts tensors from quantized to floating point, for outputs.
-        self.dequant = torch.ao.quantization.DeQuantStub()
-        self.model_q = model_q
-
-    def forward(self, x):
-        # manually specify where tensors will be converted from floating
-        # point to quantized in the quantized model
-        x = self.quant(x)
-        x = self.model_q(x)
-        # manually specify where tensors will be converted from quantized
-        # to floating point in the quantized model
-        x = self.dequant(x)
-        return x
