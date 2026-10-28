@@ -1,18 +1,14 @@
-from .classifier_transforms import ImagenetClassifierPreprocess
-from .mnist_transforms import MnistPreprocess
+from collections.abc import Callable
 
-IMPLEMENTED_TRANSFORMS = {
-    "ImagenetClassifierPreprocess": ImagenetClassifierPreprocess,
-    "MnistPreprocess": MnistPreprocess,
-}
+from omegaconf import DictConfig
+
+from .classifier_transforms import imagenet_transforms
+from .mnist_transforms import mnist_transforms
+
+# the dataset.preprocess.type values a config can name
+TRANSFORMS = {"imagenet_transforms": imagenet_transforms, "mnist_transforms": mnist_transforms}
 
 
-def init_transform(transform_name: str, **kwargs):
-    """Initialize the trainer."""
-    try:
-        transform = IMPLEMENTED_TRANSFORMS[transform_name](**kwargs)
-    except KeyError as exc:
-        raise NotImplementedError(
-            f"{transform_name} is not implemented. " + f"Available Transforms: {IMPLEMENTED_TRANSFORMS.keys()}"
-        ) from exc
-    return transform
+def build_transforms(cfg: DictConfig) -> tuple[Callable, Callable, dict]:
+    """The train transform, eval transform and eval settings of cfg, the dataset.preprocess section of a config"""
+    return TRANSFORMS[cfg.type](**cfg.args)

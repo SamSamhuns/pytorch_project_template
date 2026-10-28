@@ -161,3 +161,6 @@ server/src
 # data and cache files
 /data
 .data_cache
+
+# archify renders docs/arch diagrams here, see docs/arch.md
+.archify/

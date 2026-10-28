@@ -1,103 +1,65 @@
-"""Training script, run with: python train.py --cfg YAML_CONFIG_PATH"""
+"""Train a model, run with: python train.py --cfg configs/mnist_config.yaml
+Saves last.pth every epoch and best.pth whenever the val accuracy improves, then tests best.pth on the test split
+"""
 
 import argparse
+import logging
 import os.path as osp
-from datetime import datetime
 
 import torch
+from omegaconf import OmegaConf
 
-from src.config_parser import CustomDictConfig
+from src.augmentations import build_transforms
+from src.config_parser import add_common_args, load_config, make_run_dir
+from src.datasets import DATASETS, build_dataloaders, log_label_counts
 from src.loggers import setup_logging
-from src.trainers import init_trainer
-from src.utils.common import seed_everything
+from src.models import MODELS
+from src.trainers import ClassifierTrainer
+from src.utils.common import get_device, get_git_revision_hash, seed_everything
 
-
-def get_config_from_args() -> CustomDictConfig:
-    """Get CustomDictConfig obj from argparse"""
-    parser = argparse.ArgumentParser(description="PyTorch Training. Currently only supports image classification")
-    # primary cli args
-    parser.add_argument(
-        "--cfg",
-        "--config",
-        type=str,
-        dest="config",
-        default="configs/classifier_gpu_config.yaml",
-        help="YAML config file path (default: %(default)s)",
-    )
-    parser.add_argument(
-        "--id",
-        "--run_id",
-        type=str,
-        dest="run_id",
-        default="train_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
-        help="Unique identifier for training. Annotates train ckpts & logs. (default: %(default)s)",
-    )
-    parser.add_argument(
-        "-o",
-        "--override",
-        type=str,
-        nargs="+",
-        dest="override",
-        default=None,
-        help="Override config params. Must match keys in YAML config. "
-        "e.g. -o seed=1 dataset.type=NewDataType model.layers=[64,128,256] model.layers[2]=512 (default: %(default)s)",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        dest="verbose",
-        default=False,
-        help="Run training in verbose mode (default: %(default)s)",
-    )
-
-    # Add additional arguments here (Overrides YAML configs)
-    parser.add_argument(
-        "-r",
-        "--resume_checkpoint",
-        type=str,
-        dest="resume_checkpoint",
-        help="Checkpoint to resume training from, e.g. .../models/last.pth. "
-        "Overrides `trainer.resume_checkpoint` in config.",
-    )
-    parser.add_argument("--dev", "--device", dest="device", help="Device to run on, e.g. cpu, cuda or cuda:1.")
-    parser.add_argument(
-        "--mode",
-        type=str,
-        dest="mode",
-        default="TRAIN_TEST",
-        choices=["TRAIN", "TRAIN_TEST"],
-        help="Running mode. (default: %(default)s)",
-    )
-    args = parser.parse_args()
-
-    # To override key-value params from YAML file,
-    # match the YAML kv structure for any additional args above
-    # keys-val pairs can have nested structure separated by colons
-    yaml_modification = {
-        "trainer.resume_checkpoint": args.resume_checkpoint,
-        "device": args.device,
-        "mode": args.mode,
-    }
-    # get omegaconf config obj
-    return CustomDictConfig.from_args(args, yaml_modification)
+logger = logging.getLogger(__name__)
 
 
 def main():
-    config = get_config_from_args()
-    setup_logging(osp.join(config.logs_dir, "train.log"))
+    parser = argparse.ArgumentParser(description="Train an image classifier")
+    add_common_args(parser, run_prefix="train")
+    parser.add_argument("-r", "--resume", help="Checkpoint to resume training from, e.g. .../models/last.pth")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Also log the label counts and batch losses")
+    args = parser.parse_args()
+
+    config = load_config(args.config, args.override)
+    run_dir = make_run_dir(config, args.run_id)
+    setup_logging(osp.join(run_dir, "logs", "train.log"))
+    OmegaConf.save(config, osp.join(run_dir, "config.yaml"))
+    logger.info("Git commit: %s", get_git_revision_hash())
     if config.seed is not None:
         seed_everything(config.seed)
     # reproducible runs trade speed for determinism; otherwise cuDNN benchmarks and picks the fastest algorithms
     torch.backends.cudnn.benchmark = not config.reproducible
     if config.reproducible:
         torch.use_deterministic_algorithms(True, warn_only=True)  # warns on ops that have no deterministic version
-    trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="train")
+    device = get_device(config.device)
 
-    trainer.train()
-    # test this run's best.pth; it is None if this run saved none, then the last weights are tested
-    if config["mode"] == "TRAIN_TEST":
-        trainer.test(trainer.best_checkpoint_path)
+    # a seeded generator makes the val split and the train shuffle reproducible
+    generator = torch.Generator().manual_seed(config.seed) if config.seed is not None else None
+    train_transform, eval_transform, _ = build_transforms(config.dataset.preprocess)
+    dataset = DATASETS[config.dataset.type](
+        train_transform=train_transform, eval_transform=eval_transform, generator=generator, **config.dataset.args
+    )
+    if args.verbose:
+        log_label_counts(dataset)
+    train_loader, val_loader, test_loader = build_dataloaders(
+        dataset, config.dataloader, pin_memory=device.type == "cuda", generator=generator
+    )
+
+    model = MODELS[config.model.type](**config.model.args)
+    trainer = ClassifierTrainer(config, model, run_dir, device, classes=dataset.classes, verbose=args.verbose)
+    if args.resume:
+        trainer.load(args.resume)
+    trainer.fit(train_loader, val_loader)
+    if test_loader is not None:
+        # this run's best.pth; it is None if this run saved none, and then the last weights are tested
+        trainer.evaluate(test_loader, weights=trainer.best_path)
 
 
 if __name__ == "__main__":

@@ -24,17 +24,17 @@ def dtype(request):
 @pytest.fixture
 def custom_model():
     """Instance of CustomModel with the provided configuration."""
-    return CustomModel(3, 10, 64)
+    return CustomModel(3, 10)
 
 
 @pytest.fixture
 def classifier_model_params():
-    """Common parameters for creating a ClassifierModel."""
+    """Common parameters for creating a torchvision_classifier."""
     return {
         "backbone": "mobilenet_v2",
         "num_classes": 10,
         "feat_extract": False,
-        "pretrained_weights": "MobileNet_V2_Weights.IMAGENET1K_V1",
+        "pretrained_weights": None,  # no download; the weights don't change the shapes
     }
 
 

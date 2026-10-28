@@ -6,9 +6,12 @@
 
 This is a template for a PyTorch Project for training, testing, inference demo, and FastAPI serving along with Docker support.
 
+[docs/README.md](docs/README.md) explains how this template was modernized in 2026, and why. [docs/arch.md](docs/arch.md) shows how its parts fit together, with diagrams.
+
 - [Pytorch Project Template, Computer Vision](#pytorch-project-template-computer-vision)
   - [Setup](#setup)
   - [Train](#train)
+  - [How a training run flows](#how-a-training-run-flows)
   - [Custom Training](#custom-training)
     - [Data Preparation](#data-preparation)
       - [Example Training: Image Classification](#example-training-image-classification)
@@ -45,9 +48,23 @@ Example training for mnist digit classification:
 ```shell
 python train.py --cfg configs/mnist_config.yaml
 
+# override config values, e.g. for a short run on the CPU
+python train.py --cfg configs/mnist_config.yaml -o trainer.epochs=2 device=cpu
+
 # resume a run from its last checkpoint: weights, optimizer, LR schedule and epoch
 python train.py --cfg configs/mnist_config.yaml -r checkpoints/mnist_image_classifier/RUN_ID/models/last.pth
 ```
+
+## How a training run flows
+
+`train.py` reads from top to bottom:
+
+1. `load_config` reads the YAML config and applies the `-o key=value` overrides, and `make_run_dir` creates `save_dir/experiment_name/RUN_ID`. The run saves its `config.yaml`, logs, checkpoints and TensorBoard logs there.
+2. `build_transforms` returns the train and eval transforms that `dataset.preprocess` names (`src/augmentations`).
+3. `DATASETS[dataset.type]` loads the train, val and test splits, and `build_dataloaders` wraps each in a DataLoader (`src/datasets`).
+4. `MODELS[model.type]` builds the model (`src/models`).
+5. `ClassifierTrainer` builds the loss, optimizer and LR scheduler the config names in `torch.nn`, `torch.optim` and `torch.optim.lr_scheduler` (`src/trainers`). `fit()` trains, validates every `trainer.valid_freq` epochs, and saves `last.pth` every epoch and `best.pth` whenever the val accuracy improves.
+6. `evaluate()` tests `best.pth` on the test split.
 
 ## Custom Training
 
@@ -75,8 +92,8 @@ python scripts/find_corrupt_images.py -s data/SOURCE_DATASET
 # generate an id to name classmap
 python scripts/generate_classmap_from_dataset.py --sd data/SOURCE_DATASET --mp data/ID_2_CLASSNAME_MAP_TXT_FILE
 
-# create train val test split, also creates an index to classname mapping txt file
-python scripts/train_val_test_split.py --rd data/SOURCE_DATASET --td data/SOURCE_DATASET_SPLIT --vs VAL_SPLIT_FRAC -ts TEST_SPLIT_FRAC
+# split the dataset into train, valid and test dirs
+python scripts/train_val_test_split.py --rd data/SOURCE_DATASET --td data/SOURCE_DATASET_SPLIT --vs VAL_SPLIT_FRAC --ts TEST_SPLIT_FRAC
 
 # OPTIONAL duplicate train data if necessary
 python scripts/duplicate_data.py --rd data/SOURCE_DATASET_SPLIT/train --td data/SOURCE_DATASET_SPLIT/train -n TARGET_NUMBER
@@ -91,7 +108,7 @@ Sample data used in the custom image classification training downloaded from <ht
 
 ```shell
 # train on custom data with custom config
-python train.py --cfg custom_classifier_cpu_config.yaml
+python train.py --cfg configs/custom_classifier_cpu_config.yaml
 ```
 
 ### WebDataset for large scale training
@@ -116,16 +133,16 @@ python train.py --cfg configs/classifier_webdataset_cpu_config.yaml
 
 ## Test
 
-Test based on CONFIG_FILE. By default testing is done for mnist classification.
+Test a checkpoint on the test split of the config's dataset:
 
 ```shell
-python test.py --cfg CONFIG_FILE
+python test.py --cfg CONFIG_FILE -w checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth
 ```
 
 ## Export
 
 ```shell
-python export.py --cfg CONFIG_FILE -r checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth
+python export.py --cfg CONFIG_FILE -w checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth
 ```
 
 This writes `model.onnx` to the export run's `models` dir, e.g. `checkpoints/EXPERIMENT_NAME/export_DATE_TIME/models/model.onnx`, and checks that ONNX Runtime's outputs match the PyTorch model's. The ONNX model takes any batch size, and holds the class names and the settings of the eval transform, which the server reads.
@@ -134,16 +151,16 @@ This writes `model.onnx` to the export run's `models` dir, e.g. `checkpoints/EXP
 
 TensorBoard logs are saved in each run's `tf_logs` dir, `SAVE_DIR/EXPERIMENT_NAME/RUN_ID/tf_logs`. Logs include the config, train/val epoch accuracy/loss, the train loss every `batch_log_freq` batches, and the last preprocessed train batch per epoch.
 
-To start a tensorboard server reading logs from the `experiment` dir exposed on port localhost port `6007`:
+To view them, start TensorBoard on the save dir, e.g. on port 6006:
 
 ```shell
-tensorboard --logdir=TF_LOG_DIR --port=6006
+tensorboard --logdir=checkpoints --port=6006
 ```
 
 ## Inference
 
 ```shell
-python inference.py --cfg CONFIG_FILE -r checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth -s IMAGE_FILE_OR_DIR
+python inference.py --cfg CONFIG_FILE -w checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth -s IMAGE_FILE_OR_DIR
 ```
 
 This logs the most likely class of each image with its probability, and writes them to the run's `logs/pred.txt`.
@@ -158,7 +175,7 @@ Install docker in the system first:
 bash scripts/build_docker.sh  # builds the CUDA image; add --build-arg TORCH_EXTRA=cpu for a CPU-only image
 bash scripts/run_docker.sh    # runs the image with a shared checkpoints_docker volume outside the container
 # inside the docker container
-python train.py
+python train.py --cfg configs/classifier_gpu_config.yaml
 ```
 
 The container runs on CPU unless you pass GPUs with `-g`, e.g. `bash scripts/run_docker.sh -g all` or `-g device=0`. GPUs need the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) and an NVIDIA driver >= 580 on the host.

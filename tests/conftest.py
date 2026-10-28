@@ -1,9 +1,7 @@
 """Test configurations"""
 
-import argparse
 import os
 import os.path as osp
-import shutil
 from collections.abc import Callable
 
 import numpy as np
@@ -12,10 +10,6 @@ from PIL import Image
 from torch import nn
 
 from scripts.convert_dataset_to_tar import write_shards
-
-PYTEST_TEMP_ROOT = "/tmp/pytest"
-os.makedirs(PYTEST_TEMP_ROOT, exist_ok=True)
-
 
 ###### setup for augmentations test ######
 
@@ -28,41 +22,6 @@ def sample_pilimage():
         return Image.fromarray(np.uint8(np.random.rand(h, w, c) * 255))
 
     return _sample_pilimage
-
-
-##########################################
-###### setup for config parser test ######
-SAMPLE_CFG_PATH = f"{PYTEST_TEMP_ROOT}/sample_config.yaml"
-
-
-@pytest.fixture
-def sample_config():
-    return {
-        "experiment_name": "test_model",
-        "save_dir": PYTEST_TEMP_ROOT,
-        "seed": 42,
-        "device": "cpu",
-        "trainer": {"use_tensorboard": False},
-        "optimizer": {"type": "SGD", "args": {"lr": 0.01}},
-        "mode": "TRAIN",
-    }
-
-
-@pytest.fixture
-def modifications():
-    return {"save_dir": f"{PYTEST_TEMP_ROOT}/modified", "seed": 123}
-
-
-@pytest.fixture
-def mock_parser(scope="function"):
-    """Generate a mock parser for testing based on train.py script"""
-    parser = argparse.ArgumentParser("Mock parser")
-    parser.add_argument("--cfg", "--config", type=str, dest="config", default=SAMPLE_CFG_PATH)
-    parser.add_argument("-r", "--resume", type=str, dest="resume", default=None)
-    parser.add_argument("--id", "--run_id", type=str, dest="run_id", default="train")
-    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False)
-    parser.add_argument("-o", "--override", type=str, nargs="+", dest="override", default=None)
-    return parser
 
 
 ####################################
@@ -110,8 +69,9 @@ NUM_IMGS_P_CLS = 30
 
 
 @pytest.fixture
-def root_directory():
-    return f"{PYTEST_TEMP_ROOT}/dataset/mock_imgs"
+def root_directory(tmp_path) -> str:
+    """A new dir for each test's mock data"""
+    return str(tmp_path / "mock_imgs")
 
 
 def _create_and_save_dummy_imgs(
@@ -159,7 +119,6 @@ def dump_mock_img_data_dir(root_directory, create_and_save_dummy_imgs) -> str:
 def mock_webdataset_path(root_directory, dump_mock_img_data_dir) -> str:
     """The mock images as WebDataset shards of 50 images each; returns the dir of the shards and info.json"""
     shard_dir = osp.join(root_directory, "webdataset")
-    shutil.rmtree(shard_dir, ignore_errors=True)  # write_shards needs a new dir
     write_shards(dump_mock_img_data_dir, shard_dir, maxcount=50)
     return shard_dir
 
