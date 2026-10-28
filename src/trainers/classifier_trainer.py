@@ -95,7 +95,7 @@ class ClassifierTrainer(BaseTrainer):
         for batch_idx, (data, target) in enumerate(self.train_data_loader):
             data = data.to(self.device, non_blocking=True)
             target = target.to(self.device, non_blocking=True)
-            self.optimizer.zero_grad(set_to_none=True)
+            self.optimizer.zero_grad()
             train_size += data.shape[0]
 
             # mixed precision for the forward pass (model + loss); bfloat16 needs no GradScaler
@@ -165,7 +165,7 @@ class ClassifierTrainer(BaseTrainer):
         self.model.eval()
         cumu_test_loss = 0
         y_true, y_score, y_pred = [], [], []
-        with torch.no_grad():
+        with torch.inference_mode():
             for data, target in tqdm.tqdm(data_loader):
                 data = data.to(self.device, non_blocking=True)
                 target = target.to(self.device, non_blocking=True)
@@ -345,7 +345,7 @@ class ClassifierTrainer(BaseTrainer):
             raise ValueError(f"Inference source {source_path} is not an image file or dir with images")
 
         pred_file_labels = []
-        with torch.no_grad():
+        with torch.inference_mode():
             for image_path in image_list:
                 image = Image.open(image_path).convert("RGB")
                 data = self.preprocess.eval_transform(image)

@@ -30,8 +30,8 @@ def get_config_from_args():
         "--run_id",
         type=str,
         dest="run_id",
-        default="test_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
-        help="Unique identifier for testing. Annotates checkpoints & logs. (default: %(default)s)",
+        default="inference_" + datetime.now().strftime(r"%Y%m%d_%H%M%S"),
+        help="Unique identifier for inference. Annotates logs and predictions. (default: %(default)s)",
     )
     parser.add_argument(
         "-o",
