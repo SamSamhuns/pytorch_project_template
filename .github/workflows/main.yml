@@ -22,7 +22,7 @@ jobs:
     - uses: actions/checkout@v7
 
     - name: Set up uv and Python ${{ matrix.python-version }}
-      uses: astral-sh/setup-uv@v10
+      uses: astral-sh/setup-uv@v10.3.2  # setup-uv publishes only full version tags since v8, so there is no @v10
       with:
         version: "0.13.6"
         python-version: ${{ matrix.python-version }}
