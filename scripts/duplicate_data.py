@@ -1,4 +1,4 @@
-"""Duplicate data"""
+"""Copy each class dir's images into target dirs, repeating them until each class has target_number images"""
 
 import argparse
 import glob
@@ -48,14 +48,13 @@ def safe_copy(file_path, out_dir, dst=None) -> None:
         shutil.copy(file_path, osp.join(out_dir, f"{base}_{i}{extension}"))
 
 
-def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
-    target_dir = DUPLICATED_IMG_DIR
+def duplicate_data(raw_img_dir: str, target_dir: str, target_number: int) -> None:
     os.makedirs(target_dir, exist_ok=True)
 
     # fix path for globbing
-    if not RAW_IMG_DIR.endswith(("/", "*")):
-        RAW_IMG_DIR += "/"
-    dir_list = glob.glob(RAW_IMG_DIR + "*")
+    if not raw_img_dir.endswith(("/", "*")):
+        raw_img_dir += "/"
+    dir_list = glob.glob(raw_img_dir + "*")
 
     # for each class in raw data
     for i in tqdm(range(len(dir_list))):
@@ -66,24 +65,14 @@ def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
         ]
 
         class_target_dir = osp.join(target_dir, class_name)
-
-        # skip copying if directory already exists and has required num of files
-        if osp.exists(class_target_dir):
-            tf_list = glob.glob(class_target_dir + "/*")
-            if len(tf_list) >= TARGET_NUMBER:
-                continue
         os.makedirs(class_target_dir, exist_ok=True)
-        f_count = 0
 
-        # iterate through all files & copy till target num is reached
-        while f_count <= TARGET_NUMBER:
-            for file in f_list:
+        # count the images already there, e.g. when the target dir is the raw dir, and copy until there are enough
+        f_count = len(glob.glob(class_target_dir + "/*"))
+        while f_count < target_number and f_list:
+            for file in f_list[: target_number - f_count]:
                 safe_copy(file, class_target_dir)
                 f_count += 1
-                if f_count > TARGET_NUMBER:
-                    break
-            if f_count == 0:  # no files in directory
-                break
 
 
 def main():
@@ -115,7 +104,7 @@ def main():
                         each class after duplication (default: %(default)s)""",
     )
     args = parser.parse_args()
-    split_train_test(args.raw_data_path, args.target_data_path, args.target_number)
+    duplicate_data(args.raw_data_path, args.target_data_path, args.target_number)
 
 
 if __name__ == "__main__":

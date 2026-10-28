@@ -1,4 +1,4 @@
-"""convert dataset to tar format for fast loading with webdataset"""
+"""Write the class index to class name map of a dataset with one dir per class"""
 
 import argparse
 import glob
@@ -20,7 +20,7 @@ from tqdm import tqdm
 # ###################################################################
 
 
-def generate_tar(src_data_dir: str, mapping_file_path: str = "dataset_mapping.txt") -> None:
+def generate_classmap(src_data_dir: str, mapping_file_path: str = "dataset_mapping.txt") -> None:
     """Generates a class id2name mapping txt file based on the 1st level directory structure"""
     # fix path for globbing
     if not src_data_dir.endswith(("/", "*")):
@@ -56,7 +56,7 @@ def main():
                         class names and index ids will be present""",
     )
     args = parser.parse_args()
-    generate_tar(args.source_data_path, args.mapping_file_path)
+    generate_classmap(args.source_data_path, args.mapping_file_path)
 
 
 if __name__ == "__main__":
