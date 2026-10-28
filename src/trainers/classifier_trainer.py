@@ -4,14 +4,12 @@ import glob
 import os
 import os.path as osp
 import time
-from contextlib import nullcontext
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 import tqdm
 from PIL import Image
-from torch.amp import autocast
 from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
@@ -85,8 +83,8 @@ class ClassifierTrainer(BaseTrainer):
             self.optimizer.zero_grad(set_to_none=True)
             train_size += data.shape[0]
 
-            # Enables autocasting for the forward pass (model + loss)
-            with autocast("cuda") if self.config["use_amp"] else nullcontext():
+            # mixed precision for the forward pass (model + loss); bfloat16 needs no GradScaler
+            with torch.autocast(self.device.type, dtype=torch.bfloat16, enabled=self.config["use_amp"]):
                 output = self.model(data)
                 loss = self.loss(output, target)
             # loss is the batch mean, so weight it by the batch size
@@ -158,11 +156,13 @@ class ClassifierTrainer(BaseTrainer):
             for data, target in tqdm.tqdm(data_loader):
                 data = data.to(self.device, non_blocking=True)
                 target = target.to(self.device, non_blocking=True)
-                output = self.model(data)
+                with torch.autocast(self.device.type, dtype=torch.bfloat16, enabled=self.config["use_amp"]):
+                    output = self.model(data)
+                    loss = self.loss(output, target)
                 # sum up batch loss (the loss is the batch mean, so weight it by the batch size)
-                cumu_test_loss += self.loss(output, target).item() * data.size(0)
-                # get the class probabilities (proba) & the predicted class (pred)
-                proba = F.softmax(output, dim=1)
+                cumu_test_loss += loss.item() * data.size(0)
+                # get the class probabilities (proba) & the predicted class (pred); float() as numpy has no bfloat16
+                proba = F.softmax(output.float(), dim=1)
                 pred = proba.argmax(dim=1)
                 if proba.shape[1] == 2:  # binary: roc/pr/calibration take P(class 1)
                     proba = proba[:, 1]

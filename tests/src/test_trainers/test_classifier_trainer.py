@@ -102,6 +102,15 @@ def test_eval_loss_is_mean_over_samples(clsf_trainer_and_logger):
     assert loss == pytest.approx(F.cross_entropy(logits, target).item())
 
 
+def test_amp_scores_convert_to_numpy(clsf_trainer_and_logger):
+    """With use_amp the model outputs bfloat16, which numpy can't hold, so the scores must be cast"""
+    trainer, _ = clsf_trainer_and_logger
+    trainer.config["use_amp"] = True
+
+    _, _, y_score, _ = trainer.eval_one_epoch([(torch.randn(2, 3, 64, 64), torch.tensor([0, 1]))])
+    assert y_score.dtype == np.float32
+
+
 def test_binary_y_score_is_positive_class_probability(clsf_trainer_and_logger):
     """A perfect binary classifier must get ROC-AUC 1.0"""
     trainer, _ = clsf_trainer_and_logger
