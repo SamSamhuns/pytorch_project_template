@@ -49,7 +49,6 @@ def sample_config():
         "save_dir": PYTEST_TEMP_ROOT,
         "seed": 42,
         "device": "cpu",
-        "gpu_device": None,
         "trainer": {"use_tensorboard": False},
         "optimizer": {"type": "SGD", "args": {"lr": 0.01}},
         "mode": "TRAIN",

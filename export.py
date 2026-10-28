@@ -50,16 +50,7 @@ def get_config_from_args() -> CustomDictConfig:
     )
 
     # additional arguments (Overrides YAML configs)
-    parser.add_argument(
-        "--dev", "--device", dest="device", choices=["cpu", "cuda"], help="device for training. Use cpu or cuda."
-    )
-    parser.add_argument(
-        "--gpu_device",
-        type=int,
-        dest="gpu_device",
-        nargs="*",
-        help="GPU device to use, e.g. --gpu_device 0. Only one GPU is supported.",
-    )
+    parser.add_argument("--dev", "--device", dest="device", help="Device to run on, e.g. cpu, cuda or cuda:1.")
     parser.add_argument(
         "--mode", type=str, dest="mode", required=True, choices=["ONNX_TS", "ONNX_DYNAMO"], help="Running mode."
     )
@@ -71,7 +62,6 @@ def get_config_from_args() -> CustomDictConfig:
     yaml_modification = {
         "trainer.resume_checkpoint": args.resume_checkpoint,
         "device": args.device,
-        "gpu_device": args.gpu_device,
         "mode": args.mode,
     }
     return CustomDictConfig.from_args(args, yaml_modification)

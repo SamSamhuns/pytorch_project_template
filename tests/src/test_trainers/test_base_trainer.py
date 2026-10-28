@@ -1,5 +1,4 @@
 import os
-import warnings
 
 import pytest
 import torch
@@ -8,21 +7,20 @@ from tests.src.test_trainers.conftest import PatchedBaseTrainer
 
 
 def test_init_trainer(base_trainer_and_logger):
-    """Test if trainer is initialized properly with both cpu & gpu mode."""
+    """The trainer runs on the configured device"""
     trainer, mocked_logger = base_trainer_and_logger
-    logger_instance = mocked_logger.return_value
-    info_calls = [call.args for call in logger_instance.info.call_args_list]
+    info_calls = [call.args for call in mocked_logger.return_value.info.call_args_list]
 
-    gpu_dev = trainer.config["gpu_device"]
-    if gpu_dev and not torch.cuda.is_available():
-        warnings.warn("CUDA device not found, GPU testing has been skipped", stacklevel=2)
-        assert ("Program will run on CPU",) in info_calls
-    elif gpu_dev is None:
-        assert ("Program will run on CPU",) in info_calls
-    else:
-        gpu_dev = [gpu_dev] if isinstance(gpu_dev, int) else gpu_dev
-        device = torch.device("cuda", gpu_dev[0])
-        assert ("Program will run on GPU device %s", device) in info_calls
+    assert trainer.device == torch.device(trainer.config["device"])
+    assert ("Program will run on %s", trainer.device) in info_calls
+
+
+def test_cuda_device_falls_back_to_cpu(mock_clsf_config, mocker):
+    """device: cuda:1 runs on CPU, with a warning, when CUDA is unavailable"""
+    mocker.patch("torch.cuda.is_available", return_value=False)
+    mock_clsf_config["device"] = "cuda:1"
+    trainer = PatchedBaseTrainer(config=mock_clsf_config)
+    assert trainer.device == torch.device("cpu")
 
 
 def test_load_checkpoint_not_found(base_trainer_and_logger, mock_logger):

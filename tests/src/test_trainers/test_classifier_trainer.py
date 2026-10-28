@@ -1,5 +1,4 @@
 import os.path as osp
-import warnings
 
 import numpy as np
 import pytest
@@ -16,19 +15,8 @@ from src.trainers import ClassifierTrainer
 def test_init_trainer(clsf_trainer_and_logger):
     """Test if trainer is initialized properly with both cpu & gpu mode."""
     trainer, mocked_logger = clsf_trainer_and_logger
-    logger_instance = mocked_logger.return_value
-    info_calls = [call.args for call in logger_instance.info.call_args_list]
-
-    gpu_dev = trainer.config["gpu_device"]
-    if gpu_dev and not torch.cuda.is_available():
-        warnings.warn("CUDA device not found, GPU testing has been skipped", stacklevel=2)
-        assert ("Program will run on CPU",) in info_calls
-    elif gpu_dev is None:
-        assert ("Program will run on CPU",) in info_calls
-    else:
-        gpu_dev = [gpu_dev] if isinstance(gpu_dev, int) else gpu_dev
-        device = torch.device("cuda", gpu_dev[0])
-        assert ("Program will run on GPU device %s", device) in info_calls
+    info_calls = [call.args for call in mocked_logger.return_value.info.call_args_list]
+    assert ("Program will run on %s", trainer.device) in info_calls
 
     assert isinstance(trainer.model, torch.nn.Module)
     assert isinstance(trainer.loss, torch.nn.Module)

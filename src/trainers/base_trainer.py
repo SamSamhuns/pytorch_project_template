@@ -18,7 +18,7 @@ from src.config_parser import CustomDictConfig
 from src.dataloaders import init_dataloader
 from src.datasets import init_dataset
 from src.loggers import get_logger
-from src.utils.common import BColors, recursively_flatten_config
+from src.utils.common import recursively_flatten_config
 from src.utils.export_utils import ONNXDynamoExportStrategy, ONNXTSExportStrategy
 
 
@@ -30,26 +30,13 @@ class _BaseTrainer(ABC):
         # General logger
         self.logger = get_logger(logger_name=logger_name, logger_dir=self.config["logs_dir"])
 
-        # ###################### set cuda vars ########################
-        is_cuda = torch.cuda.is_available() and self.config["device"] == "cuda"
-        gpu_dev = self.config["gpu_device"]
-        gpu_dev = [gpu_dev] if isinstance(gpu_dev, int) else gpu_dev
-        if is_cuda and not gpu_dev:
-            msg = f"{BColors.WARN}WARNING: CUDA available but not used{BColors.ENDC}"
-            self.logger.info(msg)
-        # set cuda devices if cuda available & gpu_dev set or use cpu
-        self.cuda = is_cuda and (gpu_dev not in (None, []))
-        if self.cuda:
-            if len(gpu_dev) > 1:
-                msg = f"Only single-GPU training is supported, but gpu_device is {gpu_dev}"
-                self.logger.error(msg)
-                raise ValueError(msg)
-            self.device = torch.device("cuda", gpu_dev[0])
-            self.logger.info("Program will run on GPU device %s", self.device)
-        else:
-            self.device = torch.device("cpu")
-            self.logger.info("Program will run on CPU")
-        # #############################################################
+        # one device, e.g. cpu, cuda or cuda:1
+        device = self.config["device"]
+        if device.startswith("cuda") and not torch.cuda.is_available():
+            self.logger.warning("CUDA is not available, so the program will run on CPU")
+            device = "cpu"
+        self.device = torch.device(device)
+        self.logger.info("Program will run on %s", self.device)
 
     def load_checkpoint(self, model: nn.Module, file_path: str) -> nn.Module:
         """Load checkpoint for model from file_path

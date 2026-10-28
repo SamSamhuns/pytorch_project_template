@@ -4,7 +4,6 @@ git_hash: null
 seed: 42
 reproducible: true
 device: cpu
-gpu_device: null
 use_amp: false
 torch_compile_model: false
 trainer:
