@@ -1,3 +1,4 @@
+import os.path as osp
 from collections.abc import Callable
 
 import pytest
@@ -35,7 +36,8 @@ def mock_clsf_config(request, root_directory, create_and_save_dummy_imgs: Callab
     """Configure and create a training environment for a
     CNN classifier using a custom image dataset
     """
-    create_and_save_dummy_imgs(root_directory, n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
+    for split in ("train", "val", "test"):  # the dataset dirs the config below names
+        create_and_save_dummy_imgs(osp.join(root_directory, split), n_cls=NUM_CLS, n_imgs_p_cls=NUM_IMGS_P_CLS)
     cfg_dict = {
         "experiment_name": "pytest_base_trainer",
         "save_dir": f"{PYTEST_TEMP_ROOT}/base_trainer",
