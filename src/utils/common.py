@@ -1,8 +1,6 @@
 """Contains utility functions meant to be used internally & externally
 """
-import glob
 import io
-import os
 import socket
 import subprocess
 from collections import OrderedDict
@@ -12,7 +10,6 @@ from typing import Any, Optional
 
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
-from torchvision.transforms.transforms import Compose
 
 
 class BColors:
@@ -97,7 +94,7 @@ def get_git_revision_hash() -> str:
     """Get the git hash of the current commit. Returns None if run from a non-git init repo"""
     try:
         return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
-    except subprocess.CalledProcessError as excep:
+    except (subprocess.CalledProcessError, OSError) as excep:  # OSError: git is not installed
         print(excep, "Couldn't get git hash of the current repo. Returning None")
     return None
 
@@ -226,31 +223,3 @@ def recursively_flatten_config(config: DictConfig, parent_key: str = '', sep: st
         else:
             items.append((new_key, value))
     return dict(items)
-
-
-############################ file utils ############################
-
-
-def find_latest_file_in_dir(dir_path: str, ext: str = "pth"):
-    """Returns latest file with the ext from the dir_path directory
-    """
-    dir_path = str(dir_path)
-    dir_path_appended = dir_path + \
-        (f"/*.{ext}" if dir_path[-1] != '/' else f"*.{ext}")
-    list_of_files = glob.glob(dir_path_appended)
-    if len(list_of_files) == 0:
-        print(f"INFO: Directory '{dir_path}' is empty")
-        return None
-    latest_file = max(list_of_files, key=os.path.getctime)
-    return latest_file
-
-
-########################## data utils ##############################
-
-def add_tfms(transform: Compose, tfms: Callable):
-    """Add transforms to existing transforms"""
-    transforms_list = transform.transforms
-    transforms_list.append(tfms)
-    return Compose(transforms_list)
-
-####################################################################

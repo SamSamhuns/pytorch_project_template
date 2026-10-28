@@ -59,6 +59,29 @@ def test_CustomDictConfig_from_args():
     os.remove(temp_config_path)
 
 
+def test_override_parses_scientific_notation(tmp_path):
+    """-o optimizer.args.lr=1e-3 must give the float 0.001, not the string '1e-3'"""
+    config_dict = {
+        "experiment_name": "test_run",
+        "save_dir": str(tmp_path),
+        "seed": 42,
+        "reproducible": False,
+        "device": "cpu",
+        "trainer": {"use_tensorboard": False},
+        "optimizer": {"args": {"lr": 0.01}}
+    }
+    OmegaConf.save(OmegaConf.create(config_dict), tmp_path / "config.yaml")
+
+    class MockArgs:
+        config = str(tmp_path / "config.yaml")
+        run_id = None
+        verbose = False
+        override = ["optimizer.args.lr=1e-3"]
+
+    cfg = CustomDictConfig.from_args(MockArgs())
+    assert cfg.optimizer.args.lr == 0.001
+
+
 def test_CustomDictConfig_get_set_item():
     config_dict = {
         "experiment_name": "test_run",

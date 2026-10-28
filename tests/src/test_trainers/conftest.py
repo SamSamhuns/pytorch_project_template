@@ -51,9 +51,7 @@ def mock_clsf_config(
         "trainer": {
             "type": "ClassifierTrainer",
             "resume_checkpoint": None,
-            "save_best_only": True,
             "batch_log_freq": 2,
-            "weight_save_freq": 2,
             "valid_freq": 2,
             "epochs": 4,
             "use_tensorboard": False,

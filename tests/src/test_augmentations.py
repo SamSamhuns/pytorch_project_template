@@ -87,8 +87,8 @@ class TestMnistPreprocess:
         assert preprocess.train is not preprocess.val
         assert preprocess.train is not preprocess.test
 
-    def test_inference_transform_difference(self, preprocess):
-        assert preprocess.inference != preprocess.train
+    def test_inference_matches_test_transform(self, preprocess):
+        assert repr(preprocess.inference) == repr(preprocess.test)
 
     def test_output_type(self, preprocess, example_image):
         tensor = preprocess.train(example_image)
@@ -98,7 +98,7 @@ class TestMnistPreprocess:
         tensor = preprocess.train(example_image)
         assert tensor.shape == (1, 28, 28)  # Channel, Height, Width
 
-    def test_inference_output_shape(self, preprocess, example_image):
-        # Resize should ensure the image is 28x28 even if the input is not
-        tensor = preprocess.inference(example_image)
+    def test_inference_output_shape(self, preprocess):
+        # inference loads images as RGB, of any size; the model needs one 28x28 channel
+        tensor = preprocess.inference(Image.new('RGB', (64, 48)))
         assert tensor.shape == (1, 28, 28)  # Channel, Height, Width

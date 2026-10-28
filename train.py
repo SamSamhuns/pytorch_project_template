@@ -35,7 +35,7 @@ def get_config_from_args() -> CustomDictConfig:
         help="device for training. Use cpu or cuda.")
     parser.add_argument(
         "--gpu_device", type=int, dest="gpu_device", nargs="*",
-        help="gpu_devices to use. Pass as space-sep numbers eg. --gpu_device 0 / 0 1 / 0 1 2.")
+        help="GPU device to use, e.g. --gpu_device 0. Only one GPU is supported.")
     parser.add_argument(
         "--mode", type=str, dest="mode", default="TRAIN_TEST",
         choices=["TRAIN", "TRAIN_TEST", "TRAIN_TEST_FEATSELECT"],
@@ -60,10 +60,11 @@ def main():
     trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="train")
 
     trainer.train()
+    # test this run's best.pth; it is None if validation never ran, then the last weights are tested
     if config["mode"] == "TRAIN_TEST":
-        trainer.test()
+        trainer.test(trainer.best_checkpoint_path)
     elif config["mode"] == "TRAIN_TEST_FEATSELECT":
-        trainer.test()
+        trainer.test(trainer.best_checkpoint_path)
         trainer.calc_feature_importance()
 
 

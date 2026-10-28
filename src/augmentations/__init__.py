@@ -1,11 +1,10 @@
-from .classifier_transforms import CustomImageClassifierPreprocess, ImagenetClassifierPreprocess
+from .classifier_transforms import ImagenetClassifierPreprocess
 from .mnist_transforms import MnistPreprocess
 from .numeric import NumerizeLabels
 
 IMPLEMENTED_TRANSFORMS = {
     "NumerizeLabels": NumerizeLabels,
     "ImagenetClassifierPreprocess": ImagenetClassifierPreprocess,
-    "CustomImageClassifierPreprocess": CustomImageClassifierPreprocess,
     "MnistPreprocess": MnistPreprocess
 }
 

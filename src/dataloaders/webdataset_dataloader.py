@@ -23,7 +23,7 @@ class WebDatasetDataLoader(DataLoader):
                  timeout=0,
                  drop_last=False,
                  pin_memory=False,
-                 prefetch_factor=2,
+                 generator=None,
                  worker_init_fn=None,
                  persistent_workers=False):
         self.validation_split = validation_split
@@ -43,7 +43,7 @@ class WebDatasetDataLoader(DataLoader):
             'timeout': timeout,
             'drop_last': drop_last,
             'pin_memory': pin_memory,
-            'prefetch_factor': prefetch_factor,
+            'generator': generator,
             'worker_init_fn': worker_init_fn,
             'persistent_workers': persistent_workers
         }

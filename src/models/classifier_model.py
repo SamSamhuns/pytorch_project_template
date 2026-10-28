@@ -1,7 +1,7 @@
 """Model that  use existing models from PyTorch https://pytorch.org/vision/stable/models.html
 
 List of existing models in torchvision.models
-    squeezenet1_0, densenet161, inception_v3, googlenet, mobilenet_v2, mobilenet_v3_large, mobilenet_v3_small, etc
+    resnet18, mobilenet_v2, mobilenet_v3_large, efficientnet_b0, convnext_tiny, vgg11, vit_b_16, etc
 INT8 quantized models are also available
     models.quantization.mobilenet_v3_large()
 
@@ -20,20 +20,19 @@ The input images are in the range [0, 1]
          std=[0.229, 0.224, 0.225]
      )])
 """
-from collections import OrderedDict
-
-import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torchvision.models as models
 
 from .base_model import BaseModel
 
 
 class ClassifierModel(BaseModel):
-    """backbone: network to extract features
+    """backbone: torchvision model whose classifier head ends in nn.Linear (not squeezenet)
     num_classes: num classes to predict/ num of outputs of network, exclusive to feat_extract
-    feat_extract: only use network for feat extract, exclusive to num_classes
-    pretrained: use weights pretrained from imagenet
+    feat_extract: replace the last Linear layer with Identity, so the model returns that layer's input
+        features (e.g. 1280 for mobilenet_v2, 4096 for vgg11), exclusive to num_classes
+    pretrained_weights: torchvision weights name, e.g. "MobileNet_V2_Weights.IMAGENET1K_V1", or None
     """
 
     def __init__(self,
@@ -43,50 +42,17 @@ class ClassifierModel(BaseModel):
                  pretrained_weights: str = "MobileNet_V2_Weights.IMAGENET1K_V1",
                  **kwargs):
         super().__init__()
-        self.backbone = getattr(models, backbone)(weights=pretrained_weights)
-
-        if feat_extract and (num_classes > 0 and num_classes is not None):
+        if feat_extract and num_classes:
             raise RuntimeError(
                 "feat_extract mode is not compatible when num_classes greater than 0")
+        self.feat_extract = feat_extract
+        self.model = models.get_model(backbone, weights=pretrained_weights)
 
-        final_layer_name = None
-        if hasattr(self.backbone, 'classifier'):
-            final_layer_name = 'classifier'
-        elif hasattr(self.backbone, 'fc'):
-            final_layer_name = 'fc'
-        else:
-            print("custom backbone")
-            self.model = self.backbone
-            return
-
-        # use net as a feat extractor by setting final layer as Identity
-        if feat_extract:
-            setattr(self.backbone, final_layer_name, nn.Identity())
-        # use net as classifier
-        else:
-            # self.backbone.fc.in_features
-            final_layer = getattr(self.backbone, final_layer_name)
-            final_layer = final_layer[-1] if isinstance(final_layer, nn.Sequential) else final_layer
-            n_inputs = final_layer.in_features
-            classifier = nn.Sequential(OrderedDict([
-                ('dropout', nn.Dropout(p=0.2, inplace=False)),
-                ('fc1', nn.Linear(n_inputs, num_classes)),
-                ('softmax', nn.LogSoftmax(dim=1))
-            ]))
-            setattr(self.backbone, final_layer_name, classifier)
-        self.model = self.backbone
+        # replace only the last Linear layer (the ImageNet head), keeping the layers before it
+        name, last = [(n, m) for n, m in self.model.named_modules() if isinstance(m, nn.Linear)][-1]
+        new_head = nn.Identity() if feat_extract else nn.Linear(last.in_features, num_classes)
+        self.model.set_submodule(name, new_head)
 
     def forward(self, x):
         x = self.model(x)
-        return x
-
-
-def main():
-    model = Classifier(train_mode=False).eval()
-    model_input = torch.rand([1, 3, 244, 244])
-    model_output = model(model_input)
-    print(model_output.shape)
-
-
-if __name__ == "__main__":
-    main()
+        return x if self.feat_extract else F.log_softmax(x, dim=1)
