@@ -142,6 +142,12 @@ tensorboard --logdir=TF_LOG_DIR --port=6006
 
 ## Inference
 
+```shell
+python inference.py --cfg CONFIG_FILE -r checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth -s IMAGE_FILE_OR_DIR
+```
+
+This logs the most likely class of each image with its probability, and writes them to the run's `logs/pred.txt`.
+
 ## Docker
 
 Install docker in the system first:
