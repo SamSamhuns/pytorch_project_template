@@ -11,17 +11,15 @@ experiment_name: image_classifier  # Name of experiment, name of the dir for sav
 save_dir: checkpoints  # Directory to save checkpoints and logs
 git_hash: null  # Git hash for version control, set during runs
 seed: 42  # Random seed for reproducibility
-reproducible: true  # Sets cudnn benchmark to false and deterministic mode to true
-device: cuda  # Device to run the model on (cuda or cpu)
-gpu_device:  # GPU device to use, as a one-item list (only one GPU is supported)
-- 0
-use_amp: true  # Use automatic mixed precision for faster training and lower memory usage
+reproducible: false  # true trades speed for determinism: no cuDNN benchmarking, deterministic algorithms where they exist
+device: cuda  # Device to run on: cpu, cuda or cuda:1. Falls back to cpu when CUDA is unavailable
+use_amp: true  # bfloat16 mixed precision for training and evaluation; needs an Ampere or newer GPU, often slower on CPU
 torch_compile_model: false  # Compile the PyTorch model for optimized performance
 
 # Trainer configuration
 trainer:
   type: ClassifierTrainer  # Trainer type (classification tasks)
-  resume_checkpoint: null  # Path to checkpoint for resuming training
+  resume_checkpoint: null  # Checkpoint to resume from, e.g. .../models/last.pth; restores the optimizer, LR schedule and epoch too
   batch_log_freq: 5  # Logging frequency within an epoch
   valid_freq: 2  # Validate every N epochs; best.pth is saved when val accuracy improves, last.pth every epoch
   epochs: 12  # Number of training epochs
@@ -51,10 +49,9 @@ dataset:
     test_path: test  # Subdirectory for test data
   num_classes: 20  # Number of classes in the dataset
   preprocess:
-    train_transform: ImagenetClassifierPreprocess  # Data preprocessing for training
-    val_transform: ImagenetClassifierPreprocess  # Data preprocessing for validation
-    test_transform: ImagenetClassifierPreprocess  # Data preprocessing for testing
-    inference_transform: ImagenetClassifierPreprocess  # Data preprocessing for inference
+    type: ImagenetClassifierPreprocess  # Random crops and flips for training; one eval transform for val, test and inference
+    args:
+      weights: ${model.args.pretrained_weights}  # The eval resize, crop and normalization come from these weights
 
 # DataLoader configuration
 dataloader:
@@ -77,8 +74,9 @@ optimizer:
 
 # Loss function configuration
 loss:
-  type: NLLLoss  # Loss function type (Negative Log-Likelihood Loss)
-  args: {}  # No additional arguments
+  type: CrossEntropyLoss  # The models output logits, which CrossEntropyLoss expects
+  args:
+    label_smoothing: 0.1  # Optional; softens the one-hot targets, as torchvision's training recipe does
 
 # Metrics configuration
 metrics:
@@ -95,8 +93,8 @@ metrics:
 
 # Learning rate scheduler configuration
 lr_scheduler:
-  type: ReduceLROnPlateau  # Scheduler type (reduces LR when a metric stops improving)
+  type: CosineAnnealingLR  # Any scheduler in torch.optim.lr_scheduler, stepped once per epoch
   args:
-    factor: 0.1  # Factor by which the learning rate is reduced
-    patience: 8  # Number of epochs with no improvement before reducing LR
+    T_max: ${trainer.epochs}  # Epochs to decay the LR over; ${trainer.epochs} copies that value
+  warmup_epochs: 0  # Epochs of linear warmup from 10% of the LR; not supported with ReduceLROnPlateau
 ```

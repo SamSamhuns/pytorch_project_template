@@ -37,8 +37,7 @@ class CustomModel(BaseModel):
             nn.Linear(self.flattened_size, 256),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.5),
-            nn.Linear(256, num_classes),
-            nn.LogSoftmax(dim=1),
+            nn.Linear(256, num_classes),  # logits
         )
 
     def _compute_flattened_size(self, input_size: int) -> int:

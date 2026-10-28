@@ -444,11 +444,30 @@ These are pure deletions with no behavior change on the main path. Their tests g
 
 ## Phase 4: Training procedure (modern PyTorch, kept minimal)
 
+**Status (2026-10-28): done.**
+
+- **Tests:** 87 passed, 27 skipped (CUDA-only), on Python 3.11 and 3.14.
+  - New tests cover resume, AMP scores, warmup plus cosine, the eval transform per weights, train augmentation, seeding, duplicate log lines and the CUDA-to-CPU fallback.
+  - The AMP and resume tests fail without their fixes ✅.
+  - The count is below Phase 3's 93 because the tests of deleted code went with it.
+- **MNIST smoke runs on CPU:**
+  - Two seeded runs gave identical loss and accuracy every epoch.
+  - Resume: a 2-epoch run, resumed from its `last.pth`, trained epochs 3 and 4 with the same LRs as an uninterrupted 4-epoch run (0.005 and 0.001464), and its TensorBoard step continued from 3376 ✅.
+  - `test.py` on `best.pth` scored 97.6%, `inference.py` labelled 4 RGB PNGs correctly, and both ONNX exports match PyTorch ✅.
+- **Not verified here:** bf16 autocast, `cudnn.benchmark` and deterministic algorithms on a GPU. The machine's shared GPUs were busy.
+- **Changes beyond the items below:**
+  - `dataset.preprocess` is one `type` plus `args`, instead of four `*_transform` keys that always named the same class.
+  - `best.pth` has the same full-state format as `last.pth`. Test, inference and export load its `"model"` entry.
+  - The WebDataset CPU config sets `use_amp: false`, since AMP now applies on CPU too.
+  - Until 5.1, a val split carved from the train set (`validation_split > 0`) gets the train augmentation. The shipped classifier configs use a separate val dir, and MNIST has no augmentation.
+  - The server still passes `gpu_device`; it is rebuilt in Phase 6.
+  - Five nitpicks in touched files are done; see [Nitpicks](#nitpicks-segregated).
+
 ### 4.1 Models return logits and use `CrossEntropyLoss` (S, R+)
 
 - **Where:** every model ends in `LogSoftmax` with `NLLLoss` ([classifier_model.py:74](src/models/classifier_model.py#L74), [custom_model.py:49](src/models/custom_model.py#L49), [mnist_model.py:29](src/models/mnist_model.py#L29)).
 - **Fix:**
-  - Models return raw logits, trained with `nn.CrossEntropyLoss(label_smoothing=0.1)`. Label smoothing is optional; the torchvision classification recipe uses it.
+  - Models return raw logits, trained with `nn.CrossEntropyLoss(label_smoothing=0.1)`. Label smoothing is optional; the torchvision classification recipe uses it. (Done. The three classifier configs set it; MNIST trains without it. `NLLLoss` left the loss registry, since it is wrong on logits.)
   - Softmax is applied only in metrics and inference.
   - Exported ONNX then outputs logits, which is what serving code expects.
 - **Note:** this, together with 1.7, renames the classifier head's state-dict keys. Decided: old checkpoints don't need to load, so no key map.
@@ -461,7 +480,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - Every epoch, save `last.pth = {"model", "optimizer", "scheduler", "epoch", "best_val_acc"}`, adding `"scaler"` when using fp16.
   - Save `best.pth` on improvement (1.2).
   - Resume restores all of it.
-  - Load with `torch.load(path, map_location="cpu", weights_only=True)` and `model.load_state_dict(ckpt.get("model", ckpt))` so old bare state dicts still load. The full dict round-trips with `weights_only=True` for SGD with ReduceLROnPlateau and LambdaLR ✅.
+  - Load with `torch.load(path, map_location="cpu", weights_only=True)` and `model.load_state_dict(ckpt.get("model", ckpt))` so old bare state dicts still load. The full dict round-trips with `weights_only=True` for SGD with ReduceLROnPlateau and LambdaLR ✅. (Done without the bare-state-dict fallback, since old checkpoints don't need to load. Both files are saved after the scheduler step, so a resumed run continues with the next epoch's LR. `best_val_acc` is stored as a Python float, because `weights_only` rejects numpy scalars. Resume keeps the checkpoint's schedule, so a larger `trainer.epochs` doesn't stretch the cosine; past its end the LR rises again.)
   - Drop `weight_save_freq`; `last.pth` and `best.pth` cover it. (Done in Phase 1.)
   - Reference: PyTorch recipe "Saving and loading a general checkpoint".
 
@@ -473,7 +492,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - It is applied in training only.
   - It is a silent no-op on CPU configs that set `use_amp: true`.
 - **Fix:**
-  - Wrap forward and loss in both train and eval with `with torch.autocast(self.device.type, dtype=torch.bfloat16, enabled=cfg.use_amp):`. bf16 needs no scaler (Ampere+ GPUs and CPUs).
+  - Wrap forward and loss in both train and eval with `with torch.autocast(self.device.type, dtype=torch.bfloat16, enabled=cfg.use_amp):`. bf16 needs no scaler (Ampere+ GPUs and CPUs). (Done. Eval casts the outputs to float32 before the softmax, as numpy has no bfloat16.)
   - Only if pre-Ampere GPUs matter: use `dtype=torch.float16` with `torch.amp.GradScaler`.
 
 ### 4.4 Single-device training: drop DataParallel (S, R+, about −40 lines)
@@ -482,7 +501,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
 - **Why:** the PyTorch docs recommend DistributedDataParallel over DataParallel, even on a single node.
 - **Fix:**
   - Delete DataParallel, the `module.` key renaming and the GPU-count checks. (Done in Phase 1, as part of 1.5.)
-  - The config becomes a single `device: cuda` (or `cuda:1`, or `cpu`) instead of `device` plus a `gpu_device` list.
+  - The config becomes a single `device: cuda` (or `cuda:1`, or `cpu`) instead of `device` plus a `gpu_device` list. (Done. Without CUDA, `cuda` falls back to CPU with a warning, as before. `--gpu_device` left the four scripts.)
   - Add DDP with `torchrun` (about 25 lines) only if multi-GPU becomes a requirement.
 
 ### 4.5 LR schedules from built-ins, with a default that does something (S, R+)
@@ -503,6 +522,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - This matches the custom scheduler from epoch 2 on, without the LR=0 epoch ✅.
   - Keep the ReduceLROnPlateau `step(metric)` special case.
   - Drop the OneCycleLR per-batch special case unless you use it.
+  - (Done. All four configs use `CosineAnnealingLR` with `T_max: ${trainer.epochs}` and `warmup_epochs: 0`, and any `torch.optim.lr_scheduler` class works from the config. `WarmupCosineAnnealingScheduler` and the OneCycleLR case are deleted.)
 
 ### 4.6 Real training augmentation; one eval transform everywhere (S, R+)
 
@@ -512,7 +532,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - The ImageNet constants are copied by hand.
 - **Fix:**
   - **Train:** `RandomResizedCrop(224) + RandomHorizontalFlip()`. It is also about twice as cheap as the full-image resize: 1,351 vs 665 img/s per core ✅.
-  - **Eval** (val, test, inference, export, server), for pretrained backbones: `weights.transforms()` from the torchvision weights enum. Resize, crop and normalization then match the checkpoint; for example, V2 weights resize to 232.
+  - **Eval** (val, test, inference, export, server), for pretrained backbones: `weights.transforms()` from the torchvision weights enum. Resize, crop and normalization then match the checkpoint; for example, V2 weights resize to 232. (Done. The configs pass `weights: ${model.args.pretrained_weights}`, and the classes expose `train_transform` and `eval_transform`. For MobileNetV2 the eval output is identical to the old transform ✅.)
   - **MNIST:** keep its constants and add `Grayscale()`.
   - **API:**
     - Stay on the `torchvision.transforms` v1 API. It shows no deprecation warnings on 0.29 ✅, and v2 tensor ops measured slower on CPU.
@@ -528,7 +548,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
 - **Fix:**
   - Add a 5-line `seed_everything(seed)` covering random, numpy and torch, called from `train.py`. `torch.manual_seed` already seeds every CUDA device.
   - Default to `reproducible: false`, with `cudnn.benchmark = not reproducible`.
-  - Reproducible mode adds `torch.use_deterministic_algorithms(True, warn_only=True)`.
+  - Reproducible mode adds `torch.use_deterministic_algorithms(True, warn_only=True)`. (All three done, in `train.py`.)
   - The seeded DataLoader generator is already correct ✅.
 
 ### 4.8 Logging and TensorBoard (S, R+)
@@ -541,10 +561,12 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - Configure logging once in each entry script: `logging.basicConfig(handlers=[StreamHandler(), FileHandler(run_dir / "train.log")], ...)`.
   - Modules use `logging.getLogger(__name__)`.
   - No prints or colors in `src/`.
+  - (Done with a short `setup_logging(log_path)` that each entry script calls; runs log to `logs/train.log`, `test.log`, `inference.log` or `export.log`. The trainers keep `logging.getLogger(logger_name)` until 7.4. `export_utils` still prints when it gets no logger; Phase 6 rewrites it.)
 - **TensorBoard:**
   - Log the config once as YAML text. Today it is one `add_text` per key ([base_trainer.py:273-275](src/trainers/base_trainer.py#L273-L275)).
   - Write per-iteration scalars every `batch_log_freq` steps.
   - Log images from the last training batch (5.3).
+  - (All three done. The per-iteration step is computed from the epoch, so it continues after a resume.)
 
 ---
 
@@ -568,7 +590,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
 - **Problem:** three `.item()` calls per step block the CPU until the GPU drains. Est. 5–20% of step time for MobileNetV2-size models at batch size 32.
 - **Fix:**
   - Accumulate `loss.detach() * bs` and `(pred == target).sum()` as tensors, with a single `.item()` at epoch end.
-  - Write per-iteration scalars every `batch_log_freq` steps.
+  - Write per-iteration scalars every `batch_log_freq` steps. (Done in Phase 4, 4.8.)
   - Do this together with 1.4.
 
 ### 5.3 Stop re-reading the data (S, R+)
@@ -583,7 +605,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
 - **TensorBoard image logging** ([classifier_trainer.py:192-195](src/trainers/classifier_trainer.py#L192-L195)):
   - `add_images(next(iter(train_loader)))` respawns the workers and decodes `num_workers × prefetch_factor` batches every epoch, to keep one.
   - That costs 0.25 s per epoch ✅, about 35–40% of a small epoch's loading time.
-  - Log the last batch from the loop instead.
+  - Log the last batch from the loop instead. (Done in Phase 4, 4.8.)
   - It also logs normalized tensors, which look clipped.
 
 ### 5.4 DataLoader settings (S, R0)
@@ -705,8 +727,8 @@ These are pure deletions with no behavior change on the main path. Their tests g
 
 - **Problem:**
   - `CustomDictConfig` ([config_parser.py:30-143](src/config_parser.py#L30-L143)) subclasses `DictConfig`. Its constructor:
-    - seeds the RNGs
-    - flips the cuDNN flags
+    - seeds the RNGs (moved to `train.py` in Phase 4, 4.7)
+    - flips the cuDNN flags (moved to `train.py` in Phase 4, 4.7)
     - shells out to git
     - creates directories
     - writes `config.yaml`
@@ -751,7 +773,7 @@ These are pure deletions with no behavior change on the main path. Their tests g
 
 ### 7.5 Transforms as functions, not classes (S, R+)
 
-- **Problem:** the preprocess "classes" are namespaces: their transforms are class attributes built at import time (shared mutable state, ruff RUF012), with an empty `__init__`. They are instantiated only to read those attributes.
+- **Problem:** the preprocess "classes" are namespaces: their transforms are class attributes built at import time (shared mutable state, ruff RUF012), with an empty `__init__`. They are instantiated only to read those attributes. (Phase 4 builds them in `__init__` as `train_transform` and `eval_transform`, since the eval transform now depends on the weights.)
 - **Fix:** `build_transforms(cfg) -> (train_tf, eval_tf)`.
 
 ### 7.6 Models (S, R+)
@@ -780,13 +802,13 @@ These are pure deletions with no behavior change on the main path. Their tests g
   - `quant_backend` (done in Phase 2)
   - `tensorboard_port` (done in Phase 2)
   - `weight_save_freq` and `save_best_only` (done in Phase 1)
-  - `gpu_device` (4.4)
+  - `gpu_device` (done in Phase 4, 4.4)
   - `prefetch_factor` (done in Phase 1)
 - **Duplicates:**
   - `dataset.num_classes` vs `model.args.num_classes`: use `${model.args.num_classes}` interpolation or delete one.
   - `model.info` input sizes vs the transforms.
 - **Contradictions:**
-  - The webdataset config sets `device: cpu` together with `use_amp: true`, `pin_memory: true` and `gpu_device: [0]`.
+  - The webdataset config sets `device: cpu` together with `use_amp: true`, `pin_memory: true` and `gpu_device: [0]`. (`use_amp` and `gpu_device` done in Phase 4; `pin_memory` is 5.4.)
   - `configs/README.md` says `feat_extract` freezes the backbone; it actually swaps the head for Identity. (Done in Phase 1.)
   - It also says "mode: TRAIN or TEST".
 - **Guard against drift:** add a tiny parametrized test that loads every `configs/*.yaml` and builds its model and transforms.
@@ -834,14 +856,14 @@ These are low impact. Fold each into whichever PR touches the file. Many become 
 - [classifier_trainer.py:327](src/trainers/classifier_trainer.py#L327) logs `val_end_tm - val_end_tm`, so validation time always reads 0.000 s. (Done in Phase 1.)
 - [base_trainer.py:281-282](src/trainers/base_trainer.py#L281-L282): the second string lacks its `f` prefix and a space, so it prints a literal `{tboard_port}`. (Moot: deleted in Phase 2.)
 - `eval_one_epoch` is annotated as returning lists but returns numpy arrays. (Done in Phase 1.)
-- [config_parser.py:122](src/config_parser.py#L122): `k.rsplit('.')[0]` should be `k.split('.', 1)[0]`.
+- [config_parser.py:122](src/config_parser.py#L122): `k.rsplit('.')[0]` should be `k.split('.', 1)[0]`. (Done in Phase 4.)
 - [server.py:167,193](server/server.py#L167): `print(traceback.print_exc())` prints `None`.
-- [base_trainer.py:91](src/trainers/base_trainer.py#L91) calls `len(gpu_dev)` when `gpu_device` may be an int in YAML.
-- [base_trainer.py:233-236](src/trainers/base_trainer.py#L233-L236): the verbose block reads `test_set.data` even when there is no test set.
+- [base_trainer.py:91](src/trainers/base_trainer.py#L91) calls `len(gpu_dev)` when `gpu_device` may be an int in YAML. (Moot: 4.4 removed `gpu_device`.)
+- [base_trainer.py:233-236](src/trainers/base_trainer.py#L233-L236): the verbose block reads `test_set.data` even when there is no test set. (Done in Phase 4.)
 - `torch.jit.load` is called without `map_location`. (Done in Phase 1.)
 - `torchvision.transforms.transforms` (a private module) is imported in base_trainer.py:18, classifier_dataset.py:8 and common.py:15. (Done in Phase 1.)
-- `zero_grad(set_to_none=True)` is the default since torch 2.0.
-- Use `torch.inference_mode()` instead of `torch.no_grad()` in eval and inference.
+- `zero_grad(set_to_none=True)` is the default since torch 2.0. (Done in Phase 4.)
+- Use `torch.inference_mode()` instead of `torch.no_grad()` in eval and inference. (Done in Phase 4 in the trainer; export and the server change in Phase 6.)
 - `find_latest_file_in_dir` uses ctime; `max(Path(d).glob("*.pth"), key=os.path.getmtime)` does it in one line. (Moot: deleted in Phase 1.)
 - [generate_classmap_from_dataset.py](scripts/generate_classmap_from_dataset.py): the docstring says "convert dataset to tar format" and the function is named `generate_tar`.
 - [duplicate_data.py:78-83](scripts/duplicate_data.py#L78-L83) copies N+1 files, and its main function is named `split_train_test`.
@@ -853,7 +875,7 @@ These are low impact. Fold each into whichever PR touches the file. Many become 
   - `print("custom backbone")` silently ignores `num_classes`.
   - `num_classes > 0 and num_classes is not None` checks in the wrong order.
 - `_get_webdataset_len` leaves tar handles open (ResourceWarning).
-- [inference.py:24](inference.py#L24): the default run id is prefixed `test_` (copied from test.py).
+- [inference.py:24](inference.py#L24): the default run id is prefixed `test_` (copied from test.py). (Done in Phase 4.)
 - [mnist_dataset.py:33](src/datasets/mnist_dataset.py#L33) raises a bare `Exception`. (Done in Phase 2.)
 - `InputModel.back_url: str = None` should be `str | None`.
 - [cleanup.sh](scripts/cleanup.sh) deletes `experiments*` and `logs*`, but runs are saved under `checkpoints/`.
@@ -868,7 +890,7 @@ These are low impact. Fold each into whichever PR touches the file. Many become 
 | Dependency tool: uv or Poetry | **Decided: uv.** One lockfile, CPU/CUDA extras, faster CI and Docker, and three requirements files plus a script deleted. | 3.3 |
 | Keep WebDataset? | **Decided: keep it,** and fix it per 5.5. | 5.5 |
 | Keep the server? | **Decided: keep it,** rebuilt as the minimal ONNX Runtime app. | 6.4 |
-| Old checkpoints | **Decided: they don't need to load.** 1.7 and 4.1 rename the classifier head's state-dict keys; no key map. | 4.1 |
+| Old checkpoints | **Decided: they don't need to load.** 1.7 and 4.1 rename the classifier head's state-dict keys; no key map. 4.2's full-state checkpoints don't load bare state dicts either. | 4.1 |
 | Multi-GPU? | Open. Recommendation: single device; add DDP with `torchrun` if and when it's needed. Phase 1 already removed DataParallel (1.5). | 4.4 |
 | Flatten the layout? | Open. Recommendation: yes, but last. | 7.11 |
 

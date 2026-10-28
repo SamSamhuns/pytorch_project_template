@@ -2,11 +2,9 @@ experiment_name: image_classifier
 save_dir: checkpoints
 git_hash: null
 seed: 42
-reproducible: true
+reproducible: false
 device: cpu
-gpu_device:
-- 0
-use_amp: true
+use_amp: false
 torch_compile_model: false
 trainer:
   type: ClassifierTrainer
@@ -37,10 +35,9 @@ dataset:
     test_path: birds_test.tar
   num_classes: 20
   preprocess:
-    train_transform: ImagenetClassifierPreprocess
-    val_transform: ImagenetClassifierPreprocess
-    test_transform: ImagenetClassifierPreprocess
-    inference_transform: ImagenetClassifierPreprocess
+    type: ImagenetClassifierPreprocess
+    args:
+      weights: ${model.args.pretrained_weights}
 dataloader:
   type: WebDatasetDataLoader
   args:
@@ -56,8 +53,9 @@ optimizer:
     lr: 0.01
     momentum: 0.9
 loss:
-  type: NLLLoss
-  args: {}
+  type: CrossEntropyLoss
+  args:
+    label_smoothing: 0.1
 metrics:
   val:
   - accuracy_score
@@ -70,7 +68,7 @@ metrics:
   - confusion_matrix
   - classification_report
 lr_scheduler:
-  type: ReduceLROnPlateau
+  type: CosineAnnealingLR
   args:
-    factor: 0.1
-    patience: 8
+    T_max: ${trainer.epochs}
+  warmup_epochs: 0

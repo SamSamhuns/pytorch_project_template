@@ -1,21 +1,23 @@
-"""Custom model transforms
-The class must have a train, val, and test transforms.Compose member
+"""Transforms for torchvision classifiers
+Training uses random crops and flips. Evaluation (val, test, inference) uses the resize, crop and
+normalization that the pretrained weights expect, e.g. ResNet50_Weights.IMAGENET1K_V2 resizes to 232, not 256
 """
 
-from torchvision import transforms
+from torchvision import models, transforms
 
 
 class ImagenetClassifierPreprocess:
-    common_transform = (
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    )
-    train = transforms.Compose(list(common_transform))
-    val = transforms.Compose(list(common_transform))
-    test = transforms.Compose(list(common_transform))
-    inference = transforms.Compose(list(common_transform))
-
-    def __init__(self):
-        """Class to store the train, test, inference transforms or augmentations"""
+    def __init__(self, weights: str | None = None):
+        """weights: torchvision weights name, e.g. "MobileNet_V2_Weights.IMAGENET1K_V1".
+        None, for a backbone trained from scratch, uses the standard ImageNet eval transform
+        """
+        # MobileNet_V2_Weights.IMAGENET1K_V1 uses the standard one: resize 256, crop 224, ImageNet mean and std
+        self.eval_transform = models.get_weight(weights or "MobileNet_V2_Weights.IMAGENET1K_V1").transforms()
+        self.train_transform = transforms.Compose(
+            [
+                transforms.RandomResizedCrop(self.eval_transform.crop_size),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(self.eval_transform.mean, self.eval_transform.std),
+            ]
+        )
