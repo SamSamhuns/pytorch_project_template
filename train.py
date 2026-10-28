@@ -52,7 +52,8 @@ def get_config_from_args() -> CustomDictConfig:
         "--resume_checkpoint",
         type=str,
         dest="resume_checkpoint",
-        help="Path to resume checkpoint. Overrides `trainer.resume_checkpoint` in config.",
+        help="Checkpoint to resume training from, e.g. .../models/last.pth. "
+        "Overrides `trainer.resume_checkpoint` in config.",
     )
     parser.add_argument("--dev", "--device", dest="device", help="Device to run on, e.g. cpu, cuda or cuda:1.")
     parser.add_argument(
@@ -82,7 +83,7 @@ def main():
     trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="train")
 
     trainer.train()
-    # test this run's best.pth; it is None if validation never ran, then the last weights are tested
+    # test this run's best.pth; it is None if this run saved none, then the last weights are tested
     if config["mode"] == "TRAIN_TEST":
         trainer.test(trainer.best_checkpoint_path)
 

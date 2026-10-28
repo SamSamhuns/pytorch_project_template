@@ -37,8 +37,9 @@ class ClassifierTrainer(BaseTrainer):
 
         # resume from a checkpoint, if given
         resume_ckpt = self.config["trainer"]["resume_checkpoint"]
-        if resume_ckpt:
-            self.model = self.load_checkpoint(self.model, resume_ckpt)
+        checkpoint = self.load_checkpoint(resume_ckpt) if resume_ckpt else None
+        if checkpoint:
+            self.model.load_state_dict(checkpoint["model"])
         else:
             self.logger.info("Training will be done from scratch")
         self.model = self.model.to(self.device)
@@ -61,6 +62,24 @@ class ClassifierTrainer(BaseTrainer):
         # initialize counter
         self.current_epoch = 1
         self.current_iteration = 0
+        if checkpoint:  # continue training where the checkpoint left off
+            self.optimizer.load_state_dict(checkpoint["optimizer"])
+            self.scheduler.load_state_dict(checkpoint["scheduler"])
+            self.best_val_acc = checkpoint["best_val_acc"]
+            self.current_epoch = checkpoint["epoch"] + 1
+
+    def save_checkpoint(self, file_name: str) -> str:
+        """Save everything needed to resume training to models_dir/file_name and return the path"""
+        checkpoint = {
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "scheduler": self.scheduler.state_dict(),
+            "epoch": self.current_epoch,
+            "best_val_acc": self.best_val_acc,
+        }
+        save_path = osp.join(self.config["models_dir"], file_name)
+        torch.save(checkpoint, save_path)
+        return save_path
 
     def train_one_epoch(self) -> None:
         """One epoch of training"""
@@ -179,34 +198,37 @@ class ClassifierTrainer(BaseTrainer):
             self.model.compile()
         train_start_tm = time.perf_counter()
         epochs = self.config["trainer"]["epochs"]
+        start_epoch = self.current_epoch  # the epoch after the checkpoint's when resuming
         self.logger.info("Starting training...")
-        for epoch in range(1, epochs + 1):
+        for epoch in range(start_epoch, epochs + 1):
+            self.current_epoch = epoch
             self.train_one_epoch()
+            val_accuracy = None
             if epoch % self.config["trainer"]["valid_freq"] == 0 and self.val_data_loader is not None:
-                self.validate()  # also saves best.pth when the val accuracy improves
+                val_accuracy = self.validate()
             # ReduceLROnPlateau steps on a loss instead: the val loss in validate(), or the train loss without a val set
             if not isinstance(self.scheduler, ReduceLROnPlateau):
                 self.scheduler.step()
 
-            self.save_checkpoint(self.model, "last.pth")
-            self.current_epoch += 1
+            # saved after the scheduler step, so a resumed run continues with the next epoch's LR
+            if val_accuracy is not None and val_accuracy > self.best_val_acc:
+                self.best_val_acc = val_accuracy
+                self.best_checkpoint_path = self.save_checkpoint("best.pth")
+            self.save_checkpoint("last.pth")
         train_end_tm = time.perf_counter()
         train_tm = train_end_tm - train_start_tm
 
         self.logger.info("Total train time: %.3fs", train_tm)
-        self.logger.info("Average epoch time: %.3fs", train_tm / max(epochs, 1))
+        self.logger.info("Average epoch time: %.3fs", train_tm / max(epochs - start_epoch + 1, 1))
         self.logger.info("Finished training.\n")
 
-    def validate(self) -> None:
-        """One epoch of model validation"""
+    def validate(self) -> float:
+        """One epoch of model validation, returns the val accuracy in %"""
         val_start_tm = time.perf_counter()
 
         val_loss, y_true, y_score, y_pred = self.eval_one_epoch(self.val_data_loader)
-        val_accuracy = 100.0 * (y_true == y_pred).mean()
-
-        if val_accuracy > self.best_val_acc:
-            self.best_val_acc = val_accuracy
-            self.best_checkpoint_path = self.save_checkpoint(self.model, "best.pth")
+        # a python float, since checkpoints load with weights_only=True, which rejects numpy scalars
+        val_accuracy = 100.0 * float((y_true == y_pred).mean())
 
         if isinstance(self.scheduler, ReduceLROnPlateau):
             # ReduceLROnPlateau scheduler takes metrics during its step call
@@ -257,19 +279,18 @@ class ClassifierTrainer(BaseTrainer):
             self.logger.info(log_message)
         if self.config["trainer"]["use_tensorboard"]:
             self.tboard_writer.add_scalar("Loss/validation/epoch", val_loss, self.current_epoch)
+        return val_accuracy
 
     def test(self, weight_path: str | None = None) -> None:
         """Main test function
         args:
-            weight_path: Path to pth weight file that will be loaded for test
-                         Default is set to None which uses latest chkpt weight file
+            weight_path: checkpoint to test, e.g. models/best.pth. None tests the current weights
         """
         self.logger.info("Testing model...\n")
         test_start_tm = time.perf_counter()
 
         if weight_path is not None:
-            print(f"Loading new checkpoint from {weight_path} for testing")
-            self.model = self.load_checkpoint(self.model, weight_path)
+            self.model.load_state_dict(self.load_checkpoint(weight_path)["model"])
         if self.test_data_loader is None:
             raise NotImplementedError("test_data_loader is None or missing.test_path might not have been set")
 
@@ -312,8 +333,7 @@ class ClassifierTrainer(BaseTrainer):
             source_path: str
         """
         if weight_path is not None:
-            print("Loading new checkpoint for inferencing")
-            self.model = self.load_checkpoint(self.model, weight_path)
+            self.model.load_state_dict(self.load_checkpoint(weight_path)["model"])
         self.model.eval()
 
         image_list = []

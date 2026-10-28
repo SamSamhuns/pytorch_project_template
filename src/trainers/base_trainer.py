@@ -1,15 +1,13 @@
 """Base Trainer
-Implements logging torch device setup, save & load checkpoint,
+Implements logging torch device setup, checkpoint loading,
 tensorboard logging, dataset and dataloader inits
 """
 
-import os
 import os.path as osp
 from abc import ABC, abstractmethod
 
 import numpy as np
 import torch
-from torch import nn
 from torch.utils.data import Subset
 from torch.utils.tensorboard import SummaryWriter
 
@@ -38,32 +36,18 @@ class _BaseTrainer(ABC):
         self.device = torch.device(device)
         self.logger.info("Program will run on %s", self.device)
 
-    def load_checkpoint(self, model: nn.Module, file_path: str) -> nn.Module:
-        """Load checkpoint for model from file_path
-        args:
-            model: model whose weights are loaded from file_path
-            file_path: path to a checkpoint file with only weights, e.g. models/best.pth
+    def load_checkpoint(self, file_path: str) -> dict:
+        """Load a checkpoint saved by save_checkpoint, e.g. models/best.pth, onto the CPU.
+        It holds the model, optimizer and scheduler state dicts, the epoch and best_val_acc.
         """
         if not osp.isfile(file_path):
             msg = f"'{file_path}' is not a checkpoint file. Pass one, e.g. .../models/best.pth"
             self.logger.error(msg)
             raise ValueError(msg)
 
-        state_dict = torch.load(file_path, map_location="cpu", weights_only=True)
-        model.load_state_dict(state_dict)
+        checkpoint = torch.load(file_path, map_location="cpu", weights_only=True)
         self.logger.info("Loaded checkpoint %s", file_path)
-        return model
-
-    def save_checkpoint(self, model: nn.Module, ckpt_save_name: str = "checkpoint.pth") -> str:
-        """Checkpoint saver, returns the saved path
-        args:
-            ckpt_save_name: checkpoint file name which is saved inside self.config["models_dir"]
-        """
-        # create checkpoint directory if it doesnt exist
-        os.makedirs(self.config["models_dir"], exist_ok=True)
-        save_path = osp.join(str(self.config["models_dir"]), ckpt_save_name)
-        torch.save(model.state_dict(), save_path)
-        return save_path
+        return checkpoint
 
     @abstractmethod
     def train(self):

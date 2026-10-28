@@ -78,16 +78,38 @@ def test_pretrained_weights_survive_trainer_init(clsf_trainer_and_logger):
 
 
 def test_best_checkpoint_keeps_highest_val_accuracy(clsf_trainer_and_logger, mocker):
-    """Val accuracies 90% -> 50% -> 60% must save best.pth once, for the 90%"""
+    """Val accuracies 90% -> 50% -> 60% must save best.pth once, in the first epoch"""
     trainer, _ = clsf_trainer_and_logger
+    trainer.config["trainer"]["epochs"] = 3
+    trainer.config["trainer"]["valid_freq"] = 1
+    mocker.patch.object(trainer, "train_one_epoch")
+    mocker.patch.object(trainer, "validate", side_effect=[90.0, 50.0, 60.0])
     save_checkpoint = mocker.patch.object(trainer, "save_checkpoint")
-    y_true = np.zeros(10, dtype=int)
-    for n_wrong in [1, 5, 4]:
-        y_pred = (np.arange(10) < n_wrong).astype(int)
-        mocker.patch.object(trainer, "eval_one_epoch", return_value=(0.5, y_true, y_pred.astype(float), y_pred))
-        trainer.validate()
 
-    save_checkpoint.assert_called_once_with(trainer.model, "best.pth")
+    trainer.train()
+
+    saved = [call.args[0] for call in save_checkpoint.call_args_list]
+    assert saved == ["best.pth", "last.pth", "last.pth", "last.pth"]
+    assert trainer.best_val_acc == 90.0
+
+
+def test_resume_continues_where_training_stopped(mock_clsf_config: CustomDictConfig, mocker):
+    """Resuming from last.pth restores the epoch, the optimizer state and the LR schedule"""
+    mocker.patch("logging.getLogger")
+    mock_clsf_config["trainer"]["epochs"] = 2
+    mock_clsf_config["lr_scheduler"] = {"type": "CosineAnnealingLR", "args": {"T_max": 4}, "warmup_epochs": 1}
+    trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="resume_logger")
+    trainer.train()
+
+    mock_clsf_config["trainer"]["resume_checkpoint"] = osp.join(mock_clsf_config["models_dir"], "last.pth")
+    resumed = ClassifierTrainer(config=mock_clsf_config, logger_name="resume_logger")
+
+    assert resumed.current_epoch == 3
+    assert resumed.optimizer.param_groups[0]["lr"] == trainer.optimizer.param_groups[0]["lr"]
+    assert resumed.scheduler.state_dict() == trainer.scheduler.state_dict()
+    momentum = [state["momentum_buffer"] for state in trainer.optimizer.state.values()]
+    resumed_momentum = [state["momentum_buffer"] for state in resumed.optimizer.state.values()]
+    assert all(torch.equal(a, b) for a, b in zip(momentum, resumed_momentum, strict=True))
 
 
 def test_eval_loss_is_mean_over_samples(clsf_trainer_and_logger):
@@ -132,7 +154,8 @@ def test_compiled_checkpoint_loads_into_plain_model(mock_clsf_config: CustomDict
     trainer.train()
 
     plain_model = init_model("ClassifierModel", **mock_clsf_config["model"]["args"])
-    plain_model.load_state_dict(torch.load(osp.join(mock_clsf_config["models_dir"], "last.pth"), weights_only=True))
+    checkpoint = torch.load(osp.join(mock_clsf_config["models_dir"], "last.pth"), weights_only=True)
+    plain_model.load_state_dict(checkpoint["model"])
 
 
 def test_validate_method(mock_clsf_config: CustomDictConfig, mocker):

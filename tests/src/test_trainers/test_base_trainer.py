@@ -27,30 +27,20 @@ def test_load_checkpoint_not_found(base_trainer_and_logger, mock_logger):
     """Test invalid load checkpoint"""
     trainer, _ = base_trainer_and_logger
     with pytest.raises(ValueError):
-        trainer.load_checkpoint(torch.tensor([1]), "nonexistent_path")
+        trainer.load_checkpoint("nonexistent_path")
         mock_logger.error.assert_called()
-
-
-def test_save_checkpoint(base_trainer_and_logger, mocker):
-    """Test successful save checkpoint"""
-    mock_torch_save = mocker.patch("torch.save")
-    model_mock = mocker.Mock()
-    trainer, _ = base_trainer_and_logger
-    trainer.save_checkpoint(model_mock)
-    mock_torch_save.assert_called_once()
 
 
 def test_load_checkpoint_success(base_trainer_and_logger, mocker):
     """Test successful load checkpoint"""
     trainer, m = base_trainer_and_logger
     mocker.patch("os.path.isfile", return_value=True)
-    mocker.patch("torch.load", return_value={"state_dict": mocker.Mock()})
-    model_mock = mocker.Mock()
+    mocker.patch("torch.load", return_value={"model": {}, "epoch": 3})
 
-    trainer.load_checkpoint(model_mock, "fake_checkpoint_path.pth")
+    checkpoint = trainer.load_checkpoint("fake_checkpoint_path.pth")
     info_calls = [call.args for call in m.return_value.info.call_args_list]
 
-    model_mock.load_state_dict.assert_called()
+    assert checkpoint == {"model": {}, "epoch": 3}
     assert ("Loaded checkpoint %s", "fake_checkpoint_path.pth") in info_calls
 
 

@@ -44,6 +44,9 @@ Example training for mnist digit classification:
 
 ```shell
 python train.py --cfg configs/mnist_config.yaml
+
+# resume a run from its last checkpoint: weights, optimizer, LR schedule and epoch
+python train.py --cfg configs/mnist_config.yaml -r checkpoints/mnist_image_classifier/RUN_ID/models/last.pth
 ```
 
 ## Custom Training
