@@ -34,7 +34,7 @@ def classifier_model_params():
         "backbone": "mobilenet_v2",
         "num_classes": 10,
         "feat_extract": False,
-        "pretrained_weights": "MobileNet_V2_Weights.IMAGENET1K_V1",
+        "pretrained_weights": None,  # no download; the weights don't change the shapes
     }
 
 
