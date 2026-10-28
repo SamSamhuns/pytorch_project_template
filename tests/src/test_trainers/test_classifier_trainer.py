@@ -8,7 +8,7 @@ import torchvision
 
 from src.config_parser import CustomDictConfig
 from src.metrics import calc_metric
-from src.models import init_model
+from src.models import MODELS
 from src.trainers import ClassifierTrainer
 from tests.conftest import NUM_CLS
 
@@ -155,7 +155,7 @@ def test_compiled_checkpoint_loads_into_plain_model(mock_clsf_config: CustomDict
     mocker.patch.object(trainer, "train_one_epoch")  # train() still compiles and saves last.pth
     trainer.train()
 
-    plain_model = init_model("torchvision_classifier", **mock_clsf_config["model"]["args"])
+    plain_model = MODELS["torchvision_classifier"](**mock_clsf_config["model"]["args"])
     checkpoint = torch.load(osp.join(mock_clsf_config["models_dir"], "last.pth"), weights_only=True)
     plain_model.load_state_dict(checkpoint["model"])
 

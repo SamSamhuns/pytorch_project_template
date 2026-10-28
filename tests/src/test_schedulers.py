@@ -3,13 +3,13 @@ import torch
 from omegaconf import OmegaConf
 from torch.optim import SGD
 
-from src.schedulers import init_scheduler
+from src.trainers import build_scheduler
 
 
 def lrs_per_epoch(scheduler_cfg: dict, epochs: int) -> list[float]:
     """The LR each epoch trains with, for a base LR of 1"""
     optimizer = SGD(torch.nn.Linear(2, 2).parameters(), lr=1.0)
-    scheduler = init_scheduler(optimizer, OmegaConf.create(scheduler_cfg))
+    scheduler = build_scheduler(optimizer, OmegaConf.create(scheduler_cfg))
     lrs = []
     for _ in range(epochs):
         lrs.append(optimizer.param_groups[0]["lr"])

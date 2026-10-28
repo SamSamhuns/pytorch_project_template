@@ -8,18 +8,30 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import tqdm
+from omegaconf import DictConfig
+from torch import nn
+from torch.optim import Optimizer, lr_scheduler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
 
 from src.config_parser import CustomDictConfig
-from src.losses import init_loss
 from src.metrics import calc_metric, plot_metric
-from src.models import init_model
-from src.optimizers import init_optimizer
-from src.schedulers import init_scheduler
-from src.trainers import BaseTrainer
+from src.models import MODELS
+from src.trainers.base_trainer import BaseTrainer
 from src.utils.custom_statistics import get_model_params
+
+
+def build_scheduler(optimizer: Optimizer, cfg: DictConfig) -> lr_scheduler.LRScheduler:
+    """Build any scheduler in torch.optim.lr_scheduler from cfg.type and cfg.args.
+    With cfg.warmup_epochs, the LR first climbs linearly from 10% to 100% (not with ReduceLROnPlateau).
+    """
+    scheduler = getattr(lr_scheduler, cfg["type"])(optimizer, **cfg["args"])
+    warmup_epochs = cfg.get("warmup_epochs", 0)
+    if warmup_epochs:
+        warmup = lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=warmup_epochs)
+        scheduler = lr_scheduler.SequentialLR(optimizer, [warmup, scheduler], milestones=[warmup_epochs])
+    return scheduler
 
 
 class ClassifierTrainer(BaseTrainer):
@@ -29,7 +41,7 @@ class ClassifierTrainer(BaseTrainer):
         super().__init__(config, logger_name)
 
         # define models
-        self.model = init_model(self.config["model"]["type"], **self.config["model"]["args"])
+        self.model = MODELS[self.config["model"]["type"]](**self.config["model"]["args"])
         self.logger.info("Model info: %s", get_model_params(self.model))
 
         # resume from a checkpoint, if given
@@ -41,14 +53,11 @@ class ClassifierTrainer(BaseTrainer):
             self.logger.info("Training will be done from scratch")
         self.model = self.model.to(self.device)
 
-        # define loss and instantiate it
-        self.loss = init_loss(self.config["loss"]["type"], **self.config["loss"]["args"]).to(self.device)
-        # define optimizer
-        self.optimizer = init_optimizer(
-            self.config["optimizer"]["type"], **self.config["optimizer"]["args"], params=self.model.parameters()
-        )
-        # define lr scheduler
-        self.scheduler = init_scheduler(self.optimizer, self.config["lr_scheduler"])
+        # the loss, optimizer and LR scheduler are torch's own, named in the config, e.g. CrossEntropyLoss and SGD
+        self.loss = getattr(nn, self.config["loss"]["type"])(**self.config["loss"]["args"]).to(self.device)
+        optimizer_cfg = self.config["optimizer"]
+        self.optimizer = getattr(torch.optim, optimizer_cfg["type"])(self.model.parameters(), **optimizer_cfg["args"])
+        self.scheduler = build_scheduler(self.optimizer, self.config["lr_scheduler"])
         # best.pth is saved whenever the val accuracy beats best_val_acc
         self.best_val_acc = float("-inf")
         self.best_checkpoint_path = None  # set once this run saves a best.pth
