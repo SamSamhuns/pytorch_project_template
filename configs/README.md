@@ -10,11 +10,10 @@ An example Configuration file is provided at `classifier_cpu_config.yaml`
 experiment_name: image_classifier  # Name of experiment, name of the dir for saving logs, metrics & models
 save_dir: checkpoints  # Directory to save checkpoints and logs
 git_hash: null  # Git hash for version control, set during runs
-mode: TRAIN  # Mode: TRAIN or TEST
 seed: 42  # Random seed for reproducibility
 reproducible: true  # Sets cudnn benchmark to false and deterministic mode to true
 device: cuda  # Device to run the model on (cuda or cpu)
-gpu_device:  # List of GPU devices to use
+gpu_device:  # GPU device to use, as a one-item list (only one GPU is supported)
 - 0
 use_amp: true  # Use automatic mixed precision for faster training and lower memory usage
 torch_compile_model: false  # Compile the PyTorch model for optimized performance
@@ -24,10 +23,8 @@ quant_backend: null  # Quantization mode, used only in export
 trainer:
   type: ClassifierTrainer  # Trainer type (classification tasks)
   resume_checkpoint: null  # Path to checkpoint for resuming training
-  save_best_only: true  # Save only the best checkpoint based on validation metrics
   batch_log_freq: 5  # Logging frequency within an epoch
-  weight_save_freq: 5  # Frequency of saving model weights across epochs
-  valid_freq: 2  # Frequency of validation during training
+  valid_freq: 2  # Validate every N epochs; best.pth is saved when val accuracy improves, last.pth every epoch
   epochs: 12  # Number of training epochs
   verbosity: 2  # Verbosity level of training logs
   use_tensorboard: true  # Enable TensorBoard logging
@@ -38,7 +35,7 @@ model:
   type: ClassifierModel  # Model type
   args:
     backbone: mobilenet_v2  # Backbone network for feature extraction
-    feat_extract: false  # If true, freezes backbone layers and trains only the classifier head
+    feat_extract: false  # If true, the last Linear layer becomes Identity and the model returns features, not class scores
     num_classes: 20  # Number of output classes
     pretrained_weights: MobileNet_V2_Weights.IMAGENET1K_V1  # Pretrained weights to initialize the backbone
   info:
@@ -71,7 +68,6 @@ dataloader:
     validation_split: 0.0  # Fraction of data to use for validation
     drop_last: false  # Drop the last incomplete batch
     pin_memory: true  # Enable pinned memory for faster data transfer to GPU
-    prefetch_factor: 2  # Number of samples preloaded by each worker
     worker_init_fn: null  # Custom initialization function for workers
 
 # Optimizer configuration

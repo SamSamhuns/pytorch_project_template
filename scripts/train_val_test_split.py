@@ -46,7 +46,7 @@ def split_train_test(RAW_IMG_DIR: str, PROCESSED_IMG_DIR: str, VAL_SPLIT: float,
     os.makedirs(train_dir, exist_ok=True)
 
     if VAL_SPLIT is not None:
-        val_dir = os.path.join(PROCESSED_IMG_DIR, "val")
+        val_dir = os.path.join(PROCESSED_IMG_DIR, "valid")  # the val_path used in configs/
         os.makedirs(val_dir, exist_ok=True)
     if TEST_SPLIT is not None:
         test_dir = os.path.join(PROCESSED_IMG_DIR, "test")
@@ -55,15 +55,16 @@ def split_train_test(RAW_IMG_DIR: str, PROCESSED_IMG_DIR: str, VAL_SPLIT: float,
     # fix path for globbing
     if not RAW_IMG_DIR.endswith(('/', '*')):
         RAW_IMG_DIR += '/'
-    dir_list = glob.glob(RAW_IMG_DIR + '*')
+    # sorted, so the same seed gives the same split on every filesystem
+    dir_list = sorted(glob.glob(RAW_IMG_DIR + '*'))
 
     # for each class in raw data
     for i in tqdm(range(len(dir_list))):
         directory = dir_list[i]                # get path to class directory
         class_name = directory.split("/")[-1]  # get class name
 
-        f_list = [file for file in glob.glob(directory + "/*")
-                  if file.split(".")[-1] in VALID_FILE_EXTS]
+        f_list = [file for file in sorted(glob.glob(directory + "/*"))
+                  if file.split(".")[-1].lower() in VALID_FILE_EXTS]
         random.shuffle(f_list)
 
         train = []

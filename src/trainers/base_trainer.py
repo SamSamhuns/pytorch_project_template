@@ -5,24 +5,21 @@ tensorboard logging, dataset and dataloader inits
 import os
 import os.path as osp
 from abc import ABC, abstractmethod
-from collections import OrderedDict
 
 import numpy as np
 import torch
 import tqdm
-from omegaconf import OmegaConf
 from tensorboard import program
 from torch import nn
 from torch.utils.data import Subset
 from torch.utils.tensorboard import SummaryWriter
-from torchvision.transforms.transforms import Normalize
 
 from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
 from src.dataloaders import init_dataloader
 from src.datasets import init_dataset
 from src.loggers import get_logger
-from src.utils.common import BColors, find_latest_file_in_dir, is_port_in_use, recursively_flatten_config
+from src.utils.common import BColors, is_port_in_use, recursively_flatten_config
 from src.utils.export_utils import (
     ONNXDynamoExportStrategy,
     ONNXTSExportStrategy,
@@ -52,11 +49,10 @@ class _BaseTrainer(ABC):
         # set cuda devices if cuda available & gpu_dev set or use cpu
         self.cuda = is_cuda and (gpu_dev not in (None, []))
         if self.cuda:
-            if len(gpu_dev) > 1 and torch.cuda.device_count() == 1:
-                msg = f"Multi-gpu device ({gpu_dev}) set, but only one GPU avai."
+            if len(gpu_dev) > 1:
+                msg = f"Only single-GPU training is supported, but gpu_device is {gpu_dev}"
                 self.logger.error(msg)
                 raise ValueError(msg)
-            # for dataparallel, only gpu_dev[0] can be specified
             self.device = torch.device("cuda", gpu_dev[0])
             self.logger.info("Program will run on GPU device %s", self.device)
         else:
@@ -68,41 +64,20 @@ class _BaseTrainer(ABC):
         """Load checkpoint for model from file_path
         args:
             model: model whose weights are loaded from file_path
-            file_path: file_path to checkpoint file/folder with only weights,
-                  if folder is used, latest checkpoint having extension "ext" is loaded
+            file_path: path to a checkpoint file with only weights, e.g. models/best.pth
         """
-        ckpt_file = None
-        if osp.isfile(file_path):
-            ckpt_file = file_path
-        elif osp.isdir(file_path):
-            ckpt_file = find_latest_file_in_dir(file_path, ext="pth")
-        if ckpt_file is None:
-            msg = f"'{file_path}' is not a torch weight file or a dir containing one."
+        if not osp.isfile(file_path):
+            msg = f"'{file_path}' is not a checkpoint file. Pass one, e.g. .../models/best.pth"
             self.logger.error(msg)
             raise ValueError(msg)
 
-        wts_only = True
-        state_dict = torch.load(ckpt_file, weights_only=wts_only) if self.cuda else torch.load(
-            ckpt_file, map_location=torch.device("cpu"), weights_only=wts_only)
-
-        # rename keys for dataparallel mode
-        use_cuda = self.config["device"] == "cuda"
-        gpu_dev = self.config["gpu_device"]
-        if (use_cuda and gpu_dev and len(gpu_dev) > 1 and torch.cuda.device_count() > 1):
-            _state_dict = OrderedDict()
-            for k, val in state_dict.items():
-                k = "module." + \
-                    k if "module" not in k else k.replace(
-                        "features.module.", "module.features.")
-                _state_dict[k] = val
-            state_dict = _state_dict
-
+        state_dict = torch.load(file_path, map_location="cpu", weights_only=True)
         model.load_state_dict(state_dict)
-        self.logger.info("Loaded checkpoint %s", ckpt_file)
+        self.logger.info("Loaded checkpoint %s", file_path)
         return model
 
-    def save_checkpoint(self, model: nn.Module, ckpt_save_name: str = "checkpoint.pth") -> None:
-        """Checkpoint saver
+    def save_checkpoint(self, model: nn.Module, ckpt_save_name: str = "checkpoint.pth") -> str:
+        """Checkpoint saver, returns the saved path
         args:
             ckpt_save_name: checkpoint file name which is saved inside self.config["models_dir"]
         """
@@ -110,6 +85,7 @@ class _BaseTrainer(ABC):
         os.makedirs(self.config["models_dir"], exist_ok=True)
         save_path = osp.join(str(self.config["models_dir"]), ckpt_save_name)
         torch.save(model.state_dict(), save_path)
+        return save_path
 
     @abstractmethod
     def train(self):
@@ -154,11 +130,6 @@ class BaseTrainer(_BaseTrainer):
             msg = f"If val_path {val_path} is not None, val_split({val_split}) must be 0"
             self.logger.error(msg)
             raise ValueError(msg)
-        # check if val_metrics present when save_best_only is True
-        if self.config["trainer"]["save_best_only"] and not self.config["metrics"]["val"]:
-            msg = "val metrics must be present to save best model"
-            self.logger.error(msg)
-            raise ValueError(msg)
 
         # ############### define dataset & dataloaders ################
         self.data_set = init_dataset(
@@ -171,19 +142,6 @@ class BaseTrainer(_BaseTrainer):
                 self.config["dataset"]["preprocess"]["test_transform"]).test,
             **self.config["dataset"]["args"]
         )
-
-        # update train+test transforms in config and save to YAML file
-        train_tfs = self.data_set.train_transform
-        test_tfs = self.data_set.test_transform
-        self.config["dataset"]["args"]["train_tfs"] = [str(tfs) for tfs in train_tfs.transforms]
-        self.config["dataset"]["args"]["test_tfs"] = [str(tfs) for tfs in test_tfs.transforms]
-        normalize = [tfs for tfs in train_tfs.transforms if isinstance(tfs, Normalize)]
-        self.config["dataset"]["args"]["mean"] = normalize[0].mean
-        self.config["dataset"]["args"]["std"] = normalize[0].std
-        _config = dict(self.config)
-        # save updated config to YAML file
-        save_root = osp.join(self.config["save_dir"], self.config["experiment_name"], self.config["run_id"])
-        OmegaConf.save(_config, osp.join(save_root, "config.yaml"))
 
         # log numerized remapped labels if present
         if self.config.verbose and hasattr(self.data_set, "labels2idx"):

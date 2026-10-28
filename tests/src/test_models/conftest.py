@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from src.models import BaseModel, CustomModel, MnistModel
+from src.models import CustomModel, MnistModel
 
 
 @pytest.fixture(params=[
@@ -14,12 +14,6 @@ def device(request):
 @pytest.fixture(params=[torch.float32])
 def dtype(request):
     return request.param
-
-
-@pytest.fixture
-def base_model():
-    """Instance of BaseModel."""
-    return BaseModel()
 
 
 @pytest.fixture

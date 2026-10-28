@@ -5,11 +5,10 @@ import os.path as osp
 import imageio.v2 as imageio
 import torchvision.utils as v_utils
 import webdataset as wds
-from torchvision.transforms.transforms import Compose, Normalize
+from torchvision.transforms import Compose
 
 from src.datasets import base_dataset
-from src.utils.common import add_tfms, identity
-from src.utils.custom_statistics import get_img_dset_mean_std
+from src.utils.common import identity
 
 
 def _get_webdataset_len(data_path) -> int:
@@ -62,17 +61,6 @@ class ClassifierDataset:
         self.test_set = None
         if data_mode == "imgs":
             train_root = osp.join(root, train_path)
-            # add normalization transforms if not present
-            if not any(isinstance(t, Normalize) for t in train_transform.transforms):
-                _temp_train_set = base_dataset.ImageFolderDataset(
-                    train_root, transforms=train_transform)
-                print("Normalization tfms not found. Calculating mean and std for the dataset.")
-                mean, std = get_img_dset_mean_std(_temp_train_set, method="online")
-                normalize = Normalize(mean.tolist(), std.tolist())
-                train_transform = add_tfms(train_transform, normalize)
-                val_transform = add_tfms(val_transform, normalize)
-                test_transform = add_tfms(test_transform, normalize)
-
             self.train_set = base_dataset.ImageFolderDataset(
                 train_root, transforms=train_transform)
             if val_path is not None:
@@ -83,19 +71,14 @@ class ClassifierDataset:
                 test_root = osp.join(root, test_path)
                 self.test_set = base_dataset.ImageFolderDataset(
                     test_root, transforms=test_transform)
+            # class indices come from the sorted class dirs, so every split needs the same dirs
+            for split in (self.val_set, self.test_set):
+                if split is not None and split.classes != self.train_set.classes:
+                    raise ValueError(f"Classes in {split.root} {split.classes} "
+                                     f"differ from the train classes {self.train_set.classes}")
         elif data_mode == "webdataset":
             train_root = osp.join(root, train_path)
             train_len = _get_webdataset_len(train_root)
-            # add normalization transforms if not present
-            if not any(isinstance(t, Normalize) for t in train_transform.transforms):
-                _temp_train_set = _get_webdataset(train_root, train_transform, train_len)
-                print("Normalization tfms not found. Calculating mean and std for the dataset.")
-                mean, std = get_img_dset_mean_std(_temp_train_set, method="online")
-                normalize = Normalize(mean.tolist(), std.tolist())
-                train_transform = add_tfms(train_transform, normalize)
-                val_transform = add_tfms(val_transform, normalize)
-                test_transform = add_tfms(test_transform, normalize)
-
             self.train_set = _get_webdataset(train_root, train_transform, train_len)
             if val_path is not None:
                 val_root = osp.join(root, val_path)
@@ -111,9 +94,6 @@ class ClassifierDataset:
         else:
             raise NotImplementedError(
                 f"{data_mode} data_mode is not supported. Available modes are: imgs, webdataset")
-        self.train_transform = train_transform
-        self.val_transform = val_transform
-        self.test_transform = test_transform
 
     def plot_samples_per_epoch(self, batch, epoch, out_dir):
         """Plotting the batch images

@@ -86,6 +86,21 @@ def test_validation_split_configuration(mock_clsf_config, mock_logger, val_path,
         assert trainer  # Check if the trainer is correctly instantiated without errors
 
 
+def test_webdataset_config(mock_clsf_config, mock_webdataset_path):
+    """The WebDataset loader must accept the args BaseTrainer passes, e.g. the seeded generator"""
+    dataset_args = mock_clsf_config["dataset"]["args"]
+    dataset_args["data_mode"] = "webdataset"
+    dataset_args["train_path"] = os.path.basename(mock_webdataset_path)
+    dataset_args["val_path"] = dataset_args["test_path"] = None
+    mock_clsf_config["dataloader"]["type"] = "WebDatasetDataLoader"
+    mock_clsf_config["dataloader"]["args"].pop("shuffle")  # WebDataset shuffles in the dataset
+    mock_clsf_config["dataloader"]["args"]["num_workers"] = 0
+
+    trainer = PatchedBaseTrainer(config=mock_clsf_config)
+    data, target = next(iter(trainer.train_data_loader))
+    assert len(data) == len(target) == mock_clsf_config["dataloader"]["args"]["batch_size"]
+
+
 def test_full_training_cycle(base_trainer_and_logger, mocker):
     """Integration testing for the full training cycle to ensure no exceptions
     and that basic calls are made.

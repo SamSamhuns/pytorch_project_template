@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from src.augmentations import init_transform
 from src.config_parser import CustomDictConfig
 from src.dataloaders import init_dataloader
-from src.datasets.base_dataset import IMG_EXTENSIONS
+from src.datasets.base_dataset import IMG_EXTENSIONS, is_file_ext_valid
 from src.losses import init_loss
 from src.metrics import calc_metric, plot_metric
 from src.models import init_model
@@ -49,18 +49,26 @@ class ClassifierTrainer(BaseTrainer):
         # define models
         self.model = init_model(
             self.config["model"]["type"], **model_args)
+        self.logger.info("Model info: %s", get_model_params(self.model))
+
+        # resume from a checkpoint, if given
+        resume_ckpt = self.config["trainer"]["resume_checkpoint"]
+        if resume_ckpt and self.config["mode"] == "TEST_TORCHSCRIPT":
+            self.model = torch.jit.load(resume_ckpt, map_location="cpu")
+            self.logger.info("Loaded checkpoint %s", resume_ckpt)
+        elif resume_ckpt:
+            self.model = self.load_checkpoint(self.model, resume_ckpt)
+        else:
+            self.logger.info("Training will be done from scratch")
+        self.model = self.model.to(self.device)
 
         # do not progress beyond for INFERENCE mode
         if config["mode"] in {"INFERENCE"}:
-            self.model = self.model.to(self.device)
-            if self.config.resume_checkpoint:
-                self.model = self.load_checkpoint(
-                    self.model, self.config.resume_checkpoint)
             return
 
         # define loss and instantiate it
         self.loss = init_loss(
-            self.config["loss"]["type"], **self.config["loss"]["args"])
+            self.config["loss"]["type"], **self.config["loss"]["args"]).to(self.device)
         # define optimizer
         self.optimizer = init_optimizer(
             self.config["optimizer"]["type"], **self.config["optimizer"]["args"],
@@ -69,54 +77,12 @@ class ClassifierTrainer(BaseTrainer):
         self.scheduler = init_scheduler(
             self.config["lr_scheduler"]["type"], **self.config["lr_scheduler"]["args"],
             optimizer=self.optimizer)
-        # initialize metrics dict
-        self.best_val_metric_dict = {
-            metric: [] for metric in self.config["metrics"]["val"]}
+        # best.pth is saved whenever the val accuracy beats best_val_acc
+        self.best_val_acc = float("-inf")
+        self.best_checkpoint_path = None  # set once this run saves a best.pth
         # initialize counter
         self.current_epoch = 1
         self.current_iteration = 0
-
-        # use multi-gpu if cuda available and multi-dev set with gpu_device
-        gpu_device = self.config["gpu_device"]
-        gpu_device = [gpu_device] if isinstance(gpu_device, int) else gpu_device
-        if self.cuda and len(gpu_device) > 1 and torch.cuda.device_count() > 1:
-            self.model = torch.nn.DataParallel(self.model, device_ids=gpu_device)
-
-        # load model and loss to device
-        self.model = self.model.to(self.device)
-        self.loss = self.loss.to(self.device)
-        # handle param logging and weight init for DataParallel
-        if isinstance(self.model, torch.nn.DataParallel):
-            self.logger.info("Model info: %s", get_model_params(self.model.module))
-            try:
-                self.model.module.initialize_weights(method="he")
-            except AttributeError as err:
-                self.logger.warning("%s", err)
-        else:
-            self.logger.info("Model info: %s", get_model_params(self.model))
-            try:
-                self.model.initialize_weights(method="he")
-            except AttributeError as err:
-                self.logger.warning("%s", err)
-        if self.config["torch_compile_model"]:
-            self.logger.info("Using torch compile mode")
-            self.model = torch.compile(self.model)
-
-        resume_ckpt: str = None
-        # resume from checkpoint if resume_checkpoint is not None
-        if self.config["trainer"]["resume_checkpoint"] is not None:
-            resume_ckpt = self.config["trainer"]["resume_checkpoint"]
-
-        # resume from ckpt if resume_ckpt is not None
-        if resume_ckpt:
-            if self.config["mode"] == "TEST_TORCHSCRIPT":
-                self.model = torch.jit.load(resume_ckpt).to(self.device)
-                self.logger.info("Loaded checkpoint %s", resume_ckpt)
-            else:  # default to pytorch
-                self.model = self.load_checkpoint(self.model,  resume_ckpt)
-        # else load from scratch
-        else:
-            self.logger.info("Training will be done from scratch")
 
     def train_one_epoch(self) -> None:
         """One epoch of training
@@ -144,7 +110,8 @@ class ClassifierTrainer(BaseTrainer):
             with autocast("cuda") if self.config["use_amp"] else nullcontext():
                 output = self.model(data).squeeze(-1)
                 loss = self.loss(output, target)
-            cum_train_loss += loss.item()
+            # loss is the batch mean, so weight it by the batch size
+            cum_train_loss += loss.item() * data.size(0)
             # get the index of the max log-probability
             if loss_type in {"BCELoss", "BCEWithLogitsLoss"}:
                 pred = (F.sigmoid(output) >= 0.5).to(int)
@@ -203,8 +170,10 @@ class ClassifierTrainer(BaseTrainer):
                                           self.optimizer.param_groups[0]["lr"],
                                           self.current_epoch)
 
-    def eval_one_epoch(self, data_loader: DataLoader) -> tuple[float, list[int], list[float], list[int]]:
-        """Evaluate model on one epoch with the given dataloader
+    def eval_one_epoch(self, data_loader: DataLoader) -> tuple[float, np.ndarray, np.ndarray, np.ndarray]:
+        """Evaluate model on one epoch with the given dataloader.
+        Returns the mean loss, y_true, y_score and y_pred.
+        y_score is P(class 1) for binary models and the class probabilities otherwise.
         """
         self.model.eval()
         cumu_test_loss = 0
@@ -216,14 +185,17 @@ class ClassifierTrainer(BaseTrainer):
                 target = target.to(self.device, non_blocking=True)
                 target = target.float() if loss_type in {"BCELoss", "BCEWithLogitsLoss"} else target
                 output = self.model(data).squeeze(-1)
-                # sum up batch loss
-                cumu_test_loss += self.loss(output, target).item()
-                # get the log-probability (proba) & index of the max log-probability (preds)
+                # sum up batch loss (the loss is the batch mean, so weight it by the batch size)
+                cumu_test_loss += self.loss(output, target).item() * data.size(0)
+                # get the class probabilities (proba) & the predicted class (pred)
                 if loss_type in {"BCELoss", "BCEWithLogitsLoss"}:
                     proba = F.sigmoid(output)
                     pred = (proba >= 0.5).to(int)
                 else:
-                    proba, pred = F.softmax(output, dim=1).max(1)
+                    proba = F.softmax(output, dim=1)
+                    pred = proba.argmax(dim=1)
+                    if proba.shape[1] == 2:  # binary: roc/pr/calibration take P(class 1)
+                        proba = proba[:, 1]
 
                 y_true.append(target)
                 y_score.append(proba)
@@ -232,11 +204,15 @@ class ClassifierTrainer(BaseTrainer):
         y_score = torch.concat(y_score).cpu().numpy()
         y_pred = torch.concat(y_pred).cpu().numpy()
 
-        return cumu_test_loss, y_true, y_score, y_pred
+        return cumu_test_loss / len(y_true), y_true, y_score, y_pred
 
     def train(self) -> None:
         """Main training function with loop
         """
+        if self.config["torch_compile_model"]:
+            self.logger.info("Using torch compile mode")
+            # compiles in place, so state_dict keys stay the same as the uncompiled model's
+            self.model.compile()
         train_start_tm = time.perf_counter()
         epochs = self.config["trainer"]["epochs"]
         self.logger.info("Starting training...")
@@ -244,7 +220,7 @@ class ClassifierTrainer(BaseTrainer):
             self.train_one_epoch()
             if epoch % self.config["trainer"]["valid_freq"] == 0:
                 if self.val_data_loader is not None:
-                    self.validate()
+                    self.validate()  # also saves best.pth when the val accuracy improves
             # scheduler.step should be called after validate()
             if isinstance(self.scheduler, (ReduceLROnPlateau, OneCycleLR)):
                 # ReduceLROnPlateau takes metrics during its step call (inside validate())
@@ -254,17 +230,7 @@ class ClassifierTrainer(BaseTrainer):
             else:
                 self.scheduler.step()
 
-            # save trained model checkpoint
-            if self.config["trainer"]["save_best_only"]:
-                for metric in self.config["metrics"]["val"]:
-                    mlist = self.best_val_metric_dict[metric]
-                    # save if 1 or 0 metrics present or if metric is better than previous best
-                    if (len(mlist) <= 1 or
-                        (metric == "loss" and mlist[-1][1] < mlist[-2][1]) or
-                            (metric == "accuracy_score" and mlist[-1][1] > mlist[-2][1])):
-                        self.save_checkpoint(self.model, "best.pth")
-            elif epoch % self.config["trainer"]["weight_save_freq"] == 0:
-                self.save_checkpoint(self.model, f"checkpoint_{epoch}.pth")
+            self.save_checkpoint(self.model, "last.pth")
             self.current_epoch += 1
         train_end_tm = time.perf_counter()
         train_tm = train_end_tm - train_start_tm
@@ -278,24 +244,13 @@ class ClassifierTrainer(BaseTrainer):
         """
         val_start_tm = time.perf_counter()
 
-        cumu_val_loss, y_true, y_score, y_pred = self.eval_one_epoch(
+        val_loss, y_true, y_score, y_pred = self.eval_one_epoch(
             self.val_data_loader)
+        val_accuracy = 100. * (y_true == y_pred).mean()
 
-        if self.data_set.val_set:
-            val_size = len(self.data_set.val_set)
-        else:  # take val set size from sampler if data_set.val_set is None
-            val_size = len(self.val_data_loader.sampler.indices)
-        val_loss = cumu_val_loss / val_size
-        correct = sum(y_true == y_pred)
-        val_accuracy = 100. * correct / val_size
-
-        # add metrics to tracking best_val_metric_dict
-        if "accuracy_score" in self.best_val_metric_dict:
-            self.best_val_metric_dict["accuracy_score"].append(
-                [self.current_epoch, val_accuracy])
-        if "loss" in self.best_val_metric_dict:
-            self.best_val_metric_dict["loss"].append(
-                [self.current_epoch, val_loss])
+        if val_accuracy > self.best_val_acc:
+            self.best_val_acc = val_accuracy
+            self.best_checkpoint_path = self.save_checkpoint(self.model, "best.pth")
 
         if isinstance(self.scheduler, ReduceLROnPlateau):
             # ReduceLROnPlateau scheduler takes metrics during its step call
@@ -305,12 +260,12 @@ class ClassifierTrainer(BaseTrainer):
         metric_name_val_dict = {}
         for metric_name in self.config["metrics"]["val"]:
             if (metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"}
-                    and np.unique(y_true).size > 2):
-                continue  # dont plot roc_curve / calculate roc_auc_score for mult class clsf
+                    and y_score.ndim > 1):
+                continue  # binary-only metrics; multi-class y_score holds one column per class
             if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
                 if self.config.verbose:
                     self.logger.info("\tPlotting val %s", metric_name)
-                plot_metric(metric_name, y_true=y_true,  y_score=y_score, y_pred=y_pred,
+                plot_metric(metric_name, y_true=y_true, y_score=y_score,
                             savepath=os.path.join(self.config["logs_dir"], f"val_e{self.current_epoch}_{metric_name}.png"))
                 continue
             metric_val = calc_metric(
@@ -324,7 +279,7 @@ class ClassifierTrainer(BaseTrainer):
         val_end_tm = time.perf_counter()
         if self.config.verbose:
             self.logger.info("Validation set:")
-            self.logger.info("\tval time: %.3fs", (val_end_tm - val_end_tm))
+            self.logger.info("\tval time: %.3fs", (val_end_tm - val_start_tm))
             self.logger.info("\tavg loss: %.4f", val_loss)
             for metric_name, metric_val in metric_name_val_dict.items():
                 if metric_name in {"confusion_matrix", "classification_report"}:
@@ -359,11 +314,8 @@ class ClassifierTrainer(BaseTrainer):
             raise NotImplementedError("test_data_loader is None or missing."
                                       "test_path might not have been set")
 
-        cumu_test_loss, y_true, y_score, y_pred = self.eval_one_epoch(
+        test_loss, y_true, y_score, y_pred = self.eval_one_epoch(
             self.test_data_loader)
-
-        test_size = len(self.data_set.test_set)
-        test_loss = cumu_test_loss / test_size
 
         self.logger.info("Test set:")
         self.logger.info("\tAverage loss: %.4f", test_loss)
@@ -373,11 +325,11 @@ class ClassifierTrainer(BaseTrainer):
         # add all test metrics
         for metric_name in self.config["metrics"]["test"]:
             if (metric_name in {"roc_auc_score", "roc_curve", "pr_curve", "calibration_curve"}
-                and np.unique(y_true).size > 2):
-                continue  # dont plot roc_curve / calculate roc_auc_score for mult class clsf
+                    and y_score.ndim > 1):
+                continue  # binary-only metrics; multi-class y_score holds one column per class
             if metric_name in {"roc_curve", "pr_curve", "calibration_curve"}:
                 self.logger.info("\tPlotting %s", metric_name)
-                plot_metric(metric_name, y_true=y_true,  y_score=y_score, y_pred=y_pred,
+                plot_metric(metric_name, y_true=y_true, y_score=y_score,
                             savepath=os.path.join(self.config["logs_dir"], f"{metric_name}.png"))
                 continue
             metric_val = calc_metric(
@@ -407,9 +359,8 @@ class ClassifierTrainer(BaseTrainer):
         image_list = []
         if osp.isdir(source_path):
             fpaths = glob.glob(osp.join(source_path, "*"))
-            image_list = [path for path in fpaths if osp.splitext(
-                path)[-1] in IMG_EXTENSIONS]
-        elif osp.isfile(source_path) and osp.splitext(source_path)[-1] in IMG_EXTENSIONS:
+            image_list = [path for path in fpaths if is_file_ext_valid(path, IMG_EXTENSIONS)]
+        elif osp.isfile(source_path) and is_file_ext_valid(source_path, IMG_EXTENSIONS):
             image_list = [source_path]
         else:
             raise ValueError(
@@ -486,11 +437,8 @@ class ClassifierTrainer(BaseTrainer):
                 np.random.shuffle(feat_dataset.data[:, feat_idx, :])
             feat_imp_data_loader = init_dataloader(
                 self.config["dataloader"]["type"], dataset=feat_dataset, **data_ldr_args)
-            cumu_test_loss, y_true, y_score, y_pred = self.eval_one_epoch(
+            test_loss, y_true, y_score, y_pred = self.eval_one_epoch(
                 feat_imp_data_loader)
-
-            test_size = len(self.data_set.test_set)
-            test_loss = cumu_test_loss / test_size
 
             if feat_idx < num_feats:
                 self.logger.info(

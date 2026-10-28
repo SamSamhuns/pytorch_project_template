@@ -57,15 +57,8 @@ IMPLEMENTED_METRICS_PLOTS = {
 
 
 def plot_metric(metric_name: str, **kwargs) -> None:
-    """Plot the metric."""
+    """Plot the metric. Takes y_true, y_score and savepath."""
     try:
-        if metric_name in {
-                "roc_curve",
-                "pr_curve"}:
-            kwargs = {k: v for k, v in kwargs.items() if k != "y_score"}
-        elif metric_name in {
-                "calibration_curve"}:
-            kwargs = {k: v for k, v in kwargs.items() if k != "y_pred"}
         IMPLEMENTED_METRICS_PLOTS[metric_name](**kwargs)
     except KeyError as exc:
         raise NotImplementedError(

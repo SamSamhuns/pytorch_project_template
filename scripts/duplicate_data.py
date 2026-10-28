@@ -62,7 +62,7 @@ def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
         directory = dir_list[i]                # get path to class directory
         class_name = directory.split("/")[-1]  # get class name
         f_list = [file for file in sorted(glob.glob(directory + "/*"))
-                  if file.split(".")[-1] in VALID_FILE_EXTS]
+                  if file.split(".")[-1].lower() in VALID_FILE_EXTS]
 
         class_target_dir = osp.join(target_dir, class_name)
 
