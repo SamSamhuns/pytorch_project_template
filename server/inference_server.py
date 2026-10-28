@@ -26,7 +26,7 @@ def init_detectors(models_param_dict: dict, device: str | None = "0"):
     return models_dict
 
 
-def init_single_detector(f_config: str, f_checkpoint: str, device: str | None="0", inf_type: str = "pytorch"):
+def init_single_detector(f_config: str, f_checkpoint: str, device: str | None = "0", inf_type: str = "pytorch"):
     """Args:
     f_config: str = path to YAML config file
     f_checkpoint: str = path to checkpoint .pth file
@@ -38,8 +38,10 @@ def init_single_detector(f_config: str, f_checkpoint: str, device: str | None="0
     if not os.path.exists(f_checkpoint) or not os.path.exists(f_config):
         raise RuntimeError(f"{f_checkpoint} and/or {f_config} does not exist!")
 
-    dev = None if ("cpu" in device or device is None) else list(map(int, device.split(',')))
-    config = CustomDictConfig(config=OmegaConf.load(f_config), resume=f_checkpoint, modification={"gpu_device": dev, "mode": "INFERENCE"})
+    dev = None if ("cpu" in device or device is None) else list(map(int, device.split(",")))
+    config = CustomDictConfig(
+        config=OmegaConf.load(f_config), resume=f_checkpoint, modification={"gpu_device": dev, "mode": "INFERENCE"}
+    )
     agent = init_trainer("ClassifierTrainer", config=config, logger_name="inference")
 
     if inf_type == "pytorch":

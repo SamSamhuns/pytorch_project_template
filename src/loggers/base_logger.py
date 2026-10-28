@@ -7,18 +7,21 @@ Warning = 30
 Error = 40
 Critical = 50
 """
+
 import logging
 import os
 
 
-def get_logger(logger_name: str,
-               logger_dir: str = 'logs',
-               file_fmt: str = '%(asctime)s %(levelname)-8s: %(message)s',
-               console_fmt: str = '%(message)s',
-               logger_level: int = logging.DEBUG,
-               file_level: int = logging.DEBUG,
-               console_level: int = logging.DEBUG,
-               propagate: bool = False) -> logging.Logger:
+def get_logger(
+    logger_name: str,
+    logger_dir: str = "logs",
+    file_fmt: str = "%(asctime)s %(levelname)-8s: %(message)s",
+    console_fmt: str = "%(message)s",
+    logger_level: int = logging.DEBUG,
+    file_level: int = logging.DEBUG,
+    console_level: int = logging.DEBUG,
+    propagate: bool = False,
+) -> logging.Logger:
     """Logger settings should be configured and imported from configs dir
     Note: adding multiple handlers to a logger causes the same logs being printed multiple times
     """

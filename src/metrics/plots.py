@@ -4,12 +4,12 @@ from sklearn.calibration import CalibrationDisplay
 from sklearn.metrics import PrecisionRecallDisplay, RocCurveDisplay
 
 
-def plot_roc_curve(y_true: ArrayLike, y_score: ArrayLike, savepath: str = "roc_curve.png",  **kwargs):
+def plot_roc_curve(y_true: ArrayLike, y_score: ArrayLike, savepath: str = "roc_curve.png", **kwargs):
     """Plot the ROC curve for a binary classification problem. y_score is P(class 1)."""
     fig, ax = plt.subplots(figsize=(15, 15))
     RocCurveDisplay.from_predictions(y_true, y_score, ax=ax, **kwargs)
 
-    fig.savefig(savepath, bbox_inches='tight', pad_inches=0.1, dpi=350)
+    fig.savefig(savepath, bbox_inches="tight", pad_inches=0.1, dpi=350)
     plt.close(fig)
 
 
@@ -18,7 +18,7 @@ def plot_pr_curve(y_true: ArrayLike, y_score: ArrayLike, savepath: str = "precis
     fig, ax = plt.subplots(figsize=(15, 15))
     PrecisionRecallDisplay.from_predictions(y_true, y_score, ax=ax, **kwargs)
 
-    fig.savefig(savepath, bbox_inches='tight', pad_inches=0.1, dpi=350)
+    fig.savefig(savepath, bbox_inches="tight", pad_inches=0.1, dpi=350)
     plt.close(fig)
 
 
@@ -27,5 +27,5 @@ def plot_calibration_curve(y_true: ArrayLike, y_score: ArrayLike, savepath: str 
     fig, ax = plt.subplots(figsize=(15, 15))
     CalibrationDisplay.from_predictions(y_true, y_prob=y_score, n_bins=10, ax=ax, **kwargs)
 
-    fig.savefig(savepath, bbox_inches='tight', pad_inches=0.1, dpi=350)
+    fig.savefig(savepath, bbox_inches="tight", pad_inches=0.1, dpi=350)
     plt.close(fig)

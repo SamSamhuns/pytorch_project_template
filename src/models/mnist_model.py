@@ -1,5 +1,5 @@
-"""Mnist main model
-"""
+"""Mnist main model"""
+
 import torch.nn as nn
 import torch.nn.functional as F
 
