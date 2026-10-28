@@ -2,8 +2,8 @@
 import argparse
 import glob
 
-import imageio.v2 as imageio
 import webdataset as wds
+from PIL import Image
 from tqdm import tqdm
 
 # #################### Raw Data Organization ########################
@@ -41,9 +41,7 @@ def generate_tar(src_data_dir: str,
             img_list = glob.glob(dir_name + "/*")
             for img_name in img_list:
                 try:
-                    img = imageio.imread(img_name, mode="RGB")
-                    img = img[..., :3]  # drop alpha chanbel if it exists
-                    assert img.ndim == 3 and img.shape[2] == 3
+                    img = Image.open(img_name).convert("RGB")  # drops any alpha channel
 
                     sink.write({
                         "__key__": f"sample{file_count:06d}",
@@ -53,7 +51,7 @@ def generate_tar(src_data_dir: str,
                     file_count += 1
                 except Exception as excep:
                     print(
-                        f"{excep}. imageio could not read file {img_name}. Skipping...")
+                        f"{excep}. PIL could not read file {img_name}. Skipping...")
             class_id += 1
 
 
