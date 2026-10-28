@@ -1,10 +1,15 @@
 """Training script, run with: python train.py --cfg YAML_CONFIG_PATH"""
 
 import argparse
+import os.path as osp
 from datetime import datetime
 
+import torch
+
 from src.config_parser import CustomDictConfig
+from src.loggers import setup_logging
 from src.trainers import init_trainer
+from src.utils.common import seed_everything
 
 
 def get_config_from_args() -> CustomDictConfig:
@@ -52,18 +57,10 @@ def get_config_from_args() -> CustomDictConfig:
         "--resume_checkpoint",
         type=str,
         dest="resume_checkpoint",
-        help="Path to resume checkpoint. Overrides `trainer.resume_checkpoint` in config.",
+        help="Checkpoint to resume training from, e.g. .../models/last.pth. "
+        "Overrides `trainer.resume_checkpoint` in config.",
     )
-    parser.add_argument(
-        "--dev", "--device", dest="device", choices=["cpu", "cuda"], help="device for training. Use cpu or cuda."
-    )
-    parser.add_argument(
-        "--gpu_device",
-        type=int,
-        dest="gpu_device",
-        nargs="*",
-        help="GPU device to use, e.g. --gpu_device 0. Only one GPU is supported.",
-    )
+    parser.add_argument("--dev", "--device", dest="device", help="Device to run on, e.g. cpu, cuda or cuda:1.")
     parser.add_argument(
         "--mode",
         type=str,
@@ -80,7 +77,6 @@ def get_config_from_args() -> CustomDictConfig:
     yaml_modification = {
         "trainer.resume_checkpoint": args.resume_checkpoint,
         "device": args.device,
-        "gpu_device": args.gpu_device,
         "mode": args.mode,
     }
     # get omegaconf config obj
@@ -89,10 +85,17 @@ def get_config_from_args() -> CustomDictConfig:
 
 def main():
     config = get_config_from_args()
+    setup_logging(osp.join(config.logs_dir, "train.log"))
+    if config.seed is not None:
+        seed_everything(config.seed)
+    # reproducible runs trade speed for determinism; otherwise cuDNN benchmarks and picks the fastest algorithms
+    torch.backends.cudnn.benchmark = not config.reproducible
+    if config.reproducible:
+        torch.use_deterministic_algorithms(True, warn_only=True)  # warns on ops that have no deterministic version
     trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="train")
 
     trainer.train()
-    # test this run's best.pth; it is None if validation never ran, then the last weights are tested
+    # test this run's best.pth; it is None if this run saved none, then the last weights are tested
     if config["mode"] == "TRAIN_TEST":
         trainer.test(trainer.best_checkpoint_path)
 

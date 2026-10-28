@@ -3,14 +3,11 @@
 import argparse
 import os
 import os.path as osp
-import random
 from datetime import datetime
 
-import numpy as np
-import torch
 from omegaconf import DictConfig, OmegaConf
 
-from .utils.common import BColors, get_git_revision_hash
+from .utils.common import get_git_revision_hash
 
 
 class CustomDictConfig(DictConfig):
@@ -38,24 +35,6 @@ class CustomDictConfig(DictConfig):
             for k, v in modification.items():
                 OmegaConf.update(self, k, v, merge=True)
         # any cfgs should be received from self not config now
-
-        # set seeds if present
-        if self.seed is not None:
-            random.seed(self.seed)
-            np.random.seed(self.seed + 1)
-            torch.manual_seed(self.seed + 2)
-            if torch.cuda.is_available() and self.device == "cuda":
-                torch.cuda.manual_seed(self.seed + 3)
-
-        # Configure reproducibility settings
-        if self.reproducible:
-            print(
-                f"{BColors.WARN}Warning: "
-                + "Setting torch.backends.cudnn.deterministic to True. "
-                + f"This may slow down GPU training.{BColors.ENDC}"
-            )
-            torch.backends.cudnn.deterministic = True
-            torch.backends.cudnn.benchmark = False
 
         # If run_id is None, use timestamp as default run-id
         if run_id is None:
@@ -101,7 +80,7 @@ class CustomDictConfig(DictConfig):
         # Add all args to modification from args
         if add_all_args:
             # only check top-level keys
-            mod_keys = {k.rsplit(".")[0] for k in modification}
+            mod_keys = {k.split(".", 1)[0] for k in modification}
             for arg, value in vars(args).items():
                 # add new keys not present in orig yaml config
                 if arg not in mod_keys and arg not in {"override"}:

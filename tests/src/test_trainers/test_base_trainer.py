@@ -1,5 +1,4 @@
 import os
-import warnings
 
 import pytest
 import torch
@@ -8,51 +7,40 @@ from tests.src.test_trainers.conftest import PatchedBaseTrainer
 
 
 def test_init_trainer(base_trainer_and_logger):
-    """Test if trainer is initialized properly with both cpu & gpu mode."""
+    """The trainer runs on the configured device"""
     trainer, mocked_logger = base_trainer_and_logger
-    logger_instance = mocked_logger.return_value
-    info_calls = [call.args for call in logger_instance.info.call_args_list]
+    info_calls = [call.args for call in mocked_logger.return_value.info.call_args_list]
 
-    gpu_dev = trainer.config["gpu_device"]
-    if gpu_dev and not torch.cuda.is_available():
-        warnings.warn("CUDA device not found, GPU testing has been skipped", stacklevel=2)
-        assert ("Program will run on CPU",) in info_calls
-    elif gpu_dev is None:
-        assert ("Program will run on CPU",) in info_calls
-    else:
-        gpu_dev = [gpu_dev] if isinstance(gpu_dev, int) else gpu_dev
-        device = torch.device("cuda", gpu_dev[0])
-        assert ("Program will run on GPU device %s", device) in info_calls
+    assert trainer.device == torch.device(trainer.config["device"])
+    assert ("Program will run on %s", trainer.device) in info_calls
+
+
+def test_cuda_device_falls_back_to_cpu(mock_clsf_config, mocker):
+    """device: cuda:1 runs on CPU, with a warning, when CUDA is unavailable"""
+    mocker.patch("torch.cuda.is_available", return_value=False)
+    mock_clsf_config["device"] = "cuda:1"
+    trainer = PatchedBaseTrainer(config=mock_clsf_config)
+    assert trainer.device == torch.device("cpu")
 
 
 def test_load_checkpoint_not_found(base_trainer_and_logger, mock_logger):
     """Test invalid load checkpoint"""
     trainer, _ = base_trainer_and_logger
     with pytest.raises(ValueError):
-        trainer.load_checkpoint(torch.tensor([1]), "nonexistent_path")
+        trainer.load_checkpoint("nonexistent_path")
         mock_logger.error.assert_called()
-
-
-def test_save_checkpoint(base_trainer_and_logger, mocker):
-    """Test successful save checkpoint"""
-    mock_torch_save = mocker.patch("torch.save")
-    model_mock = mocker.Mock()
-    trainer, _ = base_trainer_and_logger
-    trainer.save_checkpoint(model_mock)
-    mock_torch_save.assert_called_once()
 
 
 def test_load_checkpoint_success(base_trainer_and_logger, mocker):
     """Test successful load checkpoint"""
     trainer, m = base_trainer_and_logger
     mocker.patch("os.path.isfile", return_value=True)
-    mocker.patch("torch.load", return_value={"state_dict": mocker.Mock()})
-    model_mock = mocker.Mock()
+    mocker.patch("torch.load", return_value={"model": {}, "epoch": 3})
 
-    trainer.load_checkpoint(model_mock, "fake_checkpoint_path.pth")
+    checkpoint = trainer.load_checkpoint("fake_checkpoint_path.pth")
     info_calls = [call.args for call in m.return_value.info.call_args_list]
 
-    model_mock.load_state_dict.assert_called()
+    assert checkpoint == {"model": {}, "epoch": 3}
     assert ("Loaded checkpoint %s", "fake_checkpoint_path.pth") in info_calls
 
 
@@ -69,17 +57,14 @@ def test_validation_data_loader_setup(base_trainer_and_logger):
     "val_path, val_split, expected_excep",
     [(None, 0.1, None), ("/fake/val/path", 0, FileNotFoundError), ("/fake/val/path", 0.1, ValueError)],
 )
-def test_validation_split_configuration(mock_clsf_config, mock_logger, val_path, val_split, expected_excep, mocker):
+def test_validation_split_configuration(mock_clsf_config, val_path, val_split, expected_excep):
     """Test val split config with variations of val path and val split"""
     mock_clsf_config["dataset"]["args"]["val_path"] = val_path
     mock_clsf_config["dataloader"]["args"]["validation_split"] = val_split
     if expected_excep:
         with pytest.raises(expected_excep):
-            # Patch the logger to use the mocked logger for capturing outputs
-            mocker.patch("src.loggers.get_logger", return_value=mock_logger)
             PatchedBaseTrainer(config=mock_clsf_config)
     else:
-        mocker.patch("src.loggers.get_logger", return_value=mock_logger)
         trainer = PatchedBaseTrainer(config=mock_clsf_config)
         assert trainer  # Check if the trainer is correctly instantiated without errors
 

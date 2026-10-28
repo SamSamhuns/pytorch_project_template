@@ -1,4 +1,3 @@
-import pytest
 import torch
 from PIL import Image
 
@@ -9,45 +8,34 @@ from src.augmentations import ImagenetClassifierPreprocess, MnistPreprocess
 ####################################################################
 
 
-def test_output_types(sample_pilimage):
-    transformed_image = ImagenetClassifierPreprocess().train(sample_pilimage())
-    assert isinstance(transformed_image, torch.Tensor)
-
-
 def test_output_shapes(sample_pilimage):
-    transformed_image = ImagenetClassifierPreprocess().train(sample_pilimage(244, 244, 3))
-    assert transformed_image.shape == (3, 224, 224)
+    preprocess = ImagenetClassifierPreprocess()
+    image = sample_pilimage(244, 244, 3)
+    assert preprocess.train_transform(image).shape == (3, 224, 224)
+    assert preprocess.eval_transform(image).shape == (3, 224, 224)
 
 
-class TestMnistPreprocess:
-    @pytest.fixture
-    def preprocess(self):
-        return MnistPreprocess()
+def test_train_transform_augments(sample_pilimage):
+    train_transform = ImagenetClassifierPreprocess().train_transform
+    image = sample_pilimage()
+    assert not torch.equal(train_transform(image), train_transform(image))
 
-    @pytest.fixture
-    def example_image(self):
-        # Create a dummy image (28x28, single channel)
-        return Image.new("L", (28, 28))
 
-    def test_initialization(self, preprocess):
-        assert isinstance(preprocess, MnistPreprocess)
+def test_eval_transform_follows_the_weights():
+    """V2 weights resize to 232 before the 224 crop; the standard ImageNet transform resizes to 256"""
+    assert ImagenetClassifierPreprocess("ResNet50_Weights.IMAGENET1K_V2").eval_transform.resize_size == [232]
+    assert ImagenetClassifierPreprocess(None).eval_transform.resize_size == [256]
 
-    def test_transform_non_equality(self, preprocess):
-        assert preprocess.train is not preprocess.val
-        assert preprocess.train is not preprocess.test
 
-    def test_inference_matches_test_transform(self, preprocess):
-        assert repr(preprocess.inference) == repr(preprocess.test)
+####################################################################
+# tests for functions from augmentations.mnist_transforms
+####################################################################
 
-    def test_output_type(self, preprocess, example_image):
-        tensor = preprocess.train(example_image)
-        assert isinstance(tensor, torch.Tensor)
 
-    def test_output_shape(self, preprocess, example_image):
-        tensor = preprocess.train(example_image)
-        assert tensor.shape == (1, 28, 28)  # Channel, Height, Width
+def test_mnist_output_shape():
+    assert MnistPreprocess().train_transform(Image.new("L", (28, 28))).shape == (1, 28, 28)
 
-    def test_inference_output_shape(self, preprocess):
-        # inference loads images as RGB, of any size; the model needs one 28x28 channel
-        tensor = preprocess.inference(Image.new("RGB", (64, 48)))
-        assert tensor.shape == (1, 28, 28)  # Channel, Height, Width
+
+def test_mnist_eval_takes_any_rgb_image():
+    # inference loads images as RGB, of any size; the model needs one 28x28 channel
+    assert MnistPreprocess().eval_transform(Image.new("RGB", (64, 48))).shape == (1, 28, 28)

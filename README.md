@@ -44,6 +44,9 @@ Example training for mnist digit classification:
 
 ```shell
 python train.py --cfg configs/mnist_config.yaml
+
+# resume a run from its last checkpoint: weights, optimizer, LR schedule and epoch
+python train.py --cfg configs/mnist_config.yaml -r checkpoints/mnist_image_classifier/RUN_ID/models/last.pth
 ```
 
 ## Custom Training
@@ -121,7 +124,7 @@ python export.py --cfg CONFIG_FILE -r MODEL_PATH --mode <"ONNX_TS"/"ONNX_DYNAMO"
 
 ## TensorBoard logging
 
-All tensorboard logs are saved in the `tensorboard_log_dir` setting in the config file. Logs include train/val epoch accuracy/loss, graph, and preprocessed images per epoch.
+TensorBoard logs are saved in each run's `tf_logs` dir, `SAVE_DIR/EXPERIMENT_NAME/RUN_ID/tf_logs`. Logs include the config, train/val epoch accuracy/loss, the train loss every `batch_log_freq` batches, and the last preprocessed train batch per epoch.
 
 To start a tensorboard server reading logs from the `experiment` dir exposed on port localhost port `6007`:
 

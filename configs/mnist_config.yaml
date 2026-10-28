@@ -2,10 +2,8 @@ experiment_name: mnist_image_classifier
 save_dir: checkpoints
 git_hash: null
 seed: 42
-reproducible: true
+reproducible: false
 device: cuda
-gpu_device:
-- 0
 use_amp: false
 torch_compile_model: false
 trainer:
@@ -33,10 +31,8 @@ dataset:
     test_path: test
   num_classes: 10
   preprocess:
-    train_transform: MnistPreprocess
-    val_transform: MnistPreprocess
-    test_transform: MnistPreprocess
-    inference_transform: MnistPreprocess
+    type: MnistPreprocess
+    args: {}
 dataloader:
   type: CustomDataLoader
   args:
@@ -53,7 +49,7 @@ optimizer:
     lr: 0.01
     momentum: 0.5
 loss:
-  type: NLLLoss
+  type: CrossEntropyLoss
   args: {}
 metrics:
   val:
@@ -67,7 +63,7 @@ metrics:
   - confusion_matrix
   - classification_report
 lr_scheduler:
-  type: ReduceLROnPlateau
+  type: CosineAnnealingLR
   args:
-    factor: 0.1
-    patience: 8
+    T_max: ${trainer.epochs}
+  warmup_epochs: 0

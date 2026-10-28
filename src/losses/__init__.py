@@ -1,7 +1,7 @@
-from torch.nn import CrossEntropyLoss, NLLLoss
+from torch.nn import CrossEntropyLoss
 
-# the models output log-probabilities, so only these two losses apply
-IMPLEMENTED_LOSSES = {"NLLLoss": NLLLoss, "CrossEntropyLoss": CrossEntropyLoss}
+# the models output logits, which CrossEntropyLoss turns into log-probabilities itself
+IMPLEMENTED_LOSSES = {"CrossEntropyLoss": CrossEntropyLoss}
 
 
 def init_loss(loss_name: str, **kwargs):
