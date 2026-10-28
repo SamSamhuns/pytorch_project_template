@@ -4,7 +4,7 @@ git_hash: null
 seed: 42
 reproducible: true
 device: cpu
-use_amp: true
+use_amp: false
 torch_compile_model: false
 trainer:
   type: ClassifierTrainer

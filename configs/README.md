@@ -13,7 +13,7 @@ git_hash: null  # Git hash for version control, set during runs
 seed: 42  # Random seed for reproducibility
 reproducible: true  # Sets cudnn benchmark to false and deterministic mode to true
 device: cuda  # Device to run on: cpu, cuda or cuda:1. Falls back to cpu when CUDA is unavailable
-use_amp: true  # Use automatic mixed precision for faster training and lower memory usage
+use_amp: true  # bfloat16 mixed precision for training and evaluation; needs an Ampere or newer GPU, often slower on CPU
 torch_compile_model: false  # Compile the PyTorch model for optimized performance
 
 # Trainer configuration
