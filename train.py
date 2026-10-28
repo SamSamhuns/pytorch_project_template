@@ -8,7 +8,7 @@ import torch
 
 from src.config_parser import CustomDictConfig
 from src.loggers import setup_logging
-from src.trainers import init_trainer
+from src.trainers import ClassifierTrainer
 from src.utils.common import seed_everything
 
 
@@ -92,7 +92,7 @@ def main():
     torch.backends.cudnn.benchmark = not config.reproducible
     if config.reproducible:
         torch.use_deterministic_algorithms(True, warn_only=True)  # warns on ops that have no deterministic version
-    trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="train")
+    trainer = ClassifierTrainer(config=config, logger_name="train")
 
     trainer.train()
     # test this run's best.pth; it is None if this run saved none, then the last weights are tested

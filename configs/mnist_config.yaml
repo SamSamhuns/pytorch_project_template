@@ -7,7 +7,6 @@ device: cuda
 use_amp: false
 torch_compile_model: false
 trainer:
-  type: ClassifierTrainer
   resume_checkpoint: null
   batch_log_freq: 10
   valid_freq: 2

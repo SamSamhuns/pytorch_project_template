@@ -6,7 +6,7 @@ from datetime import datetime
 
 from src.config_parser import CustomDictConfig
 from src.loggers import setup_logging
-from src.trainers import init_trainer
+from src.trainers import ClassifierTrainer
 
 
 def get_config_from_args() -> CustomDictConfig:
@@ -74,7 +74,7 @@ def get_config_from_args() -> CustomDictConfig:
 def main():
     config = get_config_from_args()
     setup_logging(osp.join(config.logs_dir, "test.log"))
-    trainer = init_trainer(config["trainer"]["type"], config=config, logger_name="test")
+    trainer = ClassifierTrainer(config=config, logger_name="test")
 
     trainer.test()
 

@@ -14,7 +14,7 @@ import torch
 from src.augmentations import build_transforms
 from src.config_parser import CustomDictConfig
 from src.loggers import setup_logging
-from src.models import init_model
+from src.models import MODELS
 from src.utils.export_utils import export_onnx
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ def main():
         logging.getLogger(name).setLevel(logging.WARNING)
 
     # the export runs on the CPU and needs only the model, not the trainer or the datasets
-    model = init_model(config["model"]["type"], **config["model"]["args"])
+    model = MODELS[config["model"]["type"]](**config["model"]["args"])
     checkpoint = torch.load(config["resume_checkpoint"], map_location="cpu", weights_only=True)
     model.load_state_dict(checkpoint["model"])
     _, _, eval_settings = build_transforms(config["dataset"]["preprocess"])

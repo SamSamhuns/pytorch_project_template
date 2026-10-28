@@ -49,7 +49,6 @@ def mock_clsf_config(request, root_directory, create_and_save_dummy_imgs: Callab
         "use_amp": False,
         "torch_compile_model": False,
         "trainer": {
-            "type": "ClassifierTrainer",
             "resume_checkpoint": None,
             "batch_log_freq": 2,
             "valid_freq": 2,

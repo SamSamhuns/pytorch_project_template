@@ -18,7 +18,6 @@ torch_compile_model: false  # Compile the PyTorch model for optimized performanc
 
 # Trainer configuration
 trainer:
-  type: ClassifierTrainer  # Trainer type (classification tasks)
   resume_checkpoint: null  # Checkpoint to resume from, e.g. .../models/last.pth; restores the optimizer, LR schedule and epoch too
   batch_log_freq: 5  # Logging frequency within an epoch
   valid_freq: 2  # Validate every N epochs; best.pth is saved when val accuracy improves, last.pth every epoch
@@ -41,7 +40,7 @@ model:
 
 # Dataset configuration
 dataset:
-  type: ClassifierDataset  # Dataset type
+  type: ClassifierDataset  # DATASETS in src/datasets: ClassifierDataset or MnistDataset
   args:
     root: data/birds_dataset  # Root directory of the dataset
     train_path: train  # Subdirectory for training data
@@ -61,14 +60,14 @@ dataloader:  # torch DataLoaders; the train loader shuffles, the val and test lo
 
 # Optimizer configuration
 optimizer:
-  type: SGD  # Optimizer type (Stochastic Gradient Descent)
+  type: SGD  # Any optimizer in torch.optim, with its keyword arguments in args
   args:
     lr: 0.01  # Learning rate
     momentum: 0.9  # Momentum factor
 
 # Loss function configuration
 loss:
-  type: CrossEntropyLoss  # The models output logits, which CrossEntropyLoss expects
+  type: CrossEntropyLoss  # Any loss in torch.nn; the models output logits, which CrossEntropyLoss expects
   args:
     label_smoothing: 0.1  # Optional; softens the one-hot targets, as torchvision's training recipe does
 

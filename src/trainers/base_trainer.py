@@ -16,7 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from src.augmentations import build_transforms
 from src.config_parser import CustomDictConfig
-from src.datasets import init_dataset
+from src.datasets import DATASETS
 from src.utils.common import get_device
 
 
@@ -74,8 +74,7 @@ class BaseTrainer(_BaseTrainer):
         if self.config["seed"] is not None:
             generator.manual_seed(self.config["seed"])
         # the val set comes from val_path, or validation_split carves it out of the train data
-        self.data_set = init_dataset(
-            self.config["dataset"]["type"],
+        self.data_set = DATASETS[self.config["dataset"]["type"]](
             train_transform=train_transform,
             eval_transform=eval_transform,
             generator=generator,
