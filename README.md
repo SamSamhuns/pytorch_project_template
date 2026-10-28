@@ -165,9 +165,14 @@ The container runs on CPU unless you pass GPUs with `-g`, e.g. `bash scripts/run
 
 ### For serving the model with FastAPI
 
+The server runs a `model.onnx` from `export.py` with ONNX Runtime, so its image has no PyTorch.
+
 ```shell
-bash server/build_server_docker.sh -m pytorch/onnx
-bash server/run_server_docker.sh -h/--http 8080
+bash server/build_server_docker.sh
+mkdir -p checkpoints_server && cp checkpoints/EXPERIMENT_NAME/export_DATE_TIME/models/model.onnx checkpoints_server/
+bash server/run_server_docker.sh -p 8080
+# the 5 most likely classes of an image, with their probabilities
+curl -F file=@IMAGE_FILE "localhost:8080/predict?top_k=5"
 ```
 
 Without Docker, run `MODEL_PATH=path/to/model.onnx uvicorn server.app:app --port 8080` from the repo root.
