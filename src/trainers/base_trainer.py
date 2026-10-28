@@ -146,14 +146,15 @@ class BaseTrainer(_BaseTrainer):
             test_set = self.data_set.test_set
             if dldr_type != "WebDatasetDataLoader":
                 train_set = train_set.data
-                test_set = self.data_set.test_set.data
+                test_set = test_set.data if test_set is not None else None
 
             self.logger.info(
                 "TRAIN: Loaded %d data points from %s", len(train_set), self.config["dataset"]["args"]["root"]
             )
-            self.logger.info(
-                "TEST: Loaded %d data points from %s", len(test_set), self.config["dataset"]["args"]["root"]
-            )
+            if test_set is not None:
+                self.logger.info(
+                    "TEST: Loaded %d data points from %s", len(test_set), self.config["dataset"]["args"]["root"]
+                )
 
             def _log_unique_label_counts(data_loader, label_type):
                 """Extracts targets, flattens them, and logs unique counts."""

@@ -80,7 +80,7 @@ class CustomDictConfig(DictConfig):
         # Add all args to modification from args
         if add_all_args:
             # only check top-level keys
-            mod_keys = {k.rsplit(".")[0] for k in modification}
+            mod_keys = {k.split(".", 1)[0] for k in modification}
             for arg, value in vars(args).items():
                 # add new keys not present in orig yaml config
                 if arg not in mod_keys and arg not in {"override"}:
