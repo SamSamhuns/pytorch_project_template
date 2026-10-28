@@ -125,8 +125,10 @@ python test.py --cfg CONFIG_FILE
 ## Export
 
 ```shell
-python export.py --cfg CONFIG_FILE -r MODEL_PATH --mode <"ONNX_TS"/"ONNX_DYNAMO">
+python export.py --cfg CONFIG_FILE -r checkpoints/EXPERIMENT_NAME/RUN_ID/models/best.pth
 ```
+
+This writes `model.onnx` to the export run's `models` dir, e.g. `checkpoints/EXPERIMENT_NAME/export_DATE_TIME/models/model.onnx`, and checks that ONNX Runtime's outputs match the PyTorch model's. The ONNX model takes any batch size, and holds the class names and the settings of the eval transform, which the server reads.
 
 ## TensorBoard logging
 

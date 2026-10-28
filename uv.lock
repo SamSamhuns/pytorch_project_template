@@ -3,20 +3,20 @@ revision = 5
 requires-python = ">=3.11, <3.15"
 resolution-markers = [
     "python_full_version >= '3.14' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version < '3.12' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version >= '3.14' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version == '3.13.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version < '3.12' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
     "python_full_version < '3.12' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version < '3.12' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version >= '3.14' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version < '3.12' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
 ]
 conflicts = [[
@@ -334,16 +334,16 @@ version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
 ]
 dependencies = [
@@ -1137,13 +1137,13 @@ version = "3.7"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version == '3.13.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/dc/76/3af777226b63a5e64a6b36b1ec5855c14e2b94a37096d4760e595fc43511/networkx-3.7.tar.gz", hash = "sha256:fd77a511bd90f39f3d016351345b52cf5319b813bdca01de3f755d3cca62e96a", size = 1866482, upload-time = "2026-09-21T16:45:16.974Z" }
@@ -1251,16 +1251,16 @@ version = "2.5.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/95/b0/c7453d0b6e2073c3264468b106ee1563750cecc910965e67357e3698c83e/numpy-2.5.4.tar.gz", hash = "sha256:9a94cf751c9ad8ebaa835bcd3d40dacf8534ad086b88c38029b65123c7999d2a", size = 20866315, upload-time = "2026-10-10T20:05:31.422Z" }
@@ -1912,18 +1912,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pytest-order"
-version = "1.5.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pytest" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/97/d8/82a5dc2aad3392f66c9741960fcbeeb45dd4d62eedb218aed6c52eea36eb/pytest_order-1.5.0.tar.gz", hash = "sha256:96acd7587b5a2855dcaa4a898288103d202894a61afd813adbc9b77aab04d90d", size = 54136, upload-time = "2026-06-13T05:39:41.636Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fd/5c/bd6a85b44beb8bd74c0e86ab699ef0e096e260dc90458b84fc54c28e4335/pytest_order-1.5.0-py3-none-any.whl", hash = "sha256:667ba2b7303fe2c529848663e0a41dfb0cc4d64f09f87272e4a9a1751efb52b2", size = 16634, upload-time = "2026-06-13T05:39:40.431Z" },
-]
-
-[[package]]
 name = "python-dateutil"
 version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1966,7 +1954,6 @@ dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "omegaconf" },
-    { name = "onnx" },
     { name = "onnxruntime" },
     { name = "onnxscript" },
     { name = "pillow" },
@@ -1994,7 +1981,6 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
-    { name = "pytest-order" },
     { name = "ruff" },
 ]
 server = [
@@ -2007,7 +1993,6 @@ test = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
-    { name = "pytest-order" },
 ]
 
 [package.metadata]
@@ -2015,7 +2000,6 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.11,<4" },
     { name = "numpy", specifier = ">=2.4,<3" },
     { name = "omegaconf", specifier = ">=2.4,<2.5" },
-    { name = "onnx", specifier = ">=1.23,<2" },
     { name = "onnxruntime", specifier = ">=1.31,<1.32" },
     { name = "onnxscript", specifier = ">=0.7,<0.8" },
     { name = "pillow", specifier = ">=13,<14" },
@@ -2036,7 +2020,6 @@ dev = [
     { name = "pytest", specifier = ">=9.2,<10" },
     { name = "pytest-cov", specifier = ">=7.1,<8" },
     { name = "pytest-mock", specifier = ">=3.17,<4" },
-    { name = "pytest-order", specifier = ">=1.5,<2" },
     { name = "ruff", specifier = "==0.17.3" },
 ]
 server = [
@@ -2049,7 +2032,6 @@ test = [
     { name = "pytest", specifier = ">=9.2,<10" },
     { name = "pytest-cov", specifier = ">=7.1,<8" },
     { name = "pytest-mock", specifier = ">=3.17,<4" },
-    { name = "pytest-order", specifier = ">=1.5,<2" },
 ]
 
 [[package]]
@@ -2277,16 +2259,16 @@ version = "1.18.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.13.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
-    "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version >= '3.14' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.13.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version == '3.13.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra == 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
+    "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
     "python_full_version == '3.12.*' and extra != 'extra-24-pytorch-project-template-cpu' and extra != 'extra-24-pytorch-project-template-cu130'",
 ]
 dependencies = [
