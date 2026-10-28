@@ -1,6 +1,5 @@
 """Test configurations"""
 
-import argparse
 import os
 import os.path as osp
 import shutil
@@ -28,41 +27,6 @@ def sample_pilimage():
         return Image.fromarray(np.uint8(np.random.rand(h, w, c) * 255))
 
     return _sample_pilimage
-
-
-##########################################
-###### setup for config parser test ######
-SAMPLE_CFG_PATH = f"{PYTEST_TEMP_ROOT}/sample_config.yaml"
-
-
-@pytest.fixture
-def sample_config():
-    return {
-        "experiment_name": "test_model",
-        "save_dir": PYTEST_TEMP_ROOT,
-        "seed": 42,
-        "device": "cpu",
-        "trainer": {"use_tensorboard": False},
-        "optimizer": {"type": "SGD", "args": {"lr": 0.01}},
-        "mode": "TRAIN",
-    }
-
-
-@pytest.fixture
-def modifications():
-    return {"save_dir": f"{PYTEST_TEMP_ROOT}/modified", "seed": 123}
-
-
-@pytest.fixture
-def mock_parser(scope="function"):
-    """Generate a mock parser for testing based on train.py script"""
-    parser = argparse.ArgumentParser("Mock parser")
-    parser.add_argument("--cfg", "--config", type=str, dest="config", default=SAMPLE_CFG_PATH)
-    parser.add_argument("-r", "--resume", type=str, dest="resume", default=None)
-    parser.add_argument("--id", "--run_id", type=str, dest="run_id", default="train")
-    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False)
-    parser.add_argument("-o", "--override", type=str, nargs="+", dest="override", default=None)
-    return parser
 
 
 ####################################

@@ -1,13 +1,11 @@
 experiment_name: mnist_image_classifier
 save_dir: checkpoints
-git_hash: null
 seed: 42
 reproducible: false
 device: cuda
 use_amp: false
 torch_compile_model: false
 trainer:
-  resume_checkpoint: null
   batch_log_freq: 10
   valid_freq: 2
   epochs: 12
