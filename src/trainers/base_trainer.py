@@ -38,7 +38,7 @@ class _BaseTrainer(ABC):
 
     def load_checkpoint(self, file_path: str) -> dict:
         """Load a checkpoint saved by save_checkpoint, e.g. models/best.pth, onto the CPU.
-        It holds the model, optimizer and scheduler state dicts, the epoch and best_val_acc.
+        It holds the model, optimizer and scheduler state dicts, the epoch, best_val_acc and the class names.
         """
         if not osp.isfile(file_path):
             msg = f"'{file_path}' is not a checkpoint file. Pass one, e.g. .../models/best.pth"

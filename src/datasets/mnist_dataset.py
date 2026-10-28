@@ -13,6 +13,7 @@ class MnistDataset:
         generator: torch.Generator that seeds the validation split
         """
         self.train_set = datasets.MNIST(root, train=True, download=True, transform=train_transform)
+        self.classes = self.train_set.classes  # "0 - zero", "1 - one", ...
         self.val_set = None
         if validation_split > 0:
             self.train_set, self.val_set = random_split(
