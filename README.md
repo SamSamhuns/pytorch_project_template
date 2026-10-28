@@ -6,6 +6,8 @@
 
 This is a template for a PyTorch Project for training, testing, inference demo, and FastAPI serving along with Docker support.
 
+[docs/README.md](docs/README.md) explains how this template was modernized in 2026, and why.
+
 - [Pytorch Project Template, Computer Vision](#pytorch-project-template-computer-vision)
   - [Setup](#setup)
   - [Train](#train)
