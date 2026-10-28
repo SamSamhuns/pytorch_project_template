@@ -1,4 +1,4 @@
-# Slim Python base; the server runs on CPU torch
+# Slim Python base; the server runs the exported ONNX model with ONNX Runtime, without torch
 FROM python:3.13-slim
 
 # Define build arguments with defaults
@@ -22,15 +22,12 @@ WORKDIR ${WORKDIR}
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.13.6 /uv /uvx /bin/
 
-# Install the dependencies (CPU torch and the server group) into $VIRTUAL_ENV
+# Install only the server dependency group into $VIRTUAL_ENV, without the training dependencies
 COPY pyproject.toml uv.lock "$WORKDIR/"
-RUN UV_PROJECT_ENVIRONMENT="$VIRTUAL_ENV" uv sync --locked --extra cpu --group server --no-dev --no-cache
+RUN UV_PROJECT_ENVIRONMENT="$VIRTUAL_ENV" uv sync --locked --only-group server --no-cache
 
-# Copy application code to the working directory
-COPY . "$WORKDIR"
-
-# Change file ownership directly while copying
-RUN chown -R "$UNAME" "$WORKDIR"
+# Copy the server; run_server_docker.sh mounts the model at checkpoints_server/model.onnx
+COPY server/app.py "$WORKDIR/server/"
 
 # Switch to non-root user
 USER "$UNAME"
