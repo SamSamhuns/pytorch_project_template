@@ -4,6 +4,8 @@ This repository started as a 2021-era PyTorch template for training image classi
 
 The review that planned the work, with every measurement behind it, was kept in `PLAN.md` until this page replaced it. `git log -- PLAN.md` finds it in the history.
 
+[arch.md](arch.md) shows how the repository fits together now, with diagrams.
+
 ## In brief
 
 - **Results that were silently wrong are fixed.** Pretrained backbones were re-initialized before training, `best.pth` was usually the last epoch, binary ROC-AUC used the wrong scores, and every reported loss was about `batch_size` times too small. The fixes come with tests that fail without them.

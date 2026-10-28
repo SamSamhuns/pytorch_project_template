@@ -1,0 +1,696 @@
+{
+  "schema_version": 1,
+  "diagram_type": "tree",
+  "meta": {
+    "title": "Repository layout",
+    "output": ".archify/repo-layout.html",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "git@github.com:SamSamhuns/pytorch_project_template.git",
+      "revision": "59893656accb31b84e594825c7d39468dc0d22ca",
+      "link_mode": "local-only"
+    }
+  },
+  "layout": {
+    "direction": "right",
+    "nodeMaxW": 240
+  },
+  "nodes": [
+    {
+      "id": "root",
+      "label": "pytorch_project_template",
+      "sublabel": "Train, test, export and serve image classifiers",
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 1,
+          "end_line": 9
+        }
+      ]
+    },
+    {
+      "id": "train",
+      "parent": "root",
+      "label": "train.py",
+      "sublabel": "Train, then test best.pth",
+      "sources": [
+        {
+          "path": "train.py",
+          "line": 23,
+          "end_line": 62
+        }
+      ]
+    },
+    {
+      "id": "test",
+      "parent": "root",
+      "label": "test.py",
+      "sublabel": "Test a checkpoint",
+      "sources": [
+        {
+          "path": "test.py",
+          "line": 17,
+          "end_line": 39
+        }
+      ]
+    },
+    {
+      "id": "inference",
+      "parent": "root",
+      "label": "inference.py",
+      "sublabel": "Classify image files",
+      "sources": [
+        {
+          "path": "inference.py",
+          "line": 25,
+          "end_line": 63
+        }
+      ]
+    },
+    {
+      "id": "export",
+      "parent": "root",
+      "label": "export.py",
+      "sublabel": "Write model.onnx",
+      "sources": [
+        {
+          "path": "export.py",
+          "line": 23,
+          "end_line": 48
+        }
+      ]
+    },
+    {
+      "id": "configs",
+      "parent": "root",
+      "label": "configs/",
+      "sublabel": "One YAML per experiment",
+      "sources": [
+        {
+          "path": "configs/README.md",
+          "line": 1,
+          "end_line": 10
+        }
+      ]
+    },
+    {
+      "id": "cfg_mnist",
+      "parent": "configs",
+      "label": "mnist_config.yaml",
+      "sublabel": "MnistModel on MNIST",
+      "sources": [
+        {
+          "path": "configs/mnist_config.yaml",
+          "line": 1,
+          "end_line": 20
+        }
+      ]
+    },
+    {
+      "id": "cfg_cpu",
+      "parent": "configs",
+      "label": "classifier_cpu_config.yaml",
+      "sublabel": "MobileNetV2 on image folders",
+      "sources": [
+        {
+          "path": "configs/classifier_cpu_config.yaml",
+          "line": 1,
+          "end_line": 23
+        }
+      ]
+    },
+    {
+      "id": "cfg_gpu",
+      "parent": "configs",
+      "label": "classifier_gpu_config.yaml",
+      "sublabel": "The same on CUDA",
+      "sources": [
+        {
+          "path": "configs/classifier_gpu_config.yaml",
+          "line": 1,
+          "end_line": 23
+        }
+      ]
+    },
+    {
+      "id": "cfg_wds",
+      "parent": "configs",
+      "label": "classifier_webdataset_cpu_config.yaml",
+      "sublabel": "The same from WebDataset shards",
+      "sources": [
+        {
+          "path": "configs/classifier_webdataset_cpu_config.yaml",
+          "line": 1,
+          "end_line": 24
+        }
+      ]
+    },
+    {
+      "id": "cfg_readme",
+      "parent": "configs",
+      "label": "README.md",
+      "sublabel": "Every key, explained",
+      "sources": [
+        {
+          "path": "configs/README.md",
+          "line": 1,
+          "end_line": 86
+        }
+      ]
+    },
+    {
+      "id": "src",
+      "parent": "root",
+      "label": "src/",
+      "sublabel": "What the scripts build from",
+      "sources": [
+        {
+          "path": "train.py",
+          "line": 12,
+          "end_line": 18
+        }
+      ]
+    },
+    {
+      "id": "config_parser",
+      "parent": "src",
+      "label": "config_parser.py",
+      "sublabel": "load_config, make_run_dir",
+      "sources": [
+        {
+          "path": "src/config_parser.py",
+          "line": 13,
+          "end_line": 51
+        }
+      ]
+    },
+    {
+      "id": "augmentations",
+      "parent": "src",
+      "label": "augmentations/",
+      "sublabel": "build_transforms, TRANSFORMS",
+      "sources": [
+        {
+          "path": "src/augmentations/__init__.py",
+          "line": 1,
+          "end_line": 14
+        }
+      ]
+    },
+    {
+      "id": "aug_imagenet",
+      "parent": "augmentations",
+      "label": "classifier_transforms.py",
+      "sublabel": "Eval transform from the weights",
+      "sources": [
+        {
+          "path": "src/augmentations/classifier_transforms.py",
+          "line": 11,
+          "end_line": 35
+        }
+      ]
+    },
+    {
+      "id": "aug_mnist",
+      "parent": "augmentations",
+      "label": "mnist_transforms.py",
+      "sublabel": "Grayscale 28x28",
+      "sources": [
+        {
+          "path": "src/augmentations/mnist_transforms.py",
+          "line": 6,
+          "end_line": 29
+        }
+      ]
+    },
+    {
+      "id": "datasets",
+      "parent": "src",
+      "label": "datasets/",
+      "sublabel": "DATASETS, build_dataloaders",
+      "sources": [
+        {
+          "path": "src/datasets/__init__.py",
+          "line": 13,
+          "end_line": 54
+        }
+      ]
+    },
+    {
+      "id": "ds_classifier",
+      "parent": "datasets",
+      "label": "classifier_dataset.py",
+      "sublabel": "Image folders or shards",
+      "sources": [
+        {
+          "path": "src/datasets/classifier_dataset.py",
+          "line": 43,
+          "end_line": 106
+        }
+      ]
+    },
+    {
+      "id": "ds_mnist",
+      "parent": "datasets",
+      "label": "mnist_dataset.py",
+      "sublabel": "torchvision MNIST",
+      "sources": [
+        {
+          "path": "src/datasets/mnist_dataset.py",
+          "line": 7,
+          "end_line": 24
+        }
+      ]
+    },
+    {
+      "id": "models",
+      "parent": "src",
+      "label": "models/",
+      "sublabel": "MODELS",
+      "sources": [
+        {
+          "path": "src/models/__init__.py",
+          "line": 1,
+          "end_line": 6
+        }
+      ]
+    },
+    {
+      "id": "m_torchvision",
+      "parent": "models",
+      "label": "classifier_model.py",
+      "sublabel": "torchvision_classifier",
+      "sources": [
+        {
+          "path": "src/models/classifier_model.py",
+          "line": 9,
+          "end_line": 28
+        }
+      ]
+    },
+    {
+      "id": "m_mnist",
+      "parent": "models",
+      "label": "mnist_model.py",
+      "sublabel": "MnistModel",
+      "sources": [
+        {
+          "path": "src/models/mnist_model.py",
+          "line": 8,
+          "end_line": 23
+        }
+      ]
+    },
+    {
+      "id": "m_custom",
+      "parent": "models",
+      "label": "custom_model.py",
+      "sublabel": "CustomModel, any image size",
+      "sources": [
+        {
+          "path": "src/models/custom_model.py",
+          "line": 6,
+          "end_line": 38
+        }
+      ]
+    },
+    {
+      "id": "trainers",
+      "parent": "src",
+      "label": "trainers/",
+      "sublabel": "The training loop",
+      "sources": [
+        {
+          "path": "src/trainers/__init__.py",
+          "line": 1,
+          "end_line": 1
+        }
+      ]
+    },
+    {
+      "id": "t_classifier",
+      "parent": "trainers",
+      "label": "classifier_trainer.py",
+      "sublabel": "ClassifierTrainer: fit, evaluate",
+      "sources": [
+        {
+          "path": "src/trainers/classifier_trainer.py",
+          "line": 37,
+          "end_line": 71
+        }
+      ]
+    },
+    {
+      "id": "metrics",
+      "parent": "src",
+      "label": "metrics/",
+      "sublabel": "METRICS from scikit-learn",
+      "sources": [
+        {
+          "path": "src/metrics/__init__.py",
+          "line": 18,
+          "end_line": 41
+        }
+      ]
+    },
+    {
+      "id": "mt_plots",
+      "parent": "metrics",
+      "label": "plots.py",
+      "sublabel": "ROC, PR, calibration curves",
+      "sources": [
+        {
+          "path": "src/metrics/plots.py",
+          "line": 11,
+          "end_line": 28
+        }
+      ]
+    },
+    {
+      "id": "loggers",
+      "parent": "src",
+      "label": "loggers/",
+      "sublabel": "setup_logging",
+      "sources": [
+        {
+          "path": "src/loggers/base_logger.py",
+          "line": 6,
+          "end_line": 15
+        }
+      ]
+    },
+    {
+      "id": "utils",
+      "parent": "src",
+      "label": "utils/",
+      "sublabel": "Helpers",
+      "sources": [
+        {
+          "path": "src/utils/common.py",
+          "line": 13,
+          "end_line": 35
+        }
+      ]
+    },
+    {
+      "id": "u_common",
+      "parent": "utils",
+      "label": "common.py",
+      "sublabel": "get_device, seed_everything",
+      "sources": [
+        {
+          "path": "src/utils/common.py",
+          "line": 13,
+          "end_line": 35
+        }
+      ]
+    },
+    {
+      "id": "u_export",
+      "parent": "utils",
+      "label": "export_utils.py",
+      "sublabel": "export_onnx",
+      "sources": [
+        {
+          "path": "src/utils/export_utils.py",
+          "line": 9,
+          "end_line": 23
+        }
+      ]
+    },
+    {
+      "id": "u_stats",
+      "parent": "utils",
+      "label": "custom_statistics.py",
+      "sublabel": "Parameter counts",
+      "sources": [
+        {
+          "path": "src/utils/custom_statistics.py",
+          "line": 4,
+          "end_line": 14
+        }
+      ]
+    },
+    {
+      "id": "server",
+      "parent": "root",
+      "label": "server/",
+      "sublabel": "FastAPI on ONNX Runtime",
+      "sources": [
+        {
+          "path": "server/app.py",
+          "line": 1,
+          "end_line": 19
+        }
+      ]
+    },
+    {
+      "id": "s_app",
+      "parent": "server",
+      "label": "app.py",
+      "sublabel": "POST /predict",
+      "sources": [
+        {
+          "path": "server/app.py",
+          "line": 22,
+          "end_line": 50
+        }
+      ]
+    },
+    {
+      "id": "s_docker",
+      "parent": "server",
+      "label": "Dockerfile",
+      "sublabel": "Server group only, no torch",
+      "sources": [
+        {
+          "path": "server/Dockerfile",
+          "line": 1,
+          "end_line": 36
+        }
+      ]
+    },
+    {
+      "id": "s_run",
+      "parent": "server",
+      "label": "run_server_docker.sh",
+      "sublabel": "Mounts model.onnx",
+      "sources": [
+        {
+          "path": "server/run_server_docker.sh",
+          "line": 61,
+          "end_line": 76
+        }
+      ]
+    },
+    {
+      "id": "scripts",
+      "parent": "root",
+      "label": "scripts/",
+      "sublabel": "Data prep and Docker helpers",
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 86,
+          "end_line": 100
+        }
+      ]
+    },
+    {
+      "id": "sc_split",
+      "parent": "scripts",
+      "label": "train_val_test_split.py",
+      "sublabel": "Split into train, valid, test",
+      "sources": [
+        {
+          "path": "scripts/train_val_test_split.py",
+          "line": 45,
+          "end_line": 89
+        }
+      ]
+    },
+    {
+      "id": "sc_dup",
+      "parent": "scripts",
+      "label": "duplicate_data.py",
+      "sublabel": "Oversample small classes",
+      "sources": [
+        {
+          "path": "scripts/duplicate_data.py",
+          "line": 51,
+          "end_line": 75
+        }
+      ]
+    },
+    {
+      "id": "sc_corrupt",
+      "parent": "scripts",
+      "label": "find_corrupt_images.py",
+      "sublabel": "Find unreadable images",
+      "sources": [
+        {
+          "path": "scripts/find_corrupt_images.py",
+          "line": 11,
+          "end_line": 31
+        }
+      ]
+    },
+    {
+      "id": "sc_shards",
+      "parent": "scripts",
+      "label": "convert_dataset_to_tar.py",
+      "sublabel": "Write WebDataset shards",
+      "sources": [
+        {
+          "path": "scripts/convert_dataset_to_tar.py",
+          "line": 31,
+          "end_line": 48
+        }
+      ]
+    },
+    {
+      "id": "sc_classmap",
+      "parent": "scripts",
+      "label": "generate_classmap_from_dataset.py",
+      "sublabel": "Class index to name map",
+      "sources": [
+        {
+          "path": "scripts/generate_classmap_from_dataset.py",
+          "line": 23,
+          "end_line": 35
+        }
+      ]
+    },
+    {
+      "id": "sc_docker",
+      "parent": "scripts",
+      "label": "run_docker.sh",
+      "sublabel": "Training container",
+      "sources": [
+        {
+          "path": "scripts/run_docker.sh",
+          "line": 40,
+          "end_line": 50
+        }
+      ]
+    },
+    {
+      "id": "tests",
+      "parent": "root",
+      "label": "tests/",
+      "sublabel": "Offline pytest suite",
+      "sources": [
+        {
+          "path": ".github/workflows/main.yml",
+          "line": 38,
+          "end_line": 39
+        }
+      ]
+    },
+    {
+      "id": "tst_src",
+      "parent": "tests",
+      "label": "src/",
+      "sublabel": "One test file per src package",
+      "sources": [
+        {
+          "path": "tests/src/test_trainers/test_classifier_trainer.py",
+          "line": 1,
+          "end_line": 12
+        }
+      ]
+    },
+    {
+      "id": "tst_configs",
+      "parent": "tests",
+      "label": "test_configs.py",
+      "sublabel": "Every config builds",
+      "sources": [
+        {
+          "path": "tests/test_configs.py",
+          "line": 18,
+          "end_line": 31
+        }
+      ]
+    },
+    {
+      "id": "tst_server",
+      "parent": "tests",
+      "label": "test_server.py",
+      "sublabel": "Server matches PyTorch",
+      "sources": [
+        {
+          "path": "tests/test_server.py",
+          "line": 38,
+          "end_line": 53
+        }
+      ]
+    },
+    {
+      "id": "tst_scripts",
+      "parent": "tests",
+      "label": "test_scripts.py",
+      "sublabel": "Data-prep scripts",
+      "sources": [
+        {
+          "path": "tests/test_scripts.py",
+          "line": 6,
+          "end_line": 12
+        }
+      ]
+    },
+    {
+      "id": "docs",
+      "parent": "root",
+      "label": "docs/",
+      "sublabel": "Why it changed, how it fits",
+      "sources": [
+        {
+          "path": "docs/README.md",
+          "line": 1,
+          "end_line": 5
+        }
+      ]
+    },
+    {
+      "id": "dockerfile",
+      "parent": "root",
+      "label": "Dockerfile",
+      "sublabel": "Training image, CUDA or CPU torch",
+      "sources": [
+        {
+          "path": "Dockerfile",
+          "line": 1,
+          "end_line": 36
+        }
+      ]
+    },
+    {
+      "id": "pyproject",
+      "parent": "root",
+      "label": "pyproject.toml",
+      "sublabel": "Dependencies; uv.lock pins them",
+      "sources": [
+        {
+          "path": "pyproject.toml",
+          "line": 1,
+          "end_line": 44
+        }
+      ]
+    },
+    {
+      "id": "ci",
+      "parent": "root",
+      "label": ".github/workflows/",
+      "sublabel": "Lint and test on Python 3.11, 3.14",
+      "sources": [
+        {
+          "path": ".github/workflows/main.yml",
+          "line": 13,
+          "end_line": 39
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,335 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "A training run",
+    "output": ".archify/training-run.html",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "git@github.com:SamSamhuns/pytorch_project_template.git",
+      "revision": "59893656accb31b84e594825c7d39468dc0d22ca",
+      "link_mode": "local-only"
+    },
+    "legend": {
+      "entries": {
+        "backend": {
+          "label": "Step in train.py"
+        },
+        "database": {
+          "label": "File on disk"
+        },
+        "external": {
+          "label": "Developer"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "script",
+      "label": "train.py"
+    },
+    {
+      "id": "files",
+      "label": "Files"
+    }
+  ],
+  "mainPath": [
+    "dev",
+    "config",
+    "setup",
+    "data",
+    "fit",
+    "test"
+  ],
+  "nodes": [
+    {
+      "id": "dev",
+      "lane": "script",
+      "col": 0,
+      "type": "external",
+      "label": "Developer",
+      "sublabel": "python train.py --cfg",
+      "sources": [
+        {
+          "path": "train.py",
+          "line": 23,
+          "end_line": 28
+        }
+      ]
+    },
+    {
+      "id": "config",
+      "lane": "script",
+      "col": 1,
+      "type": "backend",
+      "label": "Load the config",
+      "sublabel": "load_config",
+      "tag": "-o overrides",
+      "sources": [
+        {
+          "path": "train.py",
+          "line": 30,
+          "end_line": 30
+        },
+        {
+          "path": "src/config_parser.py",
+          "line": 32,
+          "end_line": 43
+        }
+      ]
+    },
+    {
+      "id": "setup",
+      "lane": "script",
+      "col": 2,
+      "type": "backend",
+      "label": "Set up the run",
+      "sublabel": "make_run_dir, seed",
+      "tag": "device",
+      "sources": [
+        {
+          "path": "train.py",
+          "line": 31,
+          "end_line": 41
+        },
+        {
+          "path": "src/config_parser.py",
+          "line": 46,
+          "end_line": 51
+        }
+      ]
+    },
+    {
+      "id": "data",
+      "lane": "script",
+      "col": 3,
+      "type": "backend",
+      "label": "Build data and model",
+      "sublabel": "DATASETS, MODELS",
+      "tag": "build_transforms",
+      "sources": [
+        {
+          "path": "train.py",
+          "line": 43,
+          "end_line": 55
+        },
+        {
+          "path": "src/datasets/__init__.py",
+          "line": 17,
+          "end_line": 38
+        },
+        {
+          "path": "src/augmentations/__init__.py",
+          "line": 9,
+          "end_line": 14
+        }
+      ]
+    },
+    {
+      "id": "fit",
+      "lane": "script",
+      "col": 4,
+      "type": "backend",
+      "label": "Train",
+      "sublabel": "ClassifierTrainer.fit",
+      "tag": "-r resumes",
+      "sources": [
+        {
+          "path": "train.py",
+          "line": 56,
+          "end_line": 59
+        },
+        {
+          "path": "src/trainers/classifier_trainer.py",
+          "line": 87,
+          "end_line": 128
+        }
+      ]
+    },
+    {
+      "id": "test",
+      "lane": "script",
+      "col": 5,
+      "type": "backend",
+      "label": "Test best.pth",
+      "sublabel": "evaluate",
+      "tag": "test split",
+      "sources": [
+        {
+          "path": "train.py",
+          "line": 60,
+          "end_line": 62
+        },
+        {
+          "path": "src/trainers/classifier_trainer.py",
+          "line": 231,
+          "end_line": 241
+        }
+      ]
+    },
+    {
+      "id": "yaml",
+      "lane": "files",
+      "col": 1,
+      "type": "database",
+      "label": "configs/*.yaml",
+      "sublabel": "model, data, training",
+      "sources": [
+        {
+          "path": "configs/mnist_config.yaml",
+          "line": 1,
+          "end_line": 52
+        }
+      ]
+    },
+    {
+      "id": "rundir",
+      "lane": "files",
+      "col": 2,
+      "type": "database",
+      "label": "Run dir",
+      "sublabel": "config.yaml, logs",
+      "sources": [
+        {
+          "path": "train.py",
+          "line": 31,
+          "end_line": 33
+        },
+        {
+          "path": "src/config_parser.py",
+          "line": 46,
+          "end_line": 51
+        }
+      ]
+    },
+    {
+      "id": "images",
+      "lane": "files",
+      "col": 3,
+      "type": "database",
+      "label": "data/",
+      "sublabel": "images or shards",
+      "sources": [
+        {
+          "path": "src/datasets/classifier_dataset.py",
+          "line": 77,
+          "end_line": 90
+        },
+        {
+          "path": "src/datasets/mnist_dataset.py",
+          "line": 15,
+          "end_line": 23
+        }
+      ]
+    },
+    {
+      "id": "ckpt",
+      "lane": "files",
+      "col": 4,
+      "type": "database",
+      "label": "models/*.pth",
+      "sublabel": "last.pth, best.pth",
+      "tag": "full state",
+      "sources": [
+        {
+          "path": "src/trainers/classifier_trainer.py",
+          "line": 73,
+          "end_line": 85
+        },
+        {
+          "path": "src/trainers/classifier_trainer.py",
+          "line": 118,
+          "end_line": 123
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "run-script",
+      "from": "dev",
+      "to": "config",
+      "label": "--cfg, -o"
+    },
+    {
+      "id": "config-to-setup",
+      "from": "config",
+      "to": "setup"
+    },
+    {
+      "id": "setup-to-data",
+      "from": "setup",
+      "to": "data"
+    },
+    {
+      "id": "data-to-fit",
+      "from": "data",
+      "to": "fit",
+      "label": "loaders, model"
+    },
+    {
+      "id": "fit-to-test",
+      "from": "fit",
+      "to": "test"
+    },
+    {
+      "id": "read-yaml",
+      "from": "yaml",
+      "to": "config",
+      "label": "read"
+    },
+    {
+      "id": "write-run-dir",
+      "from": "setup",
+      "to": "rundir",
+      "label": "write"
+    },
+    {
+      "id": "read-images",
+      "from": "images",
+      "to": "data",
+      "label": "read"
+    },
+    {
+      "id": "save-checkpoints",
+      "from": "fit",
+      "to": "ckpt",
+      "label": "each epoch"
+    },
+    {
+      "id": "load-best",
+      "from": "ckpt",
+      "to": "test",
+      "label": "best.pth"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Config and run",
+      "items": [
+        "load_config reads the YAML in struct mode, so a mistyped key raises",
+        "Each run saves its config.yaml, logs and checkpoints to save_dir/experiment_name/RUN_ID"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Data and model",
+      "items": [
+        "build_transforms gives the train and eval transforms of dataset.preprocess",
+        "DATASETS and MODELS map the config's type names to project classes"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Training",
+      "items": [
+        "ClassifierTrainer builds the loss, optimizer and LR scheduler the config names in torch",
+        "fit() validates every valid_freq epochs and saves best.pth when the val accuracy improves",
+        "-r last.pth restores the weights, optimizer, LR schedule and epoch"
+      ]
+    }
+  ]
+}
