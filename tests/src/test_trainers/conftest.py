@@ -81,7 +81,7 @@ def mock_clsf_config(request, root_directory, create_and_save_dummy_imgs: Callab
         },
         "optimizer": {"type": "SGD", "args": {"lr": 0.01, "momentum": 0.9, "weight_decay": 1e-05}},
         "lr_scheduler": {"type": "ReduceLROnPlateau", "args": {"factor": 0.1, "patience": 5}},
-        "loss": {"type": "NLLLoss", "args": {}},
+        "loss": {"type": "CrossEntropyLoss", "args": {}},
         "metrics": {
             "val": ["accuracy_score"],
             "test": ["accuracy_score", "f1_score", "roc_auc_score", "confusion_matrix", "classification_report"],

@@ -22,7 +22,6 @@ The input images are in the range [0, 1]
 """
 
 import torch.nn as nn
-import torch.nn.functional as F
 import torchvision.models as models
 
 from .base_model import BaseModel
@@ -47,7 +46,6 @@ class ClassifierModel(BaseModel):
         super().__init__()
         if feat_extract and num_classes:
             raise RuntimeError("feat_extract mode is not compatible when num_classes greater than 0")
-        self.feat_extract = feat_extract
         self.model = models.get_model(backbone, weights=pretrained_weights)
 
         # replace only the last Linear layer (the ImageNet head), keeping the layers before it
@@ -56,5 +54,4 @@ class ClassifierModel(BaseModel):
         self.model.set_submodule(name, new_head)
 
     def forward(self, x):
-        x = self.model(x)
-        return x if self.feat_extract else F.log_softmax(x, dim=1)
+        return self.model(x)  # logits, or features with feat_extract

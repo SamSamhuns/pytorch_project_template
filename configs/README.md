@@ -75,8 +75,9 @@ optimizer:
 
 # Loss function configuration
 loss:
-  type: NLLLoss  # Loss function type (Negative Log-Likelihood Loss)
-  args: {}  # No additional arguments
+  type: CrossEntropyLoss  # The models output logits, which CrossEntropyLoss expects
+  args:
+    label_smoothing: 0.1  # Optional; softens the one-hot targets, as torchvision's training recipe does
 
 # Metrics configuration
 metrics:

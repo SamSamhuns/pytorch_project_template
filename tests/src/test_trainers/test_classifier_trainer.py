@@ -94,23 +94,23 @@ def test_best_checkpoint_keeps_highest_val_accuracy(clsf_trainer_and_logger, moc
 def test_eval_loss_is_mean_over_samples(clsf_trainer_and_logger):
     """Batches of unequal size must be weighted by their size"""
     trainer, _ = clsf_trainer_and_logger
-    trainer.model = torch.nn.Identity()  # the batches below already hold the model's log-probabilities
-    log_probs = torch.randn(4, 5).log_softmax(dim=1)
+    trainer.model = torch.nn.Identity()  # the batches below already hold the model's logits
+    logits = torch.randn(4, 5)
     target = torch.tensor([0, 1, 2, 3])
 
-    loss, _, _, _ = trainer.eval_one_epoch([(log_probs[:3], target[:3]), (log_probs[3:], target[3:])])
-    assert loss == pytest.approx(F.nll_loss(log_probs, target).item())
+    loss, _, _, _ = trainer.eval_one_epoch([(logits[:3], target[:3]), (logits[3:], target[3:])])
+    assert loss == pytest.approx(F.cross_entropy(logits, target).item())
 
 
 def test_binary_y_score_is_positive_class_probability(clsf_trainer_and_logger):
     """A perfect binary classifier must get ROC-AUC 1.0"""
     trainer, _ = clsf_trainer_and_logger
-    trainer.model = torch.nn.Identity()  # the batch below already holds the model's log-probabilities
+    trainer.model = torch.nn.Identity()  # the batch below already holds the model's logits
     p1 = torch.tensor([0.1, 0.4, 0.6, 0.9])  # P(class 1): every positive scores above every negative
-    log_probs = torch.stack([1 - p1, p1], dim=1).log()
+    logits = torch.stack([1 - p1, p1], dim=1).log()  # softmax maps these back to the probabilities
     target = torch.tensor([0, 0, 1, 1])
 
-    _, y_true, y_score, _ = trainer.eval_one_epoch([(log_probs, target)])
+    _, y_true, y_score, _ = trainer.eval_one_epoch([(logits, target)])
     assert calc_metric("roc_auc_score", y_true=y_true, y_score=y_score) == 1.0
 
 

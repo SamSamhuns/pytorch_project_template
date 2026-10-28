@@ -54,8 +54,9 @@ optimizer:
     lr: 0.01
     momentum: 0.9
 loss:
-  type: NLLLoss
-  args: {}
+  type: CrossEntropyLoss
+  args:
+    label_smoothing: 0.1
 metrics:
   val:
   - accuracy_score
