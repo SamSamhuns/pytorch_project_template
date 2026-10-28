@@ -12,9 +12,9 @@ def test_initialization(classifier_model_params):
 
 def test_feat_extract_mode(classifier_model_params):
     """Test feature extraction mode returns the backbone features instead of class scores."""
-    classifier_model_params['feat_extract'] = True
+    classifier_model_params["feat_extract"] = True
     # No classes when feature extraction is enabled
-    classifier_model_params['num_classes'] = 0
+    classifier_model_params["num_classes"] = 0
 
     model = ClassifierModel(**classifier_model_params).eval()
     output = model(torch.rand(1, 3, 224, 224))
@@ -36,8 +36,7 @@ def test_classifier_mode_output_shape(classifier_model_params, device):
     # Single image with the size expected by the backbone
     test_input = torch.rand(1, 3, 224, 224)
     output = model(test_input.to(device))
-    assert output.shape == (
-        1, 10), "Output shape should match the number of classes."
+    assert output.shape == (1, 10), "Output shape should match the number of classes."
 
 
 def test_raises_with_incompatible_parameters():

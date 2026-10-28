@@ -1,4 +1,5 @@
 """Duplicate data"""
+
 import argparse
 import glob
 import os
@@ -22,7 +23,7 @@ from tqdm import tqdm
 # ###################################################################
 
 # #################### Data configurations here #####################
-VALID_FILE_EXTS = {'jpg', 'jpeg', 'png', 'ppm', 'bmp', 'pgm'}
+VALID_FILE_EXTS = {"jpg", "jpeg", "png", "ppm", "bmp", "pgm"}
 # ###################################################################
 
 
@@ -42,10 +43,9 @@ def safe_copy(file_path, out_dir, dst=None) -> None:
     else:
         base, extension = osp.splitext(name)
         i = 1
-        while osp.exists(osp.join(out_dir, f'{base}_{i}{extension}')):
+        while osp.exists(osp.join(out_dir, f"{base}_{i}{extension}")):
             i += 1
-        shutil.copy(file_path, osp.join(
-            out_dir, f'{base}_{i}{extension}'))
+        shutil.copy(file_path, osp.join(out_dir, f"{base}_{i}{extension}"))
 
 
 def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
@@ -53,16 +53,17 @@ def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
     os.makedirs(target_dir, exist_ok=True)
 
     # fix path for globbing
-    if not RAW_IMG_DIR.endswith(('/', '*')):
-        RAW_IMG_DIR += '/'
-    dir_list = glob.glob(RAW_IMG_DIR + '*')
+    if not RAW_IMG_DIR.endswith(("/", "*")):
+        RAW_IMG_DIR += "/"
+    dir_list = glob.glob(RAW_IMG_DIR + "*")
 
     # for each class in raw data
     for i in tqdm(range(len(dir_list))):
-        directory = dir_list[i]                # get path to class directory
+        directory = dir_list[i]  # get path to class directory
         class_name = directory.split("/")[-1]  # get class name
-        f_list = [file for file in sorted(glob.glob(directory + "/*"))
-                  if file.split(".")[-1].lower() in VALID_FILE_EXTS]
+        f_list = [
+            file for file in sorted(glob.glob(directory + "/*")) if file.split(".")[-1].lower() in VALID_FILE_EXTS
+        ]
 
         class_target_dir = osp.join(target_dir, class_name)
 
@@ -87,25 +88,34 @@ def split_train_test(RAW_IMG_DIR, DUPLICATED_IMG_DIR, TARGET_NUMBER) -> None:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-rd", "--raw_data_path",
-                        type=str, dest="raw_data_path",
-                        required=True,
-                        help="""Raw dataset path with class imgs inside folders""")
-    parser.add_argument("-td", "--target_data_path",
-                        type=str, dest="target_data_path",
-                        required=True,
-                        help="""Target dataset path where imgs will be saved in sub folders
-                        repr classes with number matching target_number""")
-    parser.add_argument("-n", "--target_number",
-                        type=int,
-                        required=False,
-                        default=1000,
-                        help="""Target size to reach for
-                        each class after duplication (default: %(default)s)""")
+    parser.add_argument(
+        "-rd",
+        "--raw_data_path",
+        type=str,
+        dest="raw_data_path",
+        required=True,
+        help="""Raw dataset path with class imgs inside folders""",
+    )
+    parser.add_argument(
+        "-td",
+        "--target_data_path",
+        type=str,
+        dest="target_data_path",
+        required=True,
+        help="""Target dataset path where imgs will be saved in sub folders
+                        repr classes with number matching target_number""",
+    )
+    parser.add_argument(
+        "-n",
+        "--target_number",
+        type=int,
+        required=False,
+        default=1000,
+        help="""Target size to reach for
+                        each class after duplication (default: %(default)s)""",
+    )
     args = parser.parse_args()
-    split_train_test(args.raw_data_path,
-                     args.target_data_path,
-                     args.target_number)
+    split_train_test(args.raw_data_path, args.target_data_path, args.target_number)
 
 
 if __name__ == "__main__":

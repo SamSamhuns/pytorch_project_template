@@ -20,14 +20,14 @@ def test_output_shapes(sample_pilimage):
 
 
 class TestMnistPreprocess:
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def preprocess(self):
         return MnistPreprocess()
 
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def example_image(self):
         # Create a dummy image (28x28, single channel)
-        return Image.new('L', (28, 28))
+        return Image.new("L", (28, 28))
 
     def test_initialization(self, preprocess):
         assert isinstance(preprocess, MnistPreprocess)
@@ -49,5 +49,5 @@ class TestMnistPreprocess:
 
     def test_inference_output_shape(self, preprocess):
         # inference loads images as RGB, of any size; the model needs one 28x28 channel
-        tensor = preprocess.inference(Image.new('RGB', (64, 48)))
+        tensor = preprocess.inference(Image.new("RGB", (64, 48)))
         assert tensor.shape == (1, 28, 28)  # Channel, Height, Width

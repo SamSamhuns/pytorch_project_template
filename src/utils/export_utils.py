@@ -1,4 +1,5 @@
 """PyTorch export utils."""
+
 from abc import ABC, abstractmethod
 from logging import Logger
 from timeit import Timer
@@ -16,7 +17,7 @@ class ExportStrategy(ABC):
     logger: Optional logger object to log instead of printing
     """
 
-    def __init__(self, logger: Logger = None) -> None:
+    def __init__(self, logger: Logger | None = None) -> None:
         super().__init__()
         self.logger = logger
 
@@ -43,9 +44,10 @@ def onnx_inference(ort_sess, sample_in):
 
 
 def onnx_inference_check(
-        model: Module, onnx_model_path: str, sample_in: torch.Tensor, logger: Logger = None) -> None:
+    model: Module, onnx_model_path: str, sample_in: torch.Tensor, logger: Logger | None = None
+) -> None:
     """Test exported ONNX model and inference.
-    
+
     Currently only supports CPU based export check
     Returns True if the ONNX model's output matches the PyTorch model's output, False otherwise.
     """
@@ -67,8 +69,8 @@ def onnx_inference_check(
     torch_tm = Timer(lambda: torch_inference(model, sample_in)).timeit(number=runs)
     ort_tm = Timer(lambda: onnx_inference(ort_sess, sample_in)).timeit(number=runs)
 
-    pt_tm_msg = f"Pytorch average inf time for tensor {sample_in.shape} = {torch_tm/runs:.3f}s"
-    onnx_tm_msg = f"ONNX average inf time for tensor {sample_in.shape} = {ort_tm/runs:.3f}s"
+    pt_tm_msg = f"Pytorch average inf time for tensor {sample_in.shape} = {torch_tm / runs:.3f}s"
+    onnx_tm_msg = f"ONNX average inf time for tensor {sample_in.shape} = {ort_tm / runs:.3f}s"
     exp_msg = "\u2705 Exported ONNX model results match that of PyTorch model!"
     if logger:
         logger.info(pt_tm_msg)
@@ -87,11 +89,15 @@ class ONNXTSExportStrategy(ExportStrategy):
         model = model.to(torch.device("cpu"))
         sample_in = sample_in.cpu()
         torch.onnx.export(
-            model, sample_in, path, export_params=True,
-            opset_version=17, do_constant_folding=True,
-            input_names=['input'], output_names=['output'],
-            dynamic_axes={'input': {0: 'batch_size'},
-                          'output': {0: 'batch_size'}}
+            model,
+            sample_in,
+            path,
+            export_params=True,
+            opset_version=17,
+            do_constant_folding=True,
+            input_names=["input"],
+            output_names=["output"],
+            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
         )
 
     def test_inference(self, model: Module, path: str, sample_in: torch.Tensor):

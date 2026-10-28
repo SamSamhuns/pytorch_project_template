@@ -6,7 +6,7 @@ IMPLEMENTED_SCHEDULERS = {
     "StepLR": StepLR,
     "OneCycleLR": OneCycleLR,
     "ReduceLROnPlateau": ReduceLROnPlateau,
-    "WarmupCosineAnnealingScheduler": WarmupCosineAnnealingScheduler
+    "WarmupCosineAnnealingScheduler": WarmupCosineAnnealingScheduler,
 }
 
 
@@ -16,6 +16,6 @@ def init_scheduler(scheduler_name: str, **kwargs):
         scheduler = IMPLEMENTED_SCHEDULERS[scheduler_name](**kwargs)
     except KeyError as exc:
         raise NotImplementedError(
-            f"{scheduler_name} is not implemented. " +
-            f"Available Scheduler: {IMPLEMENTED_SCHEDULERS.keys()}") from exc
+            f"{scheduler_name} is not implemented. " + f"Available Scheduler: {IMPLEMENTED_SCHEDULERS.keys()}"
+        ) from exc
     return scheduler

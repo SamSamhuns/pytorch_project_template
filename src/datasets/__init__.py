@@ -5,7 +5,7 @@ from .mnist_dataset import MnistDataset
 IMPLEMENTED_DATASETS = {
     "MnistDataset": MnistDataset,
     "ImageFolderDataset": ImageFolderDataset,
-    "ClassifierDataset": ClassifierDataset
+    "ClassifierDataset": ClassifierDataset,
 }
 
 
@@ -15,6 +15,6 @@ def init_dataset(dataset_name: str, **kwargs):
         dataset = IMPLEMENTED_DATASETS[dataset_name](**kwargs)
     except KeyError as exc:
         raise NotImplementedError(
-            f"{dataset_name} is not implemented. " +
-            f"Available Datasets: {IMPLEMENTED_DATASETS.keys()}") from exc
+            f"{dataset_name} is not implemented. " + f"Available Datasets: {IMPLEMENTED_DATASETS.keys()}"
+        ) from exc
     return dataset
