@@ -45,12 +45,10 @@ def test_load_checkpoint_success(base_trainer_and_logger, mocker):
 
 
 def test_validation_data_loader_setup(base_trainer_and_logger):
-    """Test val dataloader"""
+    """The val dir in the config gets a val loader"""
     trainer, _ = base_trainer_and_logger
-    if trainer.config["dataset"]["args"]["val_path"] or trainer.train_data_loader.validation_split > 0:
-        assert trainer.val_data_loader is not None
-    else:
-        assert trainer.val_data_loader is None
+    assert trainer.config["dataset"]["args"]["val_path"] is not None
+    assert trainer.val_data_loader is not None
 
 
 @pytest.mark.parametrize(
@@ -60,7 +58,7 @@ def test_validation_data_loader_setup(base_trainer_and_logger):
 def test_validation_split_configuration(mock_clsf_config, val_path, val_split, expected_excep):
     """Test val split config with variations of val path and val split"""
     mock_clsf_config["dataset"]["args"]["val_path"] = val_path
-    mock_clsf_config["dataloader"]["args"]["validation_split"] = val_split
+    mock_clsf_config["dataset"]["args"]["validation_split"] = val_split
     if expected_excep:
         with pytest.raises(expected_excep):
             PatchedBaseTrainer(config=mock_clsf_config)
@@ -70,18 +68,16 @@ def test_validation_split_configuration(mock_clsf_config, val_path, val_split, e
 
 
 def test_webdataset_config(mock_clsf_config, mock_webdataset_path):
-    """The WebDataset loader must accept the args BaseTrainer passes, e.g. the seeded generator"""
+    """A WebDataset is an IterableDataset, which the DataLoader must not be asked to shuffle"""
     dataset_args = mock_clsf_config["dataset"]["args"]
     dataset_args["data_mode"] = "webdataset"
     dataset_args["train_path"] = os.path.basename(mock_webdataset_path)
     dataset_args["val_path"] = dataset_args["test_path"] = None
-    mock_clsf_config["dataloader"]["type"] = "WebDatasetDataLoader"
-    mock_clsf_config["dataloader"]["args"].pop("shuffle")  # WebDataset shuffles in the dataset
-    mock_clsf_config["dataloader"]["args"]["num_workers"] = 0
+    mock_clsf_config["dataloader"]["num_workers"] = 0
 
     trainer = PatchedBaseTrainer(config=mock_clsf_config)
     data, target = next(iter(trainer.train_data_loader))
-    assert len(data) == len(target) == mock_clsf_config["dataloader"]["args"]["batch_size"]
+    assert len(data) == len(target) == mock_clsf_config["dataloader"]["batch_size"]
 
 
 def test_full_training_cycle(base_trainer_and_logger, mocker):

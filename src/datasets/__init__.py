@@ -1,10 +1,8 @@
-from .base_dataset import BaseDataset, ImageFolderDataset
 from .classifier_dataset import ClassifierDataset
 from .mnist_dataset import MnistDataset
 
 IMPLEMENTED_DATASETS = {
     "MnistDataset": MnistDataset,
-    "ImageFolderDataset": ImageFolderDataset,
     "ClassifierDataset": ClassifierDataset,
 }
 

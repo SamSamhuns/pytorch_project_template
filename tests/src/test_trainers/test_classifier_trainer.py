@@ -43,7 +43,7 @@ def test_train_one_epoch_method(clsf_trainer_and_logger):
 
 def test_eval_one_epoch_method(mock_clsf_config: CustomDictConfig):
     """Test eval_one_epoch"""
-    mock_clsf_config["dataloader"]["args"]["validation_split"] = 0.1
+    mock_clsf_config["dataset"]["args"]["validation_split"] = 0.1
     mock_clsf_config["dataset"]["args"]["val_path"] = None
     trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="time_series_clsf_logger")
     trainer.model.eval()
@@ -161,7 +161,7 @@ def test_compiled_checkpoint_loads_into_plain_model(mock_clsf_config: CustomDict
 def test_validate_method(mock_clsf_config: CustomDictConfig, mocker):
     mocked_logger = mocker.patch("logging.getLogger")
     mock_clsf_config["dataset"]["args"]["val_path"] = None
-    mock_clsf_config["dataloader"]["args"]["validation_split"] = 0.1
+    mock_clsf_config["dataset"]["args"]["validation_split"] = 0.1
     trainer = ClassifierTrainer(config=mock_clsf_config, logger_name="time_series_clsf_logger")
     if trainer.val_data_loader is not None:
         trainer.validate()

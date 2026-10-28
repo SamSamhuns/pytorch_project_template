@@ -30,6 +30,24 @@ def test_split_missing_a_class_dir_raises(tmp_path, create_and_save_dummy_imgs):
         ClassifierDataset(root=str(tmp_path), train_path="train", val_path=None, test_path="test")
 
 
+def test_val_split_uses_eval_transform(tmp_path, create_and_save_dummy_imgs):
+    """A val set carved out of the train dir must get the eval transform, not the train augmentation"""
+    create_and_save_dummy_imgs(str(tmp_path / "train"), n_cls=2, n_imgs_p_cls=10)
+    dataset = ClassifierDataset(
+        train_transform=lambda img: "augmented",
+        eval_transform=lambda img: "eval",
+        root=str(tmp_path),
+        val_path=None,
+        test_path=None,
+        validation_split=0.2,
+    )
+
+    assert {image for image, _ in dataset.train_set} == {"augmented"}
+    assert {image for image, _ in dataset.val_set} == {"eval"}
+    assert len(dataset.val_set) == 4
+    assert sorted(dataset.train_set.indices + dataset.val_set.indices) == list(range(20))
+
+
 def test_non_implemented_mode(basic_params):
     """Test initialization with a non-implemented mode."""
     with pytest.raises(NotImplementedError):

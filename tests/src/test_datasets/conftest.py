@@ -4,20 +4,8 @@ import pytest
 from torchvision import transforms
 
 from src.datasets import ClassifierDataset
-from src.datasets.base_dataset import ImageFolderDataset
 
-# ######### Fixtures for BaseDataset #########
-
-
-@pytest.fixture()
-def image_dataset(dump_mock_img_data_dir):
-    """Initialize the dataset"""
-    transforms_ = transforms.Compose(
-        [
-            transforms.ToTensor(),
-        ]
-    )
-    return ImageFolderDataset(str(dump_mock_img_data_dir), transforms=transforms_)
+# ######### Fixtures for ClassifierDataset #########
 
 
 @pytest.fixture
@@ -28,16 +16,12 @@ def basic_params(root_directory, create_and_save_dummy_imgs):
     create_and_save_dummy_imgs(dir_path=osp.join(root_directory, "test"))
     return {
         "train_transform": transforms.Compose([transforms.ToTensor()]),  # Dummy transform
-        "val_transform": transforms.Compose([transforms.ToTensor()]),
-        "test_transform": transforms.Compose([transforms.ToTensor()]),
+        "eval_transform": transforms.Compose([transforms.ToTensor()]),
         "root": root_directory,
         "train_path": "train",
         "val_path": "val",
         "test_path": "test",
     }
-
-
-# ######### Fixtures for ClassifierDataset #########
 
 
 @pytest.fixture
